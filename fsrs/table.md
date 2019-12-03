@@ -1,3 +1,5 @@
+[Go Back](/fsrs)
+
 | F | o | r |   |   |   |
 |---|---|---|---|---|---|
 |   | S | o | m | e |   |
@@ -21,3 +23,6 @@ IIDX SP ボス曲もしくはそれ以上の難易度です。
 ★20~???  
 Overjoy級の難易度です。  
 なぜ人類がこれをクリアできるのか。  
+
+[Difficulty Table](difficulty)
+[差分コメント](comment)
