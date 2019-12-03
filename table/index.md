@@ -1,3 +1,5 @@
+[Go Back](../index.md)
+
 [Go to the Table](table.html)
 
 | FL難易度 | 発狂と比較| 
