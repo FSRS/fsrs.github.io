@@ -9,4 +9,4 @@ FとLの差分保存所です。
 [for some reason...](fsrs/)  
 [LuvTek](luvtek/)  
 and...  
-[M-SPIN](mspin/)の過去製作差分リマスター計画
+[M-SPIN](M-SPIN/)の過去製作差分リマスター計画
