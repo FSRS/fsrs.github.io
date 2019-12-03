@@ -6,12 +6,11 @@
 
 **Resonable** (RSNB, R)
 
-▼0~★10
-
-IIDX SP 12レベルS級以下の難易度です。
-
-まぁこれくらいかな
-
+▼0~★10  
+#IIDX SP 12レベルS級以下の難易度です。  
+#まぁこれくらいかな
+  
+#
 
 **For Some Reason** (FSRS, F)
 
@@ -20,7 +19,6 @@ IIDX SP 12レベルS級以下の難易度です。
 IIDX SP ボス曲もしくはそれ以上の難易度です。
 
 悪意のある譜面なのか。
-
 
 **Without Reason** (WORS, W)
 
