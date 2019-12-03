@@ -24,5 +24,5 @@ IIDX SP ボス曲もしくはそれ以上の難易度です。
 Overjoy級の難易度です。  
 なぜ人類がこれをクリアできるのか。  
 
-[Difficulty Table](difficulty)
-[差分コメント](comment)
+[Difficulty Table](difficulty)  
+[差分コメント](comments)
