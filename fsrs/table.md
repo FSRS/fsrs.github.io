@@ -7,10 +7,8 @@
 **Resonable** (RSNB, R)
 
 ▼0~★10  
-#IIDX SP 12レベルS級以下の難易度です。  
-#まぁこれくらいかな
-  
-#
+IIDX SP 12レベルS級以下の難易度です  
+まぁこれくらいかな  
 
 **For Some Reason** (FSRS, F)
 
