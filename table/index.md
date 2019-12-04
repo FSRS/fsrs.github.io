@@ -1,4 +1,4 @@
-[Go Back](../index.md)
+[Go Back](../index.html)
 
 [Go to the Table](table.html)
 
