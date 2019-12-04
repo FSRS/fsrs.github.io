@@ -1,0 +1,109 @@
+﻿<!DOCTYPE HTML>
+<!--
+	Massively by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>FL差分難易度表</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+		<meta name="bmstable" content="header.json">
+		<link rel="stylesheet" href="assets/css/main.css">
+		<link rel="stylesheet" href="assets/css/table.css">
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css"></noscript>
+	</head>
+	<body class="is-preload">
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header">
+						<a href="./" class="logo">M-SPIN</a>
+					</header>
+
+				<!-- Nav -->
+					<nav id="nav">
+						<ul class="links">
+							<li><a href="./">Main</a></li>
+							<li class="active"><a href="table.html">Table</a></li>
+							<li><a href="https://www.youtube.com/channel/UCyFI7S5h0zkL2JZrcPHJlDQ">Youtube</a></li>
+						</ul>
+					</nav>
+
+				<!-- Main -->
+					<div id="main">
+
+						<!-- Post -->
+							<section class="post">
+								<header class="major">
+								<span class="date" id="update"></span>
+									<h1>FL差分<br>
+									難易度表</h1>
+									<p>This Page Supports BeMusicSeeker.</p>
+								</header>
+								<div class="table-wrapper">
+								<table class="diffflame" align="center"><thead><tr><th style="border-color: #000000; border-style: solid; border-width: 2px 1px 2px">FL難易度</th><th style="border-color: #000000; border-style: solid; border-width: 2px 1px 2px">発狂と比較</th></tr></thead><tbody><tr><td><b>FL1</b></td><td>★1~★4</td></tr><tr><td><b>FL2</b></td><td>★5~★8</td></tr><tr><td><b>FL3</b></td><td>★9~★12</td></tr><tr><td><b>FL4</b></td><td>★13~★14</td></tr><tr><td><b>FL5</b></td><td>★15~★16</td></tr><tr><td><b>FL6</b></td><td>★17~★18</td></tr><tr><td><b>FL7</b></td><td>★19</td></tr><tr><td><b>FL8</b></td><td>★20</td></tr><tr><td><b>FL9</b></td><td>★21</td></tr><tr><td><b>FL10</b></td><td>★22</td></tr><tr><td><b>FL11</b></td><td>★23</td></tr><tr><td><b>FL12</b></td><td>★24下位</td></tr><tr><td><b>FL20</b></td><td>★24上位</td></tr><tr><td><b>FL90</b></td><td>個人差</td></tr><tr><td><b>FL99</b></td><td>実験的</td></tr></tbody></table>
+								</div><br>
+								<button id="show_log" onclick="showlog()">View Changelog</button><br><br>
+								<textarea name="changelog" id="changelog" cols="40" rows="5" readonly></textarea><br>
+								<div class="table-wrapper"><table align="center" id="shortcut_diff"><td><a href="#FL0">FL0</a></td><td><a href="#FL1">FL1</a></td><td><a href="#FL2">FL2</a></td><td><a href="#FL3">FL3</a></td><td><a href="#FL4">FL4</a></td><td><a href="#FL5">FL5</a></td><td><a href="#FL6">FL6</a></td><td><a href="#FL7">FL7</a></td><td><a href="#FL8">FL8</a></td><td><a href="#FL9">FL9</a></td><td><a href="#FL10">FL10</a></td><td><a href="#FL11">FL11</a></td><td><a href="#FL12">FL12</a></td><td><a href="#FL20">FL20</a></td><td><a href="#FL90">FL90</a></td><td><a href="#FL99">FL99</a></td></table></div>
+								<div class="tableflame table-wrapper">
+								<table align="center">
+								<thead>
+								<tr>
+								<th width="6%">Lv</th>
+								<th width="1%">Score</th>
+								<th width="20%">Title</th>
+								<th width="12%">Artist</th>
+								<th width="3%">DL</th>
+								<th width="15%">Comment</th>
+								</tr>
+								</thead>
+								<tbody id="table_int"></tbody>
+								</table>
+								</div>
+							</section>
+
+					</div>
+
+				<!-- Footer -->
+					<footer id="footer">
+						<section class="split contact">
+							<section>
+								<h3>Discord</h3>
+								<p><a href="#">LuvTek#0832</a></p>
+							</section>
+						</section>
+					</footer>
+
+				<!-- Copyright -->
+					<div id="copyright">
+						<ul><li>&copy; M-SPIN</li><li>Design: <a style="border-bottom: dotted 1px" href="https://html5up.net">HTML5 UP</a></li></ul>
+					</div>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+			<script>
+			$(function() {
+				$("#changelog").load("change.txt");
+			});
+
+			function showlog() {
+				$("#changelog").toggle(300)
+			}
+			</script>
+			<script src="assets/js/table.js"></script>
+
+	</body>
+</html>
