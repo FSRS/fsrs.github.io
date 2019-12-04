@@ -1,4 +1,4 @@
-__Welcome__
+__Welcome to FL Pattern Design Lab__
 
 Under Construction  
 FとLの差分保存所です。
@@ -10,3 +10,5 @@ FとLの差分保存所です。
 [LuvTek](luvtek/)  
 and...  
 [M-SPIN](M-SPIN/)の過去製作差分リマスター計画
+
+研究は2019年12月17日から開始します。
