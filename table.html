@@ -50,17 +50,18 @@
 								</div><br>
 								<button id="show_log" onclick="showlog()">View Changelog</button><br><br>
 								<textarea name="changelog" id="changelog" cols="40" rows="5" readonly></textarea><br>
-								<div class="table-wrapper"><table align="center" id="shortcut_diff"><td><a href="#FL0">FL0</a></td><td><a href="#FL1">FL1</a></td><td><a href="#FL2">FL2</a></td><td><a href="#FL3">FL3</a></td><td><a href="#FL4">FL4</a></td><td><a href="#FL5">FL5</a></td><td><a href="#FL6">FL6</a></td><td><a href="#FL7">FL7</a></td><td><a href="#FL8">FL8</a></td><td><a href="#FL9">FL9</a></td><td><a href="#FL10">FL10</a></td><td><a href="#FL11">FL11</a></td><td><a href="#FL12">FL12</a></td><td><a href="#FL20">FL20</a></td><td><a href="#FL90">FL90</a></td><td><a href="#FL99">FL99</a></td></table></div>
 								<div class="tableflame table-wrapper">
-								<table align="center">
+								<table class="tablesorter" align="center">
 								<thead>
 								<tr>
-								<th width="6%">Lv</th>
+								<th width="6%">Lv ↕</th>
+								<th width="1%">Movie</th>
 								<th width="1%">Score</th>
-								<th width="20%">Title</th>
-								<th width="12%">Artist</th>
-								<th width="3%">DL</th>
-								<th width="15%">Comment</th>
+								<th width="18%">Title ↕</th>
+								<th width="12%">Artist ↕</th>
+								<th width="3%">DL ↕</th>
+								<th width="3%">Date ↕</th>
+								<th width="15%">Comment ↕</th>
 								</tr>
 								</thead>
 								<tbody id="table_int"></tbody>
@@ -104,6 +105,7 @@
 				$("#changelog").toggle(300)
 			}
 			</script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.min.js"></script>
 			<script src="assets/js/table.js"></script>
 
 	</body>
