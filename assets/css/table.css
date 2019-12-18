@@ -1,20 +1,4 @@
-﻿#shortcut_diff {
-  color: #000;
-  font-size: 0.9em;
-  text-align: center;
-  border: solid 2px #000;
-  font-family: "Source Sans Pro", Helvetica, sans-serif;
-}
-
-#shortcut_diff td {
-  border: solid 1px #000;
-}
-
-#shortcut_diff a {
-  color: #000;
-}
-
-#changelog {
+﻿#changelog {
   display: none;
   color: #000;
   overflow: auto;
@@ -23,6 +7,7 @@
   background-color: #82828287;
   margin: left;
   border-radius: 0.375em;
+  font-family: "Source Sans Pro", Helvetica, sans-serif;
 }
 
 @media screen and (max-width: 760px) {
@@ -35,23 +20,24 @@
     background-color: #82828287;
     margin: left;
     border-radius: 0.375em;
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
   }
 }
 
 /* etc */
 
 .diffflame {
-table-layout: fixed;
-margin: auto;
-width: 250px;
-text-align: center;
-border: 2px solid #000;
-border-collapse: collapse;
-font-family: "Source Sans Pro", Helvetica, sans-serif;
+  table-layout: fixed;
+  margin: auto;
+  width: 250px;
+  text-align: center;
+  border: 2px solid #000;
+  border-collapse: collapse;
+  font-family: "Source Sans Pro", Helvetica, sans-serif;
 }
 
 .diffflame td {
-border: 1px solid #000;
+  border: 1px solid #000;
 }
 
 
@@ -64,6 +50,7 @@ border: 1px solid #000;
   vertical-align: middle;
   width: 100%;
   font-size: 14px;
+  font-family: "Source Sans Pro", Helvetica, sans-serif;
 }
 
 .tableflame table tbody tr {
@@ -80,11 +67,10 @@ border: 1px solid #000;
   vertical-align: middle;
   font-size: 14px;
   font-weight: 400;
-  font-family: "Source Sans Pro", Helvetica, sans-serif;
 }
 
 .tableflame table th {
-  font-size: 1em;
+  font-size: 1.2em;
   font-weight: 900;
   border: solid 2px #000;
   border-left: 0;
@@ -93,7 +79,7 @@ border: 1px solid #000;
   text-align: center;
   vertical-align: middle;
   background-color: #ffffff;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .tableflame table thead {
