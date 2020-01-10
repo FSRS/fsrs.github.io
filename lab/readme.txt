@@ -1,6 +1,9 @@
 A Tribute to 7key Pattern Makers...
 AT7PM version -7.0.0
 
+Download Sample BMS 'Adam' by しらいし
+https://drive.google.com/uc?id=11NOb1JLxeh_3GpaLGnlxLTnVIYTW8k4m
+
 I highly recommend saving your BMS file using UBMSC before running this.
 B2BC101 will help to organize BMS file's objects especially for old BMS files
 **Caution**: B2BC101 has some bugs as deleting whole objects of some measures.
