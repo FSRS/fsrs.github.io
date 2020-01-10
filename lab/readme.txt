@@ -4,9 +4,11 @@ AT7PM version -7.0.0
 Download Sample BMS 'Adam' by しらいし
 https://drive.google.com/uc?id=11NOb1JLxeh_3GpaLGnlxLTnVIYTW8k4m
 
-Unzip AT7PM.zip and download sample BMS and unzip at AT7PM folder.
+(Unzip AT7PM.zip and download sample BMS and unzip at AT7PM folder.
 Thus, Adam should be a subfolder of AT7PM.
-Please unzip Adam.zip in Adam folder for sample bms and oggdec.
+Please unzip Adam.zip in Adam folder for sample bms and oggdec.)
+or
+(Just download Adam_fullBMS.zip and unzip to a subfolder named 'Adam')
 
 I highly recommend saving your BMS file using UBMSC before running this.
 B2BC101 will help to organize BMS file's objects especially for old BMS files
