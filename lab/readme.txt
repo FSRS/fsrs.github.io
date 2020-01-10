@@ -8,7 +8,7 @@ https://drive.google.com/uc?id=11NOb1JLxeh_3GpaLGnlxLTnVIYTW8k4m
 Thus, Adam should be a subfolder of AT7PM.
 Please unzip Adam.zip in Adam folder for sample bms and oggdec.)
 or
-(Just download Adam_fullBMS.zip and unzip to a subfolder named 'Adam')
+Just download AT7PM_full.zip
 
 I highly recommend saving your BMS file using UBMSC before running this.
 B2BC101 will help to organize BMS file's objects especially for old BMS files
