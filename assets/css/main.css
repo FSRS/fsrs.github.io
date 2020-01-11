@@ -1,6 +1,5 @@
 @import url(fontawesome-all.min.css);
-@import url("https://fonts.googleapis.com/css?family=Merriweather:300,700,300italic,700italic|Source+Sans+Pro:400,700,900");
-@import url("https://fonts.googleapis.com/css?family=Noto+Sans+KR&display=swap");
+@import url("https://fonts.googleapis.com/css?family=Merriweather:300,700,300italic,700italic|Source+Sans+Pro:400,700,900|Noto+Sans+KR");
 
 /*
 	Massively by HTML5 UP
@@ -155,11 +154,6 @@ input, select, textarea {
 		line-height: 2.375;
 	}
 
-p class = imsi
-.imsi {
-    font-family: 'Noto sans KR,' sans-serif;
-}
-
 	a {
 		-moz-transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 		-webkit-transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
@@ -184,6 +178,10 @@ p class = imsi
 		text-align: justify;
 		margin: 0 0 2rem 0;
 	}
+	
+		.noto {
+			font-family: "Noto sans KR", sans-serif;
+		}
 
 	h1, h2, h3, h4, h5, h6 {
 		font-family: "Source Sans Pro", Helvetica, sans-serif;

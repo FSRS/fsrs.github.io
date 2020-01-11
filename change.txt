@@ -1,2 +1,3 @@
-(2019/12/04) Site Open.
+(2019/12/04) Site Open. 過去差分の修正本 Uploaded
 (2020/01/03) FL Difficulty Table Updated (TOTAL 50 patterns)
+(2020/01/11) Add Date. Fixed unavailable DL links. (TOTAL 52 patterns)
