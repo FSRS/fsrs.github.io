@@ -3,3 +3,4 @@
 (2020/01/11) Add Date. Fixed unavailable DL links. (TOTAL 52 patterns)
 (2020/01/21) Fixed 差分 DL links (TOTAL 53 patterns)
 (2020/01/31) Add some pattern(s) (TOTAL 56 patterns)
+(2020/02/08) Add some pattern(s) & movie links (TOTAL 59 patterns)
