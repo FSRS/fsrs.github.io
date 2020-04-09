@@ -1,4 +1,3 @@
-import "./styles.css";
 
 const collapse = document.querySelector(".collapse-container-header");
 
