@@ -121,6 +121,15 @@
 			</script>
 			<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.min.js"></script>
 			<script src="assets/js/table.js"></script>
+			<script>
+			const collapse = document.querySelector(".collapse-container-header");
+
+			collapse.addEventListener("click", () => {
+			  const content = document.querySelector(".collapse-container-content");
+			  if (content.style.display === "none") content.style.display = "";
+			  else content.style.display = "none";
+			});
+			</script>
 
 	</body>
 </html>
