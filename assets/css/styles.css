@@ -1,0 +1,30 @@
+body {
+  text-align: center;
+  font-family: sans-serif;
+}
+
+table {
+  margin: 0 auto;
+}
+
+table,
+tr,
+td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+.collapse-container {
+  width: 720px;
+  border-radius: 2px;
+  border: 1px solid #333;
+  margin: 0 auto;
+}
+
+.collapse-container-header {
+  border-bottom: 1px solid #333;
+}
+
+.collapse-container-content {
+  margin: 0 auto;
+}
