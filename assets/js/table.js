@@ -1,14 +1,38 @@
+// Table Load Message
+$(".tableflame").append("<div id='tableLoading'>Loading...</div>");
+
 // Difficulty Table
-$(document).ready(function(){
-	$.getJSON($("meta[name=bmstable]").attr("content"), function(header){
-		$("#update").text("Last Update : " + header.last_update);
-		$.getJSON(header.data_url, function(information){
-			makeBMSTable(information,header.symbol);
-			$(".tablesorter").tablesorter({sortList: [[0,0],[3,0]] });
-		});
-	});
+$(document).ready(function() {
+    $.getJSON($("meta[name=bmstable]").attr("content"), function(header) {
+        makeChangelog();
+        $.getJSON(header.data_url, function(information) {
+            makeBMSTable(information, header.symbol);
+            $("#tableLoading").remove();
+            $(".tablesorter").tablesorter({
+                sortList: [
+                    [0, 0],
+                    [3, 0]
+                ]
+            });
+        });
+    });
 });
 
+// Changelog
+function makeChangelog() {
+    $("#changelog").load("change.txt");
+    $("#show_log").click(function() {
+        if ($("#changelog").css("display") == "none" && $(this).html() == "VIEW CHANGELOG") {
+            $("#changelog").show();
+            $(this).html("HIDE CHANGELOG");
+        } else {
+            $("#changelog").hide();
+            $(this).html("VIEW CHANGELOG");
+        }
+    });
+}
+
+// BMS Table
 function makeBMSTable(info, mark) {
     var x = "";
     var ev = "";
@@ -16,6 +40,7 @@ function makeBMSTable(info, mark) {
     var obj = $("#table_int");
     // Table Clear
     obj.html("");
+    $("<thead><tr><th width='6%'>Lv <i class='fas fa-arrows-alt-v'></i></th><th width='1%'>Movie</th><th width='1%'>Score</th><th width='18%'>Title <i class='fas fa-arrows-alt-v'></i></th><th width='12%'>Artist <i class='fas fa-arrows-alt-v'></i></th><th width='3%'>DL <i class='fas fa-arrows-alt-v'></i></th><th width='3%'>Date <i class='fas fa-arrows-alt-v'></i></th><th width='15%'>Comment <i class='fas fa-arrows-alt-v'></i></th></tr></thead><tbody></tbody>").appendTo(obj);
     var obj_sep = null;
     for (var i = 0; i < info.length; i++) {
         if (x != info[i].level) {

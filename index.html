@@ -10,6 +10,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 		<link rel="stylesheet" href="assets/css/main.css">
+		<link rel="stylesheet" href="assets/css/table.css">
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css"></noscript>
 	</head>
 	<body class="is-preload">
@@ -46,14 +47,15 @@
 					<div id="main">
 
 						<!-- Featured Post -->
-							<article class="post featured">
+							<article class="post">
 								<header class="major">
 									<h2><a href="#">UNDER<br>
 									CONSTRUCTION</a></h2>
 								</header>
-								<div>
-								<iframe width="560" height="315" src="https://www.youtube.com/embed/videoseries?list=PLtUH4h63CzEZ3cxwkup0DiaDxNgd09CdX" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe><br>
-								</div><br>
+								<div class="video_wrap">
+                                <iframe src="https://www.youtube.com/embed/videoseries?list=PLtUH4h63CzEZ3cxwkup0DiaDxNgd09CdX" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                </div>
+                                <br>
 								<ul class="actions special">
 									<li><a href="table.html" class="button large">DOWNLOAD</a></li>
 								</ul>
@@ -84,7 +86,6 @@
 
 		<!-- Scripts -->
 			<script src="assets/js/jquery.min.js"></script>
-			<script> $(window).resize(function(){resizeYoutube();}); $(function(){resizeYoutube();}); function resizeYoutube(){ $("iframe").each(function(){ if( /^https?:\/\/www.youtube.com\/embed\//g.test($(this).attr("src")) ){ $(this).css("width","100%"); $(this).css("height",Math.ceil( parseInt($(this).css("width")) * 480 / 854 ) + "px");} }); } </script>
 			<script src="assets/js/jquery.scrollex.min.js"></script>
 			<script src="assets/js/jquery.scrolly.min.js"></script>
 			<script src="assets/js/browser.min.js"></script>

@@ -40,7 +40,6 @@
 						<!-- Post -->
 							<section class="post">
 								<header class="major">
-								<span class="date" id="update"></span>
 									<h1>FL差分<br>
 									難易度表</h1>
 									<p>This Page Supports BeMusicSeeker.</p> 
@@ -53,27 +52,12 @@
 										</div>
 									</div>
 								</div>
-								
-								<br>
-								<button id="show_log" onclick="showlog()">View Changelog</button><br><br>
-								<textarea name="changelog" id="changelog" cols="40" rows="5" readonly></textarea><br>
-								<div class="tableflame table-wrapper">
-								<table class="tablesorter" align="center">
-								<thead>
-								<tr>
-								<th width="6%">Lv ↕</th>
-								<th width="1%">Movie</th>
-								<th width="1%">Score</th>
-								<th width="18%">Title ↕</th>
-								<th width="12%">Artist ↕</th>
-								<th width="3%">DL ↕</th>
-								<th width="3%">Date ↕</th>
-								<th width="15%">Comment ↕</th>
-								</tr>
-								</thead>
-								<tbody id="table_int"></tbody>
-								</table>
-								</div>
+								<p><button id="show_log">VIEW CHANGELOG</button></p>
+                                <p><textarea name="changelog" id="changelog" cols="40" rows="6" readonly></textarea></p>
+                                <div class="table-wrapper tableflame">
+                                    <table class="tablesorter" id="table_int">
+                                    </table>
+                                </div>
 								
 							</section>
 
@@ -109,16 +93,6 @@
 			<script src="assets/js/util.js"></script>
 			<script src="assets/js/main.js"></script>
 			<script src="assets/js/index.js"></script>
-			<script>
-			$(function() {
-				$("#changelog").load("change.txt");
-			});
-
-			function showlog() {
-				$("#changelog").toggle(300)
-			}
-
-			</script>
 			<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.min.js"></script>
 			<script src="assets/js/table.js"></script>
 			
