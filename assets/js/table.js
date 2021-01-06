@@ -4,7 +4,7 @@ $(".tableflame").append("<div id='tableLoading'>Loading...</div>");
 // Difficulty Table
 $(document).ready(function() {
     $.getJSON($("meta[name=bmstable]").attr("content"), function(header) {
-        makeChangelog();
+        if (header.changelog_url != null) makeChangelog(header.changelog_url);
         $.getJSON(header.data_url, function(information) {
             makeBMSTable(information, header.symbol);
             $("#tableLoading").remove();
@@ -19,15 +19,17 @@ $(document).ready(function() {
 });
 
 // Changelog
-function makeChangelog() {
-    $("#changelog").load("change.txt");
-    $("#show_log").click(function() {
-        if ($("#changelog").css("display") == "none" && $(this).html() == "VIEW CHANGELOG") {
-            $("#changelog").show();
-            $(this).html("HIDE CHANGELOG");
+function makeChangelog(url) {
+    var $changelog = $("#changelog");
+    var $show_log = $("#show_log");
+    $changelog.load(url);
+    $show_log.click(function() {
+        if ($changelog.css("display") == "none" && $show_log.html() == "VIEW CHANGELOG") {
+            $changelog.show();
+            $show_log.html("HIDE CHANGELOG");
         } else {
-            $("#changelog").hide();
-            $(this).html("VIEW CHANGELOG");
+            $changelog.hide();
+            $show_log.html("VIEW CHANGELOG");
         }
     });
 }
