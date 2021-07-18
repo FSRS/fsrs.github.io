@@ -4,12 +4,14 @@ Created on Mon Jul 12 19:51:00 2021
 
 @author: arctiidae5fury
 """
+#updated: Support measure length change
 from math import gcd
 
 ###Define BMS' path and operation sections##
-path="Air\\god.bme" #Enter the full path of a BMS file"
-path2="Air\\dog.bme" #reverse BMS output
-meslen=109 #predict, should be larger than actual # of the measure
+path="test\\_A.bme" #Enter the full path of a BMS file"
+path2="test\\_revA.bme" #reverse BMS output
+meslen=20 #predict, should be larger than actual # of the measure
+###PLEASE DEFINE MESLEN PROPERLY###
 
 f = open(path, 'rt', encoding='shift_jisx0213') 
 lines = f.readlines()
@@ -19,6 +21,7 @@ g = open(path2,'w+', encoding='shift_jisx0213')
 g.truncate(0)
 obj_dict={} #key:"05417", value:"00110000"
 bgm_list=[] #nested list, bgm_list[# of measure]=["01","03"]
+ml_dict={} #measure length dict, key:64, value:0.5
 
 maxmes=0
 def reform(text, obj, idx, hlen):
@@ -39,42 +42,48 @@ def reform(text, obj, idx, hlen):
 for i in range(meslen+1): bgm_list.append([])
 for line in lines:
     if line[1:6].isnumeric():
-        #if int(line[1:4])==10:
-        (ms_no, colon, ms_len)=line.partition(':')
-        if int(ms_no[1:4])>maxmes: maxmes=int(ms_no[1:4])
-        (objs, _n, after)=ms_len.partition('\n')
-        l_obj=int(len(objs)/2) #마디의 길이 (32비트로 나뉘어있으면 32)
-        for l_idx in range(l_obj):
-            obj=objs[2*l_idx:2*(l_idx+1)]
-            lane=ms_no[4:6]
-            if obj!="00":
-                newidx=(l_obj-l_idx)%l_obj #마디 내 위치: 17/32에서 17
-                if l_idx==0:
-                    newmes=meslen-int(ms_no[1:4])
-                    newidx=0
-                    l_obj2=1
-                else: 
-                    newmes=meslen-int(ms_no[1:4])-1
-                    newidx=l_obj-l_idx
-                    l_obj2=l_obj
-                key="0"*(3-len(str(newmes)))+str(newmes)+lane
-                txt="00"*(newidx)+obj+"00"*(l_obj2-1-newidx)
-                if lane!="01":
-                    try:
-                        if obj_dict[key]==None: obj_dict[key]=txt
-                        else: obj_dict[key]=reform(obj_dict[key], obj, newidx, l_obj2) #ZY, 17, 32
-                    except KeyError: obj_dict[key]=txt
-                else:
-                    Flag=False
-                    for bidx in range(len(bgm_list[newmes])):
-                        try: 
-                            bgm_list[newmes][bidx]=reform(bgm_list[newmes][bidx], obj, newidx, l_obj2)
-                            Flag=True
-                        except ValueError: pass
-                        if Flag: break
-                    if Flag==False: bgm_list[newmes].append(txt)
+        if line[4:6]=='02': ml_dict[int(line[1:4])]=float(line.split(":")[1])
+        else:
+            (ms_no, colon, ms_len)=line.partition(':')
+            if int(ms_no[1:4])>maxmes: maxmes=int(ms_no[1:4])
+            (objs, _n, after)=ms_len.partition('\n')
+            l_obj=int(len(objs)/2) #마디의 길이 (32비트로 나뉘어있으면 32)
+            for l_idx in range(l_obj):
+                obj=objs[2*l_idx:2*(l_idx+1)]
+                lane=ms_no[4:6]
+                if obj!="00":
+                    newidx=(l_obj-l_idx)%l_obj #마디 내 위치: 17/32에서 17
+                    if l_idx==0:
+                        newmes=meslen-int(ms_no[1:4])
+                        newidx=0
+                        l_obj2=1
+                    else: 
+                        newmes=meslen-int(ms_no[1:4])-1
+                        newidx=l_obj-l_idx
+                        l_obj2=l_obj
+                    key="0"*(3-len(str(newmes)))+str(newmes)+lane
+                    txt="00"*(newidx)+obj+"00"*(l_obj2-1-newidx)
+                    if lane!="01":
+                        try:
+                            if obj_dict[key]==None: obj_dict[key]=txt
+                            else: obj_dict[key]=reform(obj_dict[key], obj, newidx, l_obj2) #ZY, 17, 32
+                        except KeyError: obj_dict[key]=txt
+                    else:
+                        Flag=False
+                        for bidx in range(len(bgm_list[newmes])):
+                            try: 
+                                bgm_list[newmes][bidx]=reform(bgm_list[newmes][bidx], obj, newidx, l_obj2)
+                                Flag=True
+                            except ValueError: pass
+                            if Flag: break
+                        if Flag==False: bgm_list[newmes].append(txt)
     else: 
         if line!="\n": g.write(line)
+for k in ml_dict:
+    v=ml_dict[k]
+    k=maxmes-k
+    k="0"*(3-len(str(k)))+str(k)+"02"
+    line="#"+k+":"+str(v)+'\n'; g.write(line)
 for k in obj_dict: 
     v=obj_dict[k]
     mmes=int(k[0:3])+maxmes-meslen+1 #modified 마디 번
