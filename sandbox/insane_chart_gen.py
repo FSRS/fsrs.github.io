@@ -3,7 +3,7 @@
 Created on Sun Aug 29 16:51:34 2021
 
 @author: arctiidae5fury
-version: 1
+version: 1.1
 """
 import win32clipboard
 import random
@@ -54,9 +54,7 @@ while i2!=p2len:
             else: etclis.append(p2line)
             i2+=1
         if i2==p2len: break
-        elif p2lis[i2][1]>=quant_u*(mtp+0.5): 
-            print(p2lis[i2][1], mtp)
-            mtp+=1; break
+        elif p2lis[i2][1]>=quant_u*(mtp+0.5): mtp+=1; break
     
     if len(objmemo)==0:
         if reset_memo: keymemo=[] 
@@ -97,7 +95,6 @@ while i2!=p2len:
             if unused in pack0: pack0[unused]=-1
             else: pack1[unused]=-1
         if pack0==[-1]*keys: pack0=pack1; pack1=list(range(keys))
-    print(keymemo, objmemo)
     for i in range(len(objmemo)):
         obj=objmemo[i]
         key=keymemo[i]
