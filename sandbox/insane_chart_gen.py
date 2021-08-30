@@ -3,7 +3,7 @@
 Created on Sun Aug 29 16:51:34 2021
 
 @author: arctiidae5fury
-version: 0
+version: 1
 """
 import win32clipboard
 import random
@@ -17,8 +17,6 @@ reset_memo=True #if there is a 0 note quantized unit: reset keymemo
 lane1, lane2= 5, 13
 keymemo=[] #inverse of desired first note 
 ##(if you want 1 3 5 7 chord at first, set this as [1,3,5] [2,4,6]-1)
-
-
 
 #Read clipboard
 win32clipboard.OpenClipboard()
@@ -37,7 +35,7 @@ for line in clsp[1:]:
     lisp=[int(ls[0]), float(ls[1])]
     for l in ls[2:6]: lisp.append(int(l))
     if lane1<=lisp[0] and lisp[0]<lane1+keys: p1lis.append(lisp) #scratch is not interest
-    elif lane2<=lisp[0] and lisp[0]<lane2+8: p2lis.append(lisp)
+    elif lane2<=lisp[0] and lisp[0]<=lane2+keys: p2lis.append(lisp)
     else: etclis.append(lisp)
     
 #fixed setting 
@@ -51,11 +49,14 @@ while i2!=p2len:
     while True:
         p2line=p2lis[i2]
         vpos=p2line[1]
-        if len(objmemo)<7: objmemo.append(p2line)
-        else: etclis.append[p2line]
-        i2+=1
+        if quant_u*(mtp-0.5)<=p2lis[i2][1] and p2lis[i2][1]<quant_u*(mtp+0.5):
+            if len(objmemo)<keys: objmemo.append(p2line)
+            else: etclis.append(p2line)
+            i2+=1
         if i2==p2len: break
-        elif p2lis[i2][1]>=quant_u*(mtp+0.5): break
+        elif p2lis[i2][1]>=quant_u*(mtp+0.5): 
+            print(p2lis[i2][1], mtp)
+            mtp+=1; break
     
     if len(objmemo)==0:
         if reset_memo: keymemo=[] 
@@ -78,7 +79,7 @@ while i2!=p2len:
             else: rendalis=random.sample(rendacan, renda)
             unusedlis=rendalis
             keymemo=rendalis+remnlis
-        elif keys==len(keymemo)+len(objmemo):                                   
+        elif keys==len(keymemo)+len(objmemo):                               
             keymemo=remnlis #pure denim
         else: #find unused key
             unusecan=[k for k in fullkey if k not in keymemo]
@@ -92,17 +93,16 @@ while i2!=p2len:
                 unusedlis=random.sample(pack0chklis, unuseno)
             else: unusedlis=random.sample(unusecan, unuseno)
             keymemo=[k for k in unusecan if k not in unusedlis]
-            
         for unused in unusedlis: 
             if unused in pack0: pack0[unused]=-1
             else: pack1[unused]=-1
         if pack0==[-1]*keys: pack0=pack1; pack1=list(range(keys))
+    print(keymemo, objmemo)
     for i in range(len(objmemo)):
         obj=objmemo[i]
         key=keymemo[i]
         obj[0]=lane1+key
         p1lis.append(obj)
-    mtp+=1
 #only concatenate p1lis and etclis
 allis=p1lis+etclis
 allis=Sort(allis)
