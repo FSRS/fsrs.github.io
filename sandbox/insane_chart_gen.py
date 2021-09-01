@@ -3,7 +3,7 @@
 Created on Sun Aug 29 16:51:34 2021
 
 @author: arctiidae5fury
-version: 1.1
+version: 1.2
 """
 import win32clipboard
 import random
@@ -13,10 +13,12 @@ import random
 #setting#
 quant_u=12 #unit of quantization (1 = 1/192 measure, 12 = 1/16 measure)  
 keys=7
-reset_memo=True #if there is a 0 note quantized unit: reset keymemo
+reset_memo=False #if there is a 0 note quantized unit: reset keymemo
 lane1, lane2= 5, 13
 keymemo=[] #inverse of desired first note 
 ##(if you want 1 3 5 7 chord at first, set this as [1,3,5] [2,4,6]-1)
+
+
 
 #Read clipboard
 win32clipboard.OpenClipboard()
@@ -54,7 +56,8 @@ while i2!=p2len:
             else: etclis.append(p2line)
             i2+=1
         if i2==p2len: break
-        elif p2lis[i2][1]>=quant_u*(mtp+0.5): mtp+=1; break
+        elif p2lis[i2][1]>=quant_u*(mtp+0.5): 
+            mtp+=1; break
     
     if len(objmemo)==0:
         if reset_memo: keymemo=[] 
@@ -89,7 +92,9 @@ while i2!=p2len:
             pack0chklis=[k for k in unusecan if pack0[k]!=-1]
             if len(pack0chklis)>=unuseno:
                 unusedlis=random.sample(pack0chklis, unuseno)
-            else: unusedlis=random.sample(unusecan, unuseno)
+            else: 
+                pack0uc=[k for k in unusecan if k not in pack0chklis]
+                unusedlis=pack0chklis+random.sample(pack0uc, unuseno-len(pack0chklis))
             keymemo=[k for k in unusecan if k not in unusedlis]
         for unused in unusedlis: 
             if unused in pack0: pack0[unused]=-1
