@@ -3,7 +3,7 @@
 Created on Sun Aug 29 16:51:34 2021
 
 @author: arctiidae5fury
-version: 1.2
+version: 1.21
 """
 import win32clipboard
 import random
@@ -114,7 +114,8 @@ for sub in allis:
        if sub_i != ls-1: newcl+=str(sub[sub_i])+" "
        else: newcl+=str(sub[sub_i])
     newcl+="\r\n"
-win32clipboard.OpenClipboard()
+newcl=newcl.replace('.0 ', ' ')
+win32clipboard.OpenClipboard()  
 win32clipboard.EmptyClipboard()
 win32clipboard.SetClipboardText(newcl[:-2])
 win32clipboard.CloseClipboard()
