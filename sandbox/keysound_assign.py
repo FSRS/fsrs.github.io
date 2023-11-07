@@ -35,10 +35,10 @@ for line in clsp[1:]:
     ls=line.split(" ")
     lisp=[int(ls[0]), float(ls[1])]
     for l in ls[2:6]: lisp.append(int(l))
-    if 6<=lisp[0] and lisp[0]<=13:
+    if 5<=lisp[0] and lisp[0]<=12:
         if lisp[2]//10000 not in nk_obj_D: p1klis.append(lisp)
         else: p1nklis.append(lisp)
-    elif 32<=lisp[0] and lisp[0]<=39: p2lis.append(lisp)
+    elif 14<=lisp[0] and lisp[0]<=21: p2lis.append(lisp)
     else: etclis.append(lisp)
 eps=0.01
 for i1 in range(len(p1nklis)):
