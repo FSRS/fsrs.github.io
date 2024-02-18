@@ -1,7 +1,9 @@
 // Difficulty Table
 let mark = "";
 let data_link = "";
-const languagePrefix = navigator.language.slice(0, 2);
+const nowLang = navigator.language.slice(0, 2);
+const languagePrefix =
+  nowLang === "ko" ? "ko" : nowLang === "ja" ? "ja" : "en-GB";
 $(function () {
   async function getJSON() {
     const response = await fetch(
@@ -19,14 +21,13 @@ $(function () {
 
 // BMS table
 function makeBMSTable() {
-  const languageURL = `//cdn.datatables.net/plug-ins/1.13.7/i18n/${languagePrefix}.json`;
   let bmsTable = new DataTable("#tableDiff", {
     paging: false,
     info: false,
     lengthChange: false,
 
     language: {
-      url: languageURL,
+      url: `//cdn.datatables.net/plug-ins/2.0.0/i18n/${languagePrefix}.json`,
     },
 
     ajax: {
@@ -84,7 +85,11 @@ function makeFilter(table) {
   table.columns(0).every(function () {
     const column = this;
     const filterText =
-      languagePrefix === "ko" ? "레벨별 필터: " : "Filter by Level: ";
+      languagePrefix === "ko"
+        ? "레벨별 필터: "
+        : languagePrefix === "ja"
+        ? "レベルでフィルタ: "
+        : "Filter by Level: ";
 
     const selectContainer = document.createElement("div");
     selectContainer.classList.add("dt-length");
