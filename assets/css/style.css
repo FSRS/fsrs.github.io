@@ -1,0 +1,69 @@
+﻿/* Main Layout */
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.video_wrap {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+}
+
+.video_wrap iframe {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+#tableLoading {
+  font-weight: 500;
+  font-size: 1em;
+  text-align: center;
+}
+
+#changelogText {
+  width: 100%;
+  height: 25vh;
+  font-family: "Inter", sans-serif;
+}
+
+/* Chart Layout */
+.tableframe {
+  overflow: auto;
+}
+
+#tableDiff {
+  width: 100%;
+}
+
+#tableDiff th {
+  text-align: center;
+  white-space: nowrap;
+  font-size: 0.85em;
+}
+
+#tableDiff td {
+  text-align: center;
+  font-size: 0.75em;
+}
+
+.text-nowrap {
+  white-space: nowrap;
+}
+
+table.dataTable.display tbody tr.state1 {
+  background-color: #c0daff;
+}
+
+table.dataTable.display tbody tr.state2 {
+  background-color: #e5e6ad;
+}
+
+table.dataTable.display tbody tr.state3 {
+  background-color: #aeee90;
+}

@@ -1,148 +1,279 @@
-// Table Load Message
-$(".tableflame").append("<div id='tableLoading'>Loading...</div>");
-
 // Difficulty Table
-$(document).ready(function() {
-    $.getJSON($("meta[name=bmstable]").attr("content"), function(header) {
-        if (header.changelog_url != null) makeChangelog(header.changelog_url);
-        $.getJSON(header.data_url, function(information) {
-            makeBMSTable(information, header.symbol);
-            $("#tableLoading").remove();
-            $(".tablesorter").tablesorter({
-                sortList: [
-                    [0, 0],
-                    [3, 0]
-                ]
-            });
-        });
-    });
+let mark = "";
+let data_link = "";
+const languagePrefix = navigator.language.slice(0, 2);
+$(function () {
+  async function getJSON() {
+    const response = await fetch(
+      document.querySelector("meta[name=bmstable]").getAttribute("content")
+    );
+    const header = await response.json();
+    document.getElementById("changelogText").value = "Loading...";
+    if (header.symbol) mark = header.symbol;
+    if (header.data_url) data_link = header.data_url;
+    if (header.enum_level_order) DataTable.enum(header.enum_level_order);
+    makeBMSTable();
+  }
+  if (document.querySelector("meta[name=bmstable]")) getJSON();
 });
 
+// BMS table
+function makeBMSTable() {
+  const languageURL = `//cdn.datatables.net/plug-ins/1.13.7/i18n/${languagePrefix}.json`;
+  let bmsTable = new DataTable("#tableDiff", {
+    paging: false,
+    info: false,
+    lengthChange: false,
+
+    language: {
+      url: languageURL,
+    },
+
+    ajax: {
+      url: data_link,
+      dataSrc: "",
+    },
+
+    columns:
+      typeof tableColumns === "undefined" ? defaultColumns : tableColumns,
+
+    createdRow: function (row, data) {
+      const rowColor = {
+        1: "state1",
+        2: "state2",
+        3: "state3",
+      };
+      if (data.state) row.classList.add(rowColor[data.state]);
+    },
+
+    initComplete: function () {
+      // Make Changelog
+      makeChangelog(bmsTable);
+      // Filter
+      makeFilter(bmsTable);
+    },
+  });
+}
+
 // Changelog
-function makeChangelog(url) {
-    var $changelog = $("#changelog");
-    var $show_log = $("#show_log");
-    $changelog.load(url);
-    $show_log.click(function() {
-        if ($changelog.css("display") == "none" && $show_log.html() == "VIEW CHANGELOG") {
-            $changelog.show();
-            $show_log.html("HIDE CHANGELOG");
-        } else {
-            $changelog.hide();
-            $show_log.html("VIEW CHANGELOG");
-        }
+function makeChangelog(table) {
+  const data = table.ajax.json();
+  // Special Date
+  const blogOpen = {
+    date: "Wed Dec 04 2019 00:00:00 GMT+0900 (JST)",
+    title: "Site Open. 過去差分の修正本 Uploaded.",
+    state: "special",
+  };
+  data.push(blogOpen);
+  data.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const changelogData = data
+    .map(function (song) {
+      const dateStr = formatDateString(song.date);
+      if (song.state == "special") {
+        return `(${dateStr}) ${song.title}`;
+      } else {
+        return `(${dateStr}) ${mark}${song.level} ${song.title}`;
+      }
+    })
+    .join("\n");
+  document.getElementById("changelogText").value = changelogData;
+}
+
+// Make Filter
+function makeFilter(table) {
+  table.columns(0).every(function () {
+    const column = this;
+    const filterText =
+      languagePrefix === "ko" ? "레벨별 필터: " : "Filter by Level: ";
+
+    const selectContainer = document.createElement("div");
+    selectContainer.classList.add("dt-length");
+
+    const select = document.createElement("select");
+    select.innerHTML = "<option value=''>All</option>";
+
+    select.addEventListener("change", function () {
+      const val = $.fn.dataTable.util.escapeRegex(this.value);
+      column.search(val ? "^" + val + "$" : "", true, false).draw();
     });
+
+    selectContainer.appendChild(document.createTextNode(filterText));
+    selectContainer.appendChild(select);
+
+    const $selectContainer = $(selectContainer);
+
+    $selectContainer.prependTo($(".dt-search"));
+
+    column
+      .data()
+      .unique()
+      .sort(function (a, b) {
+        // a - b = asc, b - a = desc
+        return parseInt(a) - parseInt(b);
+      })
+      .each(function (d, j) {
+        const option = document.createElement("option");
+        option.value = mark + d;
+        option.textContent = d;
+        select.appendChild(option);
+      });
+  });
 }
 
-// BMS Table
-function makeBMSTable(info, mark) {
-    var x = "";
-    var ev = "";
-    var count = 0;
-    var obj = $("#table_int");
-    // Table Clear
-    obj.html("");
-    $("<thead><tr><th width='6%'>Lv <i class='fas fa-arrows-alt-v'></i></th><th width='1%'>Movie</th><th width='1%'>Score</th><th width='18%'>Title <i class='fas fa-arrows-alt-v'></i></th><th width='12%'>Artist <i class='fas fa-arrows-alt-v'></i></th><th width='3%'>DL <i class='fas fa-arrows-alt-v'></i></th><th width='3%'>Date <i class='fas fa-arrows-alt-v'></i></th><th width='15%'>Comment <i class='fas fa-arrows-alt-v'></i></th></tr></thead><tbody></tbody>").appendTo(obj);
-    var obj_sep = null;
-    for (var i = 0; i < info.length; i++) {
-        if (x != info[i].level) {
-            count = 0;
-            x = info[i].level;
-        }
-        // Main text
-        var str = $("<tr class='tr_normal'></tr>");
+// Date Format
+function formatDateString(dateStr) {
+  const date_ = new Date(dateStr);
+  const year = date_.getFullYear();
+  const month = String(date_.getMonth() + 1).padStart(2, "0");
+  const day = String(date_.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
 
-        if (info[i].state == 1) {
-            str = $("<tr class='state1'></tr>");
-        }
-        if (info[i].state == 2) {
-            str = $("<tr class='state2'></tr>");
-        }
-        if (info[i].state == 3) {
-            str = $("<tr class='state3'></tr>");
-        }
-        if (info[i].state == 4) {
-            str = $("<tr class='state4'></tr>");
-        }
-        if (info[i].state == 5) {
-            str = $("<tr class='state5'></tr>");
-        }
-        if (info[i].state == 6) {
-            str = $("<tr class='state6'></tr>");
+const tableData = {
+  tableLevel: function (data) {
+    return mark + data;
+  },
 
-        }
+  tableTitle: function (data, type, row) {
+    let lr2irURL =
+      "http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5=";
+    lr2irURL += row.md5;
+    return `<a href='${lr2irURL}' target='_blank'>${data}</a>`;
+  },
 
-        // Level
-        $("<td width='5%'>" + mark + x + "</a></td>").appendTo(str);
-        // AUTOPLAY Movie
-        if (info[i].movie_link != "" && info[i].movie_link != null) {
-            $("<td width='1%'><a href='" + info[i].movie_link + "' class='fas fa-lg fa-play' target='_blank'></a></td>").appendTo(str);
-        } else {
-            $("<td width='1%'></td>").appendTo(str);
-        }
-        // View Pattern
-        $("<td width='1%'><a href='http://www.ribbit.xyz/bms/score/view?p=1&md5=" + info[i].md5 + "' class='fas fa-lg fa-music' target='_blank'></a></td>").appendTo(str);
-
-        // Title
-        $("<td width='18%'>" + "<a href='http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5=" + info[i].md5 + "' target='_blank'>" + info[i].title + "</a></td>").appendTo(str);
-        // Artist (Package Link)
-        var astr = "";
-        if (info[i].url != "" && info[i].url != null) {
-            if (info[i].artist != "" && info[i].artist != null) {
-                astr = "<a href='" + info[i].url + "'>" + info[i].artist + "</a>";
-            } else {
-                astr = "<a href='" + info[i].url + "'>" + info[i].url + "</a>";
-            }
-        } else {
-            if (info[i].artist != "" && info[i].artist != null) {
-                astr = info[i].artist;
-            }
-        }
-        if (info[i].url_pack != "" && info[i].url_pack != null) {
-            if (info[i].name_pack != "" && info[i].name_pack != null) {
-                astr += "<br>(<a href='" + info[i].url_pack + "'>" + info[i].name_pack + "</a>)";
-            } else {
-                astr += "<br>(<a href='" + info[i].url_pack + "'>" + info[i].url_pack + "</a>)";
-            }
-        } else {
-            if (info[i].name_pack != "" && info[i].name_pack != null) {
-                astr += "<br>(" + info[i].name_pack + ")";
-            }
-        }
-        $("<td width='12%'>" + astr + "</td>").appendTo(str);
-        // Pattern Download
-        if (info[i].url_diff != "" && info[i].url_diff != null) {
-            if (info[i].name_diff != "" && info[i].name_diff != null) {
-                $("<td width='3%'><a href='" + info[i].url_diff + "'>" + info[i].name_diff + "</a></td>").appendTo(str);
-            } else {
-                $("<td width='3%'><a href='" + info[i].url_diff + "'>DL</a></td>").appendTo(str);
-            }
-        } else {
-            if (info[i].name_diff != "" && info[i].name_diff != null) {
-                $("<td width='3%'>" + info[i].name_diff + "</td>").appendTo(str);
-            } else {
-                $("<td width='3%'>同梱</td>").appendTo(str);
-            }
-        }
-        // Added Date
-        if (info[i].date != "" && info[i].date != null) {
-            var addDate = new Date(info[i].date);
-            var year = addDate.getFullYear();
-            var month = addDate.getMonth() + 1;
-            var day = addDate.getDate();
-            if (month < 10) {
-                month = "0" + month;
-            }
-            if (day < 10) {
-                day = "0" + day;
-            }
-            $("<td width='3%'>" + year + "." + month + "." + day + "</td>").appendTo(str);
-        } else {
-            $("<td width='3%'></td>").appendTo(str);
-        }
-        // Comment
-        $("<td width='15%'>" + info[i].comment + "</div></td>").appendTo(str);
-        str.appendTo(obj);
-        count++;
+  tableScore: function (data) {
+    let scoreURL = "http://www.ribbit.xyz/bms/score/view?md5=";
+    scoreURL += data;
+    if (data) {
+      return `<a href='${scoreURL}' target='_blank'>
+                <i class='fa-solid fa-music fa-lg'></i>
+              </a>`;
+    } else {
+      return "";
     }
-}
+  },
+
+  tableMovie: function (data) {
+    let movieURL = "https://www.youtube.com/watch?v=";
+    if (data) {
+      movieURL += data.slice(-11);
+      return `<a href='${movieURL}' target='_blank'>
+                ▶
+              </a>`;
+    } else {
+      return "";
+    }
+  },
+
+  tableArtist: function (data, type, row) {
+    let artistStr = "";
+    if (row.url) {
+      artistStr = `<a href='${row.url}' target='_blank'>${data || row.url}</a>`;
+    }
+    if (row.url_pack) {
+      if (row.name_pack) {
+        artistStr += `<br />(<a href='${row.url_pack}' target='_blank'>${row.name_pack}</a>)`;
+      } else {
+        artistStr += `<br />(<a href='${row.url_pack}' target='_blank'>${row.url_pack}</a>)`;
+      }
+    } else if (row.name_pack) {
+      artistStr += `<br />(${row.name_pack})`;
+    }
+    return artistStr;
+  },
+
+  tableDate: function (data) {
+    if (data) {
+      return formatDateString(data);
+    } else {
+      return "";
+    }
+  },
+
+  // Chart Download
+  tableChart: function (data, type, row) {
+    if (row.url_diff) {
+      if (data) {
+        return `<a href='${row.url_diff}' target='_blank'>${data}</a>`;
+      } else {
+        return `<a href='${row.url_diff}'>
+                  <i class='fa-solid fa-arrow-down fa-lg'></i>
+                </a>`;
+      }
+    } else {
+      if (data) {
+        return data;
+      } else {
+        if (languagePrefix === "ko") {
+          return "동봉";
+        } else {
+          return "同梱";
+        }
+      }
+    }
+  },
+
+  // Comment
+  tableComment: function (data, type, row) {
+    return row.comment || "";
+  },
+};
+
+const defaultColumns = [
+  {
+    title: "Level",
+    width: "1%",
+    data: "level",
+    type: "natural",
+    render: tableData.tableLevel,
+  },
+  /*
+  {
+    title: "<i class='fa-solid fa-music fa-lg'></i>",
+    width: "1%",
+    data: "md5",
+    orderable: false,
+    searchable: false,
+    render: tableData.tableScore,
+  },
+  */
+  {
+    title: "▶",
+    width: "1%",
+    data: "movie_link",
+    orderable: false,
+    searchable: false,
+    render: tableData.tableMovie,
+  },
+  {
+    title: "Title<br />(LR2IR)",
+    width: "30%",
+    data: "title",
+    render: tableData.tableTitle,
+  },
+  {
+    title: "Artist<br />(BMS DL)",
+    width: "25%",
+    data: "artist",
+    render: tableData.tableArtist,
+  },
+  {
+    title: "DL",
+    width: "1%",
+    data: "name_diff",
+    className: "text-nowrap",
+    render: tableData.tableChart,
+  },
+  {
+    title: "Date",
+    width: "1%",
+    data: "date",
+    className: "text-nowrap",
+    render: tableData.tableDate,
+  },
+  {
+    title: "Comment",
+    width: "25%",
+    render: tableData.tableComment,
+  },
+];
