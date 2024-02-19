@@ -65,5 +65,19 @@ table.dataTable.display tbody tr.state2 {
 }
 
 table.dataTable.display tbody tr.state3 {
-  background-color: #aeee90;
+  background-color: #cdeed9;
+}
+
+@media (prefers-color-scheme: dark) {
+  table.dataTable.display tbody tr.state1 {
+    background-color: #2f363f;
+  }
+
+  table.dataTable.display tbody tr.state2 {
+    background-color: #3c3c2d;
+  }
+
+  table.dataTable.display tbody tr.state3 {
+    background-color: #4a554d;
+  }
 }

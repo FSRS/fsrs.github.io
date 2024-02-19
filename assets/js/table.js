@@ -150,9 +150,7 @@ const tableData = {
     let scoreURL = "http://www.ribbit.xyz/bms/score/view?md5=";
     scoreURL += data;
     if (data) {
-      return `<a href='${scoreURL}' target='_blank'>
-                <i class='fa-solid fa-music fa-lg'></i>
-              </a>`;
+      return `<a href='${scoreURL}' target='_blank'>♪</a>`;
     } else {
       return "";
     }
@@ -162,9 +160,7 @@ const tableData = {
     let movieURL = "https://www.youtube.com/watch?v=";
     if (data) {
       movieURL += data.slice(-11);
-      return `<a href='${movieURL}' target='_blank'>
-                ▶
-              </a>`;
+      return `<a href='${movieURL}' target='_blank'>▶</a>`;
     } else {
       return "";
     }
@@ -201,9 +197,7 @@ const tableData = {
       if (data) {
         return `<a href='${row.url_diff}' target='_blank'>${data}</a>`;
       } else {
-        return `<a href='${row.url_diff}'>
-                  <i class='fa-solid fa-arrow-down fa-lg'></i>
-                </a>`;
+        return `<a href='${row.url_diff}'>DL</a>`;
       }
     } else {
       if (data) {
@@ -234,7 +228,7 @@ const defaultColumns = [
   },
   /*
   {
-    title: "<i class='fa-solid fa-music fa-lg'></i>",
+    title: "♪",
     width: "1%",
     data: "md5",
     orderable: false,
