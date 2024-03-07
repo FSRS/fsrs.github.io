@@ -95,19 +95,19 @@ function makeFilter(table) {
     selectContainer.classList.add("dt-length");
 
     const select = document.createElement("select");
-    select.innerHTML = "<option value=''>All</option>";
+    select.add(new Option("All", ""));
 
     select.addEventListener("change", function () {
-      const val = $.fn.dataTable.util.escapeRegex(this.value);
+      const val = DataTable.util.escapeRegex(this.value);
       column.search(val ? "^" + val + "$" : "", true, false).draw();
     });
 
     selectContainer.appendChild(document.createTextNode(filterText));
     selectContainer.appendChild(select);
 
-    const $selectContainer = $(selectContainer);
-
-    $selectContainer.prependTo($(".dt-search"));
+    $(selectContainer).prependTo(
+      $("#tableDiff_wrapper > div:nth-child(1) > .dt-start")
+    );
 
     column
       .data()
