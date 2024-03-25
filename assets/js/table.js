@@ -104,9 +104,9 @@ function makeFilter(table) {
   selectContainer.appendChild(document.createTextNode(filterText));
   selectContainer.appendChild(select);
 
-  $(selectContainer).prependTo(
-    $("#tableDiff_wrapper > div:nth-child(1) > .dt-start")
-  );
+  document
+    .querySelector("#tableDiff_wrapper > div:nth-child(1) > .dt-start")
+    .prepend(selectContainer);
 
   column
     .data()
