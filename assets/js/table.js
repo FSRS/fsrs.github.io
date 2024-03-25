@@ -27,7 +27,7 @@ function makeBMSTable() {
     lengthChange: false,
 
     language: {
-      url: `//cdn.datatables.net/plug-ins/2.0.0/i18n/${languagePrefix}.json`,
+      url: `//cdn.datatables.net/plug-ins/2.0.2/i18n/${languagePrefix}.json`,
     },
 
     ajax: {
@@ -82,47 +82,45 @@ function makeChangelog(table) {
 
 // Make Filter
 function makeFilter(table) {
-  table.columns(0).every(function () {
-    const column = this;
-    const filterText =
-      languagePrefix === "ko"
-        ? "레벨별 필터: "
-        : languagePrefix === "ja"
-        ? "レベルでフィルタ: "
-        : "Filter by Level: ";
+  const column = table.column(0);
+  const filterText =
+    languagePrefix === "ko"
+      ? "레벨별 필터: "
+      : languagePrefix === "ja"
+      ? "レベルでフィルタ: "
+      : "Filter by Level: ";
 
-    const selectContainer = document.createElement("div");
-    selectContainer.classList.add("dt-length");
+  const selectContainer = document.createElement("div");
+  selectContainer.classList.add("dt-length");
 
-    const select = document.createElement("select");
-    select.add(new Option("All", ""));
+  const select = document.createElement("select");
+  select.add(new Option("All", ""));
 
-    select.addEventListener("change", function () {
-      const val = DataTable.util.escapeRegex(this.value);
-      column.search(val ? "^" + val + "$" : "", true, false).draw();
-    });
-
-    selectContainer.appendChild(document.createTextNode(filterText));
-    selectContainer.appendChild(select);
-
-    $(selectContainer).prependTo(
-      $("#tableDiff_wrapper > div:nth-child(1) > .dt-start")
-    );
-
-    column
-      .data()
-      .unique()
-      .sort(function (a, b) {
-        // a - b = asc, b - a = desc
-        return parseInt(a) - parseInt(b);
-      })
-      .each(function (d, j) {
-        const option = document.createElement("option");
-        option.value = mark + d;
-        option.textContent = d;
-        select.appendChild(option);
-      });
+  select.addEventListener("change", function () {
+    const val = DataTable.util.escapeRegex(this.value);
+    column.search(val ? "^" + val + "$" : "", true, false).draw();
   });
+
+  selectContainer.appendChild(document.createTextNode(filterText));
+  selectContainer.appendChild(select);
+
+  $(selectContainer).prependTo(
+    $("#tableDiff_wrapper > div:nth-child(1) > .dt-start")
+  );
+
+  column
+    .data()
+    .unique()
+    .sort(function (a, b) {
+      // a - b = asc, b - a = desc
+      return parseInt(a) - parseInt(b);
+    })
+    .each(function (d, j) {
+      const option = document.createElement("option");
+      option.value = mark + d;
+      option.textContent = d;
+      select.appendChild(option);
+    });
 }
 
 // Date Format
