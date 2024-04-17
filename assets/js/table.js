@@ -145,7 +145,7 @@ const tableData = {
   },
 
   tableScore: function (data) {
-    let scoreURL = "http://www.ribbit.xyz/bms/score/view?md5=";
+    let scoreURL = "https://bms-score-viewer.pages.dev/view?md5=";
     scoreURL += data;
     if (data) {
       return `<a href='${scoreURL}' target='_blank'>♪</a>`;
@@ -224,16 +224,16 @@ const defaultColumns = [
     type: "natural",
     render: tableData.tableLevel,
   },
-  /*
+  
   {
-    title: "♪",
+    title: "♫",
     width: "1%",
     data: "md5",
     orderable: false,
     searchable: false,
     render: tableData.tableScore,
   },
-  */
+  
   {
     title: "▶",
     width: "1%",
