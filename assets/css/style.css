@@ -27,8 +27,35 @@ a:hover {
 }
 
 /* Chart Layout */
+#changelogText {
+  width: 100%;
+  height: 25vh;
+  font-family: "Inter", sans-serif;
+  /* Add these styles */
+  background-color: var(--nc-bg-1); /* Use main background */
+  color: var(--nc-tx-1);           /* Use main text color */
+  border: 1px solid var(--nc-border-color); /* Use new border color */
+  border-radius: 4px;
+}
+
+/* Chart Layout */
 .tableframe {
   overflow: auto;
+}
+
+/* -- ADD THESE NEW RULES -- */
+table {
+  color: var(--nc-tx-1); /* Make sure all table text uses the theme color */
+  border-collapse: collapse; /* For clean, single borders */
+}
+
+th, td {
+  border: 1px solid var(--nc-border-color); /* Apply themed borders */
+  padding: 0.5em 0.75em;
+}
+
+th {
+  background-color: var(--nc-header-bg); /* Style table headers */
 }
 
 #tableDiff {
@@ -55,6 +82,10 @@ a:hover {
   --nc-bg-1: #e6e6fa; /* Light violet background */
   --nc-tx-1: #4b0082; /* Dark violet text */
   --nc-accent-color: #8a2be2; /* Blue-violet accent */
+
+  /* -- ADD THESE LINES -- */
+  --nc-header-bg: #f2e6ff; /* A very light purple for headers */
+  --nc-border-color: #d8c0ff; /* A light purple for borders */
 }
 
 /* Light Mode Table Rows */
@@ -76,6 +107,10 @@ table.dataTable.display tbody tr.state3 {
     --nc-bg-1: #1e003a; /* Dark violet background */
     --nc-tx-1: #d8bfd8; /* Light violet text */
     --nc-accent-color: #8a2be2; /* Blue-violet accent */
+ 
+    /* -- ADD THESE LINES -- */
+    --nc-header-bg: #272041; /* The darkest purple for headers */
+    --nc-border-color: #3b3a5b; /* A dark purple for borders */
   }
 
   /* Dark Mode Table Rows */
@@ -90,4 +125,29 @@ table.dataTable.display tbody tr.state3 {
   table.dataTable.display tbody tr.state3 {
     background-color: #272041; /* Darkest purple */
   }
+}
+
+/* Add or modify these rules in assets/css/style.css */
+
+a {
+  color: var(--nc-tx-1); /* Use your theme's main text color */
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--nc-accent-color); /* Use your accent color on hover */
+  text-decoration: underline;
+}
+
+button {
+  background-color: var(--nc-accent-color); /* Use your accent color for the background */
+  color: #f0e6ff; /* A very light violet for good contrast */
+  border: none;
+  border-radius: 4px; /* Optional: adds slightly rounded corners */
+  padding: 0.75em 1.5em; /* Optional: makes the button size more pleasant */
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(115%); /* Makes the button slightly brighter on hover */
 }
