@@ -226,7 +226,7 @@ const defaultColumns = [
   },
 
   {
-    title: "♫",
+    title: "♪",
     width: "1%",
     data: "md5",
     orderable: false,
