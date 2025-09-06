@@ -20,27 +20,27 @@ a:hover {
   height: 100%;
 }
 
+a button {
+  background-color: var(--nc-accent-color); /* Uses your main accent color */
+  color: #f0e6ff;                           /* A light violet for text to ensure readability */
+  border: none;
+  border-radius: 4px;                        
+  padding: 0.75em 1.5em;                     
+  cursor: pointer;
+  font-family: "Inter", sans-serif;          
+}
+
+a button:hover {
+  filter: brightness(115%); /* Makes the button slightly brighter on hover */
+}
+
+/* Chart Layout */
 #changelogText {
   width: 100%;
   height: 25vh;
   font-family: "Inter", sans-serif;
 }
 
-button {
-  background-color: var(--nc-accent-color); /* Uses your main accent color */
-  color: #f0e6ff;                           /* A light violet for text to ensure readability */
-  border: none;
-  border-radius: 4px;                        /* Adds slightly rounded corners */
-  padding: 0.75em 1.5em;                     /* Adjusts button size for a better look */
-  cursor: pointer;
-  font-family: "Inter", sans-serif;          /* Ensures font consistency */
-}
-
-button:hover {
-  filter: brightness(115%); /* Makes the button slightly brighter on hover */
-}
-
-/* Chart Layout */
 #changelogText {
   width: 100%;
   height: 25vh;
