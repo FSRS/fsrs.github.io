@@ -110,19 +110,21 @@ details table {
 
   --nc-header-bg: #f2e6ff; /* A very light purple for headers */
   --nc-border-color: #d8c0ff; /* A light purple for borders */
+  --nc-table-header-bg: #c3a3e6; /* A new, distinct color for table headers */
 }
 
 /* Light Mode Table Rows */
-table.dataTable.display tbody tr.state1 {
-  background-color: #d8c0ff; /* Light purple */
-}
-
-table.dataTable.display tbody tr.state2 {
+table.dataTable tbody tr:nth-child(even) {
   background-color: #f2e6ff; /* Very light purple */
 }
 
-table.dataTable.display tbody tr.state3 {
-  background-color: #d0b0f0; /* Medium light purple */
+table.dataTable tbody tr:nth-child(odd) {
+  background-color: #e8e8fa; /* Lighter shade of purple */
+}
+
+/* Hover effect for all table rows */
+table.dataTable tbody tr:hover {
+  background-color: #d8c0ff !important; /* A light purple on hover */
 }
 
 /* Dark Mode Colors */
@@ -134,19 +136,21 @@ table.dataTable.display tbody tr.state3 {
 
     --nc-header-bg: #272041; /* The darkest purple for headers */
     --nc-border-color: #3b3a5b; /* A dark purple for borders */
+    --nc-table-header-bg: #3a2a5e; /* A new, distinct color for dark mode table headers */
   }
 
   /* Dark Mode Table Rows */
-  table.dataTable.display tbody tr.state1 {
+  table.dataTable tbody tr:nth-child(even) {
+    background-color: #272041; /* Darkest purple */
+  }
+
+  table.dataTable tbody tr:nth-child(odd) {
     background-color: #2f2a4f; /* Dark muted purple */
   }
 
-  table.dataTable.display tbody tr.state2 {
-    background-color: #3b3a5b; /* Darker purple */
-  }
-
-  table.dataTable.display tbody tr.state3 {
-    background-color: #272041; /* Darkest purple */
+  /* Hover effect for dark mode table rows */
+  table.dataTable tbody tr:hover {
+    background-color: #3b3a5b !important; /* Darker purple on hover */
   }
 }
 
