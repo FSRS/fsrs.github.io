@@ -50,28 +50,43 @@ a:hover {
   white-space: nowrap;
 }
 
+/* Violet Theme Colors */
+:root {
+  --nc-bg-1: #e6e6fa; /* Light violet background */
+  --nc-tx-1: #4b0082; /* Dark violet text */
+  --nc-accent-color: #8a2be2; /* Blue-violet accent */
+}
+
+/* Light Mode Table Rows */
 table.dataTable.display tbody tr.state1 {
-  background-color: #c0daff;
+  background-color: #d8c0ff; /* Light purple */
 }
 
 table.dataTable.display tbody tr.state2 {
-  background-color: #e5e6ad;
+  background-color: #f2e6ff; /* Very light purple */
 }
 
 table.dataTable.display tbody tr.state3 {
-  background-color: #cdeed9;
+  background-color: #d0b0f0; /* Medium light purple */
 }
 
+/* Dark Mode Colors */
 @media (prefers-color-scheme: dark) {
+  :root {
+    --nc-bg-1: #1e003a; /* Dark violet background */
+    --nc-tx-1: #d8bfd8; /* Light violet text */
+  }
+
+  /* Dark Mode Table Rows */
   table.dataTable.display tbody tr.state1 {
-    background-color: #2f363f;
+    background-color: #2f2a4f; /* Dark muted purple */
   }
 
   table.dataTable.display tbody tr.state2 {
-    background-color: #3c3c2d;
+    background-color: #3b3a5b; /* Darker purple */
   }
 
   table.dataTable.display tbody tr.state3 {
-    background-color: #4a554d;
+    background-color: #272041; /* Darkest purple */
   }
 }
