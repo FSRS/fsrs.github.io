@@ -26,6 +26,20 @@ a:hover {
   font-family: "Inter", sans-serif;
 }
 
+button {
+  background-color: var(--nc-accent-color); /* Uses your main accent color */
+  color: #f0e6ff;                           /* A light violet for text to ensure readability */
+  border: none;
+  border-radius: 4px;                        /* Adds slightly rounded corners */
+  padding: 0.75em 1.5em;                     /* Adjusts button size for a better look */
+  cursor: pointer;
+  font-family: "Inter", sans-serif;          /* Ensures font consistency */
+}
+
+button:hover {
+  filter: brightness(115%); /* Makes the button slightly brighter on hover */
+}
+
 /* Chart Layout */
 #changelogText {
   width: 100%;
@@ -38,12 +52,10 @@ a:hover {
   border-radius: 4px;
 }
 
-/* Chart Layout */
 .tableframe {
   overflow: auto;
 }
 
-/* -- ADD THESE NEW RULES -- */
 table {
   color: var(--nc-tx-1); /* Make sure all table text uses the theme color */
   border-collapse: collapse; /* For clean, single borders */
@@ -83,7 +95,6 @@ th {
   --nc-tx-1: #4b0082; /* Dark violet text */
   --nc-accent-color: #8a2be2; /* Blue-violet accent */
 
-  /* -- ADD THESE LINES -- */
   --nc-header-bg: #f2e6ff; /* A very light purple for headers */
   --nc-border-color: #d8c0ff; /* A light purple for borders */
 }
@@ -108,7 +119,6 @@ table.dataTable.display tbody tr.state3 {
     --nc-tx-1: #d8bfd8; /* Light violet text */
     --nc-accent-color: #8a2be2; /* Blue-violet accent */
  
-    /* -- ADD THESE LINES -- */
     --nc-header-bg: #272041; /* The darkest purple for headers */
     --nc-border-color: #3b3a5b; /* A dark purple for borders */
   }
@@ -127,7 +137,6 @@ table.dataTable.display tbody tr.state3 {
   }
 }
 
-/* Add or modify these rules in assets/css/style.css */
 
 a {
   color: var(--nc-tx-1); /* Use your theme's main text color */
