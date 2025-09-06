@@ -25,13 +25,13 @@ a button {
   color: #f0e6ff; /* A light violet for text to ensure readability */
   border: none;
   border-radius: 4px;
-  padding: 0.75em 1.5em;
+  padding: 0.6em 1.2em; /* Made button more compact */
   cursor: pointer;
   font-family: "Inter", sans-serif;
 }
 
 a button:hover {
-  filter: brightness(115%); /* Makes the button slightly brighter on hover */
+  background-color: var(--nc-accent-hover-color); /* Changed to a violet hover color */
 }
 
 /* Chart Layout */
@@ -87,7 +87,7 @@ th {
 details {
   background-color: var(--nc-header-bg);
   border-radius: 8px;
-  padding: 1.5em;
+  padding: 1em; /* Made padding more compact */
   margin-top: 1em;
   margin-bottom: 1em;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -107,6 +107,7 @@ details table {
   --nc-bg-1: #e6e6fa; /* Light violet background */
   --nc-tx-1: #4b0082; /* Dark violet text */
   --nc-accent-color: #8a2be2; /* Blue-violet accent */
+  --nc-accent-hover-color: #9d48ff; /* New hover color for buttons */
 
   --nc-header-bg: #f2e6ff; /* A very light purple for headers */
   --nc-border-color: #d8c0ff; /* A light purple for borders */
@@ -119,7 +120,7 @@ table.dataTable tbody tr:nth-child(even) {
 }
 
 table.dataTable tbody tr:nth-child(odd) {
-  background-color: #e8e8fa; /* Lighter shade of purple */
+  background-color: #ded6fd; /* Lighter shade of purple for more contrast */
 }
 
 /* Hover effect for all table rows */
@@ -133,6 +134,7 @@ table.dataTable tbody tr:hover {
     --nc-bg-1: #1e003a; /* Dark violet background */
     --nc-tx-1: #d8bfd8; /* Light violet text */
     --nc-accent-color: #8a2be2; /* Blue-violet accent */
+    --nc-accent-hover-color: #9d48ff; /* New hover color for dark mode buttons */
 
     --nc-header-bg: #272041; /* The darkest purple for headers */
     --nc-border-color: #3b3a5b; /* A dark purple for borders */
@@ -141,11 +143,11 @@ table.dataTable tbody tr:hover {
 
   /* Dark Mode Table Rows */
   table.dataTable tbody tr:nth-child(even) {
-    background-color: #272041; /* Darkest purple */
+    background-color: #272041; /* Darker purple for more contrast */
   }
 
   table.dataTable tbody tr:nth-child(odd) {
-    background-color: #2f2a4f; /* Dark muted purple */
+    background-color: #2f2a4f; /* Lighter purple */
   }
 
   /* Hover effect for dark mode table rows */
@@ -170,10 +172,10 @@ button {
   color: #f0e6ff; /* A very light violet for good contrast */
   border: none;
   border-radius: 4px; /* Optional: adds slightly rounded corners */
-  padding: 0.75em 1.5em; /* Optional: makes the button size more pleasant */
+  padding: 0.6em 1.2em; /* Made button more compact */
   cursor: pointer;
 }
 
 button:hover {
-  filter: brightness(115%); /* Makes the button slightly brighter on hover */
+  background-color: var(--nc-accent-hover-color); /* Changed to a violet hover color */
 }
