@@ -21,17 +21,13 @@ a:hover {
 }
 
 a button {
-  background-color: var(--nc-accent-color); /* Uses your main accent color */
-  color: #f0e6ff; /* A light violet for text to ensure readability */
-  border: none;
-  border-radius: 4px;
-  padding: 0.6em 1.2em; /* Made button more compact */
-  cursor: pointer;
+  background-color: var(--nc-accent-color);
+  color: #f0e6ff;
   font-family: "Inter", sans-serif;
 }
 
 a button:hover {
-  background-color: var(--nc-accent-hover-color); /* Changed to a violet hover color */
+  background-color: var(--nc-accent-hover-color);
 }
 
 /* Chart Layout */
@@ -39,11 +35,9 @@ a button:hover {
   width: 100%;
   height: 25vh;
   font-family: "Inter", sans-serif;
-  /* Add these styles */
-  background-color: var(--nc-header-bg); /* Use a lighter violet from your theme */
-  color: var(--nc-tx-1); /* Use main text color */
-  border: 1px solid var(--nc-border-color); /* Use new border color */
-  border-radius: 4px;
+  background-color: var(--nc-header-bg);
+  color: var(--nc-tx-1);
+  border: 1px solid var(--nc-border-color);
 }
 
 .tableframe {
@@ -51,17 +45,16 @@ a button:hover {
 }
 
 table {
-  color: var(--nc-tx-1); /* Make sure all table text uses the theme color */
-  border-collapse: collapse; /* For clean, single borders */
+  color: var(--nc-tx-1);
 }
 
-th, td {
-  border: 1px solid var(--nc-border-color); /* Apply themed borders */
-  padding: 0.5em 0.75em;
+th,
+td {
+  border: 1px solid var(--nc-border-color);
 }
 
 th {
-  background-color: var(--nc-header-bg); /* Style table headers */
+  background-color: var(--nc-header-bg);
 }
 
 #tableDiff {
@@ -83,99 +76,81 @@ th {
   white-space: nowrap;
 }
 
-/* Add styling for the details elements */
 details {
   background-color: var(--nc-header-bg);
-  border-radius: 8px;
-  padding: 1em; /* Made padding more compact */
-  margin-top: 1em;
-  margin-bottom: 1em;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-details summary {
-  cursor: pointer;
-}
-
-/* Ensure inner elements match the new details background */
 details table {
-  background-color: transparent; /* Ensure table background is transparent */
+  background-color: transparent;
 }
 
 /* Violet Theme Colors */
 :root {
-  --nc-bg-1: #e6e6fa; /* Light violet background */
-  --nc-tx-1: #4b0082; /* Dark violet text */
-  --nc-accent-color: #8a2be2; /* Blue-violet accent */
-  --nc-accent-hover-color: #9d48ff; /* New hover color for buttons */
+  --nc-bg-1: #e6e6fa;
+  --nc-tx-1: #4b0082;
+  --nc-accent-color: #8a2be2;
+  --nc-accent-hover-color: #9d48ff;
 
-  --nc-header-bg: #f2e6ff; /* A very light purple for headers */
-  --nc-border-color: #d8c0ff; /* A light purple for borders */
-  --nc-table-header-bg: #c3a3e6; /* A new, distinct color for table headers */
+  --nc-header-bg: #f2e6ff;
+  --nc-border-color: #d8c0ff;
+  --nc-table-header-bg: #c3a3e6;
 }
 
-/* Light Mode Table Rows */
 table.dataTable tbody tr:nth-child(even) {
-  background-color: #f2e6ff; /* Very light purple */
+  background-color: #f2e6ff;
 }
 
 table.dataTable tbody tr:nth-child(odd) {
-  background-color: #ded6fd; /* Lighter shade of purple for more contrast */
+  background-color: #ded6fd;
 }
 
-/* Hover effect for all table rows */
 table.dataTable tbody tr:hover {
-  background-color: #d8c0ff !important; /* A light purple on hover */
+  background-color: #d8c0ff !important;
 }
 
 /* Dark Mode Colors */
 @media (prefers-color-scheme: dark) {
   :root {
-    --nc-bg-1: #1e003a; /* Dark violet background */
-    --nc-tx-1: #d8bfd8; /* Light violet text */
-    --nc-accent-color: #8a2be2; /* Blue-violet accent */
-    --nc-accent-hover-color: #9d48ff; /* New hover color for dark mode buttons */
+    --nc-bg-1: #1e003a;
+    --nc-tx-1: #d8bfd8;
+    --nc-accent-color: #8a2be2;
+    --nc-accent-hover-color: #9d48ff;
 
-    --nc-header-bg: #272041; /* The darkest purple for headers */
-    --nc-border-color: #3b3a5b; /* A dark purple for borders */
-    --nc-table-header-bg: #3a2a5e; /* A new, distinct color for dark mode table headers */
+    --nc-header-bg: #272041;
+    --nc-border-color: #3b3a5b;
+    --nc-table-header-bg: #3a2a5e;
   }
 
   /* Dark Mode Table Rows */
   table.dataTable tbody tr:nth-child(even) {
-    background-color: #272041; /* Darker purple for more contrast */
+    background-color: #272041;
   }
 
   table.dataTable tbody tr:nth-child(odd) {
-    background-color: #2f2a4f; /* Lighter purple */
+    background-color: #2f2a4f;
   }
 
   /* Hover effect for dark mode table rows */
   table.dataTable tbody tr:hover {
-    background-color: #3b3a5b !important; /* Darker purple on hover */
+    background-color: #3b3a5b !important;
   }
 }
 
-
 a {
-  color: var(--nc-tx-1); /* Use your theme's main text color */
+  color: var(--nc-tx-1);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--nc-accent-color); /* Use your accent color on hover */
+  color: var(--nc-accent-color);
   text-decoration: underline;
 }
 
 button {
-  background-color: var(--nc-accent-color); /* Use your accent color for the background */
-  color: #f0e6ff; /* A very light violet for good contrast */
-  border: none;
-  border-radius: 4px; /* Optional: adds slightly rounded corners */
-  padding: 0.6em 1.2em; /* Made button more compact */
-  cursor: pointer;
+  background-color: var(--nc-accent-color);
+  color: #f0e6ff;
 }
 
 button:hover {
-  background-color: var(--nc-accent-hover-color); /* Changed to a violet hover color */
+  background-color: var(--nc-accent-hover-color);
 }
