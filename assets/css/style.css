@@ -75,6 +75,7 @@ table.dataTable.display tbody tr.state3 {
   :root {
     --nc-bg-1: #1e003a; /* Dark violet background */
     --nc-tx-1: #d8bfd8; /* Light violet text */
+    --nc-accent-color: #8a2be2; /* Blue-violet accent */
   }
 
   /* Dark Mode Table Rows */
