@@ -22,12 +22,12 @@ a:hover {
 
 a button {
   background-color: var(--nc-accent-color); /* Uses your main accent color */
-  color: #f0e6ff;                           /* A light violet for text to ensure readability */
+  color: #f0e6ff; /* A light violet for text to ensure readability */
   border: none;
-  border-radius: 4px;                        
-  padding: 0.75em 1.5em;                     
+  border-radius: 4px;
+  padding: 0.75em 1.5em;
   cursor: pointer;
-  font-family: "Inter", sans-serif;          
+  font-family: "Inter", sans-serif;
 }
 
 a button:hover {
@@ -39,15 +39,9 @@ a button:hover {
   width: 100%;
   height: 25vh;
   font-family: "Inter", sans-serif;
-}
-
-#changelogText {
-  width: 100%;
-  height: 25vh;
-  font-family: "Inter", sans-serif;
   /* Add these styles */
-  background-color: var(--nc-bg-1); /* Use main background */
-  color: var(--nc-tx-1);           /* Use main text color */
+  background-color: var(--nc-header-bg); /* Use a lighter violet from your theme */
+  color: var(--nc-tx-1); /* Use main text color */
   border: 1px solid var(--nc-border-color); /* Use new border color */
   border-radius: 4px;
 }
@@ -89,6 +83,25 @@ th {
   white-space: nowrap;
 }
 
+/* Add styling for the details elements */
+details {
+  background-color: var(--nc-header-bg);
+  border-radius: 8px;
+  padding: 1.5em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+details summary {
+  cursor: pointer;
+}
+
+/* Ensure inner elements match the new details background */
+details table {
+  background-color: transparent; /* Ensure table background is transparent */
+}
+
 /* Violet Theme Colors */
 :root {
   --nc-bg-1: #e6e6fa; /* Light violet background */
@@ -118,7 +131,7 @@ table.dataTable.display tbody tr.state3 {
     --nc-bg-1: #1e003a; /* Dark violet background */
     --nc-tx-1: #d8bfd8; /* Light violet text */
     --nc-accent-color: #8a2be2; /* Blue-violet accent */
- 
+
     --nc-header-bg: #272041; /* The darkest purple for headers */
     --nc-border-color: #3b3a5b; /* A dark purple for borders */
   }
