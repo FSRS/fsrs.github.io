@@ -1,6 +1,9 @@
 ﻿/* Main Layout */
 /* Violet Theme Colors */
 :root {
+  --nc-font-sans: "Fira Code", "Nanum Gothic Coding", "M PLUS 1 Code", "Inter",
+    monospace;
+  --nc-font-mono: "Fira Code", "Nanum Gothic Coding", "M PLUS 1 Code", monospace;
   --nc-bg-1: #e6e6fa;
   --nc-tx-1: #4b0082;
   --nc-accent-color: #8a2be2;
@@ -30,7 +33,6 @@ table.dataTable tbody tr:hover {
     --nc-tx-1: #d8bfd8;
     --nc-accent-color: #8a2be2;
     --nc-accent-hover-color: #9d48ff;
-
     --nc-header-bg: #272041;
     --nc-border-color: #3b3a5b;
     --nc-table-header-bg: #3a2a5e;
@@ -100,10 +102,20 @@ a button:hover {
 }
 
 /* Chart Layout */
+details {
+  color: var(--nc-tx-1);
+}
+
+details th,
+details td {
+  border: 1px solid var(--nc-border-color);
+  color: var(--nc-tx-1);
+}
+
 #changelogText {
   width: 100%;
   height: 25vh;
-  font-family: "Inter", sans-serif;
+  font-family: var(--nc-font-sans);
   background-color: var(--nc-header-bg);
   color: var(--nc-tx-1);
   border: 1px solid var(--nc-border-color);
@@ -113,17 +125,12 @@ a button:hover {
   overflow: auto;
 }
 
-table {
-  color: var(--nc-tx-1);
+th {
+  background: var(--nc-header-bg);
 }
 
-th,
 td {
   border: 0px;
-}
-
-th {
-  background-color: var(--nc-header-bg);
 }
 
 #tableDiff {
@@ -134,6 +141,7 @@ th {
   text-align: center;
   white-space: nowrap;
   font-size: 0.9em;
+  color: var(--nc-tx-1);
 }
 
 #tableDiff td {
