@@ -105,7 +105,7 @@ function makeFilter(table) {
   selectContainer.appendChild(select);
 
   document
-    .querySelector("#tableDiff_wrapper > div:nth-child(1) > .dt-start")
+    .querySelector("#tableDiff_wrapper > div > .dt-layout-start")
     .prepend(selectContainer);
 
   column
