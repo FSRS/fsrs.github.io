@@ -204,6 +204,11 @@
             const puzzleInfoContainer = document.getElementById('puzzle-info');
             const puzzleLevelEl = document.getElementById('puzzle-level');
             const puzzleScoreEl = document.getElementById('puzzle-score');
+            
+            const difficultyWords = [
+                "Obvious", "Easy", "Simple", "Tricky", "Hard",
+                "Tough", "Brutal", "Wicked", "Fiendish", "Insane"
+            ];
 
             const colorPalette = [
                 '#f87171', '#fb923c', '#facc15', '#a3e635', '#34d399', '#22d3ee', '#60a5fa', '#c084fc', '#f472b6'
@@ -244,7 +249,8 @@
                 for (let i = 0; i < 10; i++) {
                     const option = document.createElement('option');
                     option.value = i;
-                    option.textContent = `Level ${i}`;
+                    // Format the text to include both number and word
+                    option.textContent = `Level ${i} (${difficultyWords[i]})`; 
                     levelSelect.appendChild(option);
                 }
 
@@ -727,7 +733,8 @@
                 historyIndex = -1;
                 
                 if (puzzleData) {
-                    puzzleLevelEl.textContent = `Level: ${puzzleData.level}`;
+                    // Format the display text with both number and word
+                    puzzleLevelEl.textContent = `Lv. ${puzzleData.level} (${difficultyWords[puzzleData.level]})`;
                     puzzleScoreEl.textContent = `Load: ${puzzleData.score}`;
                     puzzleInfoContainer.classList.remove('hidden');
                 } else {
@@ -735,7 +742,6 @@
                     puzzleScoreEl.textContent = '';
                     puzzleInfoContainer.classList.add('hidden');
                 }
-
                 saveState();
                 renderBoard();
                 if (!puzzleData) showMessage('Custom puzzle loaded!', 'green');
