@@ -257,7 +257,7 @@
                 // Populate Date selector (last 7 days including today, but not before 20250912)
                 dateSelect.innerHTML = '';
 
-                const today = new Date(2025, 8, 12); // JS months are 0-based, so 8 = September
+                const today = new Date();
                 const minDateNum = 20250912;
 
                 const recentDates = [];
