@@ -218,11 +218,6 @@
       </div>
 
       <div class="mt-2">
-        <label
-          for="puzzle-string"
-          class="block text-sm font-medium text-gray-700"
-          >Custom Puzzle String</label
-        >
         <div class="mt-1 flex flex-col sm:flex-row gap-2">
           <input
             type="text"
@@ -257,7 +252,12 @@
         >
           Undo (Ctrl+Z)
         </button>
-
+        <button
+          id="redo-btn"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+        >
+          Redo (Ctrl+Y)
+        </button>
         <button
           id="clear-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
@@ -269,12 +269,6 @@
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
           Clear Colors (W)
-        </button>
-        <button
-          id="redo-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
-        >
-          Redo (Ctrl+Y)
         </button>
       </div>
       <div id="solver-link-container" class="text-center mt-2"></div>
@@ -348,6 +342,19 @@
           "#60a5fa",
           "#c084fc",
           "#f472b6",
+        ];
+
+        const levelTips = [
+          "Lv. 0: Singles",
+          "Lv. 1: Locked Pair, Locked Triple",
+          "Lv. 2: Intersections, Pairs, Triples",
+          "Lv. 3: Quads, X-Wing, XY-Wing, Remote Pair",
+          "Lv. 4: Unique Rectangles, BUG+1, XYZ-Wing, W-Wing, Swordfish, Jellyfish",
+          "Lv. 5: Hidden Rectangles, BUG Lite (6 cells), (Grouped) Turbot-Fishes",
+          "Lv. 6: WXYZ-Wing, Finned Fishes, X-Chain, Firework, Sue de Coq",
+          "Lv. 7: Grouped X-Chain, 3D Medusa, Alternating Inference Chain",
+          "Lv. 8: Grouped AIC, Pair Subset Exclusion, ALS-XZ",
+          "Lv. 9: Triple Sub. Excl., ALS-XY/W-Wing, Finned Franken/Mutant Swordifsh",
         ];
 
         let boardState = [];
@@ -475,6 +482,12 @@
               }, Level ${selectedLevel}`,
               "green"
             );
+            setTimeout(() => {
+              const tip = levelTips[selectedLevel];
+              if (tip) {
+                showMessage(tip, "gray");
+              }
+            }, 1500);
           } else {
             initBoardState();
             renderBoard();
@@ -1177,7 +1190,7 @@
             puzzleLevelEl.textContent = `Lv. ${puzzleData.level} (${
               difficultyWords[puzzleData.level]
             })`;
-            puzzleScoreEl.textContent = `Load: ${puzzleData.score}`;
+            puzzleScoreEl.textContent = `Score: ${puzzleData.score}`;
             puzzleInfoContainer.classList.remove("hidden");
           } else {
             puzzleLevelEl.textContent = "";
