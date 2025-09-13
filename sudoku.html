@@ -24,7 +24,7 @@
       }
 
       .sudoku-cell.highlighted {
-        background-color: #fef08a !important; /* yellow-200, important to override cell color */
+        background-color: #fef08a; /* yellow-200*/
       }
 
       .sudoku-cell.selected {
@@ -196,16 +196,10 @@
             Number (Z)
           </button>
           <button
-            data-mode="highlight"
-            class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm"
-          >
-            Highlight (X)
-          </button>
-          <button
             data-mode="color"
             class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm"
           >
-            Color (C)
+            Color (X)
           </button>
           <button
             id="format-toggle-btn"
@@ -539,8 +533,14 @@
               const btn = document.createElement("button");
               btn.style.backgroundColor = colorPalette[i];
               btn.dataset.color = colorPalette[i];
+
+              // 1. Add the number (1-9) as the button's text
+              btn.textContent = i + 1;
+
+              // 2. Add a class to make the text dim and readable
               btn.className =
-                "color-btn p-2 text-lg font-bold border rounded-md shadow-sm h-12";
+                "color-btn p-2 text-lg font-bold border rounded-md shadow-sm h-12 text-white/50";
+
               numberPad.appendChild(btn);
             }
           } else {
@@ -753,6 +753,27 @@
             renderBoard();
             return;
           }
+
+          if (key === "Enter") {
+            if (selectedCell.row !== null) {
+              const cellState = boardState[selectedCell.row][selectedCell.col];
+              if (cellState.value !== 0) {
+                if (highlightedDigit == cellState.value) {
+                  highlightedDigit = null;
+                  highlightState = 2;
+                } else {
+                  highlightedDigit = cellState.value;
+                  highlightState = 1;
+                }
+              } else {
+                highlightedDigit = null;
+                highlightState = 0;
+              }
+              renderBoard();
+            }
+            return;
+          }
+
           // Handle Delete/Backspace to clear cell
           if (key === "Delete" || key === "Backspace") {
             e.preventDefault(); // Prevent browser back navigation on backspace
@@ -778,15 +799,11 @@
             return;
           }
           if (key_lower === "x") {
-            modeSelector.querySelector('[data-mode="highlight"]').click();
-            return;
-          }
-          if (key_lower === "c") {
             colorButton.click();
             return;
           }
 
-          if (key_lower === "v") {
+          if (key_lower === "c") {
             if (
               currentMode === "color" &&
               selectedCell.row !== null &&
@@ -873,14 +890,13 @@
 
         function handleCellClick(e) {
           const cell = e.target.closest(".sudoku-cell");
-          if (!cell) return;
 
           selectedCell.row = parseInt(cell.dataset.row);
           selectedCell.col = parseInt(cell.dataset.col);
+          const cellState = boardState[selectedCell.row][selectedCell.col];
 
           if (currentMode === "color") {
             if (coloringSubMode === "cell") {
-              const cellState = boardState[selectedCell.row][selectedCell.col];
               const oldColor = cellState.cellColor;
               const newColor =
                 oldColor === selectedColor ? null : selectedColor;
@@ -892,6 +908,30 @@
               // candidate mode
               showCandidatePopup(selectedCell.row, selectedCell.col);
             }
+          } else {
+            // --- Revised Highlight Logic ---
+            if (cellState.value !== 0) {
+              // Case 1: The clicked number is the same as the currently highlighted one.
+              if (highlightedDigit === cellState.value) {
+                // Cycle through the highlight states (1 -> 2 -> 0).
+                highlightState = (highlightState + 1) % 3;
+                if (highlightState !== 1) {
+                  highlightedDigit = null; // Turn off highlight completely.
+                }
+              }
+              // Case 2: The clicked number is different from the highlighted one.
+              else {
+                // Start a new highlight for this number.
+                highlightedDigit = cellState.value;
+                highlightState = 1;
+              }
+            }
+            // Case 3: The clicked cell is empty.
+            else {
+              // Turn off highlighting.
+              highlightedDigit = null;
+              highlightState = 0;
+            }
           }
           renderBoard();
         }
@@ -900,9 +940,6 @@
           const clickedButton = e.target.closest("button");
           if (!clickedButton) return;
 
-          const highlightButton = modeSelector.querySelector(
-            '[data-mode="highlight"]'
-          );
           const previousMode = currentMode;
 
           // --- State Update Logic ---
@@ -913,8 +950,6 @@
                   ? "pencil"
                   : "concrete"
                 : "concrete";
-          } else if (clickedButton === highlightButton) {
-            currentMode = "highlight";
           } else if (clickedButton === colorButton) {
             if (currentMode !== "color") {
               currentMode = "color";
@@ -934,27 +969,23 @@
             colorButton.textContent =
               coloringSubMode === "cell" ? "Color: Cell" : "Color: Cand.";
           } else {
-            colorButton.textContent = "Color (C)"; // Reset text if not in color mode
+            colorButton.textContent = "Color (X)"; // Reset text if not in color mode
           }
 
           // --- Tip Display Logic ---
           let tip = "";
           if (currentMode === "concrete") {
             tip =
-              "Tip: Click a cell, then a digit to place a number. (Toggle: Pencil)";
+              "Tip: Click a filled cell (or press 'Enter') to highlight its number.";
           } else if (currentMode === "pencil") {
-            tip =
-              "Tip: Click a cell, then a digit to toggle a pencil mark. (Toggle: Number)";
-          } else if (currentMode === "highlight") {
-            tip =
-              "Tip: Tap a digit to highlight it. Tap again for bi-value cells.";
+            tip = "Tip: Click a cell, then a digit to toggle a pencil mark.";
           } else if (currentMode === "color") {
             if (coloringSubMode === "cell") {
               tip =
-                "Tip: Pick a color (or press numpad), then click a cell (or press 'V') to paint it.";
+                "Tip: Pick a color, then click a cell (or press 'C') to paint it.";
             } else {
               tip =
-                "Tip: Pick a color, then click a cell (or press 'V') to select a candidate.";
+                "Tip: Pick a color, then click a cell (or press 'C') to select a candidate.";
             }
           }
           showMessage(tip, "gray");
@@ -964,13 +995,9 @@
             "active",
             currentMode === "concrete" || currentMode === "pencil"
           );
-          highlightButton.classList.toggle(
-            "active",
-            currentMode === "highlight"
-          );
           colorButton.classList.toggle("active", currentMode === "color");
 
-          // Update the number/color pad if the mode type changed (e.g., from number to color)
+          // Update the number/color pad if the mode type changed
           const wasColor = previousMode === "color";
           const isColor = currentMode === "color";
           if (wasColor !== isColor) {
@@ -979,7 +1006,6 @@
               selectedColor = null; // Clear selected color when leaving color mode
             }
           }
-
           renderBoard();
         }
 
@@ -997,20 +1023,17 @@
           }
 
           const num = parseInt(btn.dataset.number);
-          if (currentMode === "highlight") {
-            if (highlightedDigit !== num) {
-              // A new digit is selected
-              highlightedDigit = num;
-              highlightState = 1;
-            } else {
-              // The same digit is toggled
-              highlightState = (highlightState + 1) % 3;
-              if (highlightState === 0) {
-                highlightedDigit = null; // Fully turn off
-              }
+
+          // New Highlight Toggling Logic
+          // If a digit is currently highlighted, and the user presses that same digit,
+          // cycle through the highlight states.
+          if (highlightedDigit === num) {
+            highlightState = (highlightState + 1) % 3; // 1 -> 2 -> 0
+            if (highlightState === 0) {
+              highlightedDigit = null; // Fully turn off
             }
             renderBoard();
-            return;
+            return; // Action complete, do not place a number.
           }
 
           if (selectedCell.row !== null) {
