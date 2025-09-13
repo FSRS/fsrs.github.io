@@ -205,7 +205,7 @@
             id="format-toggle-btn"
             class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm"
           >
-            Displ. A (L)
+            Dspl. A (L)
           </button>
         </div>
         <div class="grid grid-cols-9 gap-1" id="number-pad">
@@ -637,7 +637,7 @@
           );
           formatToggleBtn.addEventListener("click", () => {
             candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
-            formatToggleBtn.textContent = `Displ. ${candidatePopupFormat} (L)`;
+            formatToggleBtn.textContent = `Dspl. ${candidatePopupFormat} (L)`;
             renderBoard(); // Re-render the main board to update pencil marks
             // If the popup is open, re-render it too
             if (
