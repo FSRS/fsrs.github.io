@@ -136,7 +136,7 @@
   >
     <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-xl">
       <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">
-        fsrs Daily Irreducible Sudoku
+        fsrs Daily Irred. Sudoku
       </h1>
 
       <!-- Puzzle Selectors -->
@@ -205,7 +205,7 @@
             id="format-toggle-btn"
             class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm"
           >
-            Layout A (L)
+            Displ. A (L)
           </button>
         </div>
         <div class="grid grid-cols-9 gap-1" id="number-pad">
@@ -637,7 +637,7 @@
           );
           formatToggleBtn.addEventListener("click", () => {
             candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
-            formatToggleBtn.textContent = `Layout ${candidatePopupFormat} (L)`;
+            formatToggleBtn.textContent = `Displ. ${candidatePopupFormat} (L)`;
             renderBoard(); // Re-render the main board to update pencil marks
             // If the popup is open, re-render it too
             if (
@@ -667,7 +667,7 @@
           colorButton.addEventListener("mouseenter", () => {
             if (currentMode === "color") {
               if (coloringSubMode === "cell")
-                colorButton.textContent = "Color: Cand.?";
+                colorButton.textContent = "Color: Cand?";
               else colorButton.textContent = "Color: Cell?";
             }
           });
@@ -967,7 +967,7 @@
 
           if (currentMode === "color") {
             colorButton.textContent =
-              coloringSubMode === "cell" ? "Color: Cell" : "Color: Cand.";
+              coloringSubMode === "cell" ? "Color: Cell" : "Color: Cand";
           } else {
             colorButton.textContent = "Color (X)"; // Reset text if not in color mode
           }
