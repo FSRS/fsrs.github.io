@@ -678,28 +678,26 @@
               else colorButton.textContent = "Color: Cand.";
             }
           });
-
-          // Keyboard shortcuts
-          document.addEventListener("keydown", function (event) {
-            // Check if Ctrl (or Cmd on Mac) is pressed
-            const isCtrlOrCmd = event.ctrlKey || event.metaKey;
-
-            // Use .toLowerCase() to make the check case-insensitive
-            const key = event.key.toLowerCase();
-
-            if (isCtrlOrCmd && key === "z") {
-              event.preventDefault(); // Prevent default browser undo
-              undo();
-            } else if (isCtrlOrCmd && key === "y") {
-              event.preventDefault(); // Prevent default browser redo
-              redo();
-            }
-          });
         }
 
         function handleKeyPress(e) {
           const key = e.key;
           const key_lower = e.key.toLowerCase();
+          const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+          // --- New Undo/Redo Handling ---
+          // Handle these combinations first and stop further execution.
+          if (isCtrlOrCmd && key_lower === "z") {
+            e.preventDefault();
+            undo();
+            return; // Exit the function to prevent collision
+          }
+          if (isCtrlOrCmd && key_lower === "y") {
+            e.preventDefault();
+            redo();
+            return; // Exit the function
+          }
+          // --- End of New Logic ---
 
           // Do not trigger shortcuts if typing in an input field
           if (document.activeElement.tagName === "INPUT") {
