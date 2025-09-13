@@ -257,12 +257,7 @@
         >
           Undo (Ctrl+Z)
         </button>
-        <button
-          id="redo-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
-        >
-          Redo (Ctrl+Y)
-        </button>
+
         <button
           id="clear-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
@@ -274,6 +269,12 @@
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
           Clear Colors (W)
+        </button>
+        <button
+          id="redo-btn"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+        >
+          Redo (Ctrl+Y)
         </button>
       </div>
       <div id="solver-link-container" class="text-center mt-2"></div>
@@ -668,10 +669,13 @@
             // Check if Ctrl (or Cmd on Mac) is pressed
             const isCtrlOrCmd = event.ctrlKey || event.metaKey;
 
-            if (isCtrlOrCmd && event.key === "z") {
+            // Use .toLowerCase() to make the check case-insensitive
+            const key = event.key.toLowerCase();
+
+            if (isCtrlOrCmd && key === "z") {
               event.preventDefault(); // Prevent default browser undo
               undo();
-            } else if (isCtrlOrCmd && event.key === "y") {
+            } else if (isCtrlOrCmd && key === "y") {
               event.preventDefault(); // Prevent default browser redo
               redo();
             }
