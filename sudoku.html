@@ -205,7 +205,7 @@
             id="format-toggle-btn"
             class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm"
           >
-            Dspl. A (L)
+            Dspl. A (D)
           </button>
         </div>
         <div class="grid grid-cols-9 gap-1" id="number-pad">
@@ -231,18 +231,6 @@
       </div>
       <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
         <button
-          id="auto-pencil-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          Auto-Pencil (A)
-        </button>
-        <button
-          id="solve-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-        >
-          Solve (S)
-        </button>
-        <button
           id="undo-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
@@ -255,16 +243,29 @@
           Redo (Ctrl+Y)
         </button>
         <button
+          id="auto-pencil-btn"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+        >
+          Auto-Pencil (A)
+        </button>
+        <button
+          id="solve-btn"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+        >
+          Solve (S)
+        </button>
+
+        <button
           id="clear-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
-          Clear Board (Q)
+          Quick Restart (Q)
         </button>
         <button
           id="clear-colors-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
-          Clear Colors (W)
+          Wipe Colors (W)
         </button>
       </div>
       <div id="solver-link-container" class="text-center mt-2"></div>
@@ -382,7 +383,7 @@
           link.href = solverUrl;
           link.target = "_blank"; // Opens in a new tab
           link.rel = "noopener noreferrer"; // Security best practice
-          link.textContent = "View in Sudoku Coach Solver (D)";
+          link.textContent = "Export to Sudoku Coach Solver (E)";
 
           // Apply the new button styling
           link.className =
@@ -637,7 +638,7 @@
           );
           formatToggleBtn.addEventListener("click", () => {
             candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
-            formatToggleBtn.textContent = `Dspl. ${candidatePopupFormat} (L)`;
+            formatToggleBtn.textContent = `Dspl. ${candidatePopupFormat} (D)`;
             renderBoard(); // Re-render the main board to update pencil marks
             // If the popup is open, re-render it too
             if (
@@ -757,20 +758,28 @@
           if (key === "Enter") {
             if (selectedCell.row !== null) {
               const cellState = boardState[selectedCell.row][selectedCell.col];
-              if (cellState.value !== 0) {
-                if (highlightedDigit == cellState.value) {
-                  highlightedDigit = null;
-                  highlightState = 2;
-                } else {
-                  highlightedDigit = cellState.value;
-                  highlightState = 1;
-                }
+              if (cellState.pencils.size === 2) {
+                highlightedDigit = null;
+                highlightState = 2;
+              } else if (
+                cellState.value !== 0 &&
+                highlightedDigit !== cellState.value
+              ) {
+                highlightedDigit = cellState.value;
+                highlightState = 1;
               } else {
                 highlightedDigit = null;
                 highlightState = 0;
               }
               renderBoard();
             }
+            return;
+          }
+
+          if (key === "Shift") {
+            highlightedDigit = null;
+            highlightState = 0;
+            renderBoard();
             return;
           }
 
@@ -828,7 +837,7 @@
             return;
           }
 
-          if (key_lower === "l") {
+          if (key_lower === "d") {
             formatToggleBtn.click();
             return;
           }
@@ -842,7 +851,7 @@
             solveBtn.click();
             return;
           }
-          if (key_lower === "d") {
+          if (key_lower === "e") {
             // Find the solver button (which is an <a> tag) inside its container
             const solverButton = document.querySelector(
               "#solver-link-container a"
@@ -871,13 +880,8 @@
               if (colorButtons[colorIndex]) {
                 colorButtons[colorIndex].click();
               }
-            } else if (
-              currentMode === "concrete" ||
-              currentMode === "pencil" ||
-              currentMode === "highlight"
-            ) {
-              if (selectedCell.row === null && currentMode !== "highlight")
-                return;
+            } else if (currentMode === "concrete" || currentMode === "pencil") {
+              if (selectedCell.row === null) return;
               const numPadButton = numberPad.querySelector(
                 `button[data-number="${key}"]`
               );
@@ -910,29 +914,21 @@
             }
           } else {
             // --- Revised Highlight Logic ---
-            if (cellState.value !== 0) {
-              // Case 1: The clicked number is the same as the currently highlighted one.
-              if (highlightedDigit === cellState.value) {
-                // Cycle through the highlight states (1 -> 2 -> 0).
-                highlightState = (highlightState + 1) % 3;
-                if (highlightState !== 1) {
-                  highlightedDigit = null; // Turn off highlight completely.
-                }
-              }
-              // Case 2: The clicked number is different from the highlighted one.
-              else {
-                // Start a new highlight for this number.
-                highlightedDigit = cellState.value;
-                highlightState = 1;
-              }
-            }
-            // Case 3: The clicked cell is empty.
-            else {
-              // Turn off highlighting.
+            if (cellState.pencils.size === 2) {
+              highlightedDigit = null;
+              highlightState = 2;
+            } else if (
+              cellState.value !== 0 &&
+              highlightedDigit !== cellState.value
+            ) {
+              highlightedDigit = cellState.value;
+              highlightState = 1;
+            } else {
               highlightedDigit = null;
               highlightState = 0;
             }
           }
+
           renderBoard();
         }
 
