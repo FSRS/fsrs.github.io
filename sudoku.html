@@ -748,18 +748,17 @@
           if (key === "Enter") {
             if (selectedCell.row !== null) {
               const cellState = boardState[selectedCell.row][selectedCell.col];
-              if (cellState.pencils.size === 2) {
+              if (highlightState === 0 && cellState.pencils.size === 2) {
                 highlightedDigit = null;
                 highlightState = 2;
-              } else if (
-                cellState.value !== 0 &&
-                highlightedDigit !== cellState.value
-              ) {
-                highlightedDigit = cellState.value;
-                highlightState = 1;
-              } else {
-                highlightedDigit = null;
-                highlightState = 0;
+              } else if (cellState.value !== 0) {
+                if (highlightedDigit !== cellState.value) {
+                  highlightedDigit = cellState.value;
+                  highlightState = 1;
+                } else {
+                  highlightedDigit = null;
+                  highlightState = 0;
+                }
               }
               renderBoard();
             }
@@ -904,22 +903,22 @@
             }
           } else {
             // --- Revised Highlight Logic ---
-            if (cellState.pencils.size === 2) {
+
+            if (highlightState === 0 && cellState.pencils.size === 2) {
               highlightedDigit = null;
               highlightState = 2;
-            } else if (
-              cellState.value !== 0 &&
-              highlightedDigit !== cellState.value
-            ) {
-              highlightedDigit = cellState.value;
-              highlightState = 1;
-            } else {
-              highlightedDigit = null;
-              highlightState = 0;
+            } else if (cellState.value !== 0) {
+              if (highlightedDigit !== cellState.value) {
+                highlightedDigit = cellState.value;
+                highlightState = 1;
+              } else {
+                highlightedDigit = null;
+                highlightState = 0;
+              }
             }
           }
-
           renderBoard();
+          return;
         }
 
         function handleModeChange(e) {
