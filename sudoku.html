@@ -1009,18 +1009,6 @@
 
           const num = parseInt(btn.dataset.number);
 
-          // New Highlight Toggling Logic
-          // If a digit is currently highlighted, and the user presses that same digit,
-          // cycle through the highlight states.
-          if (highlightedDigit === num) {
-            highlightState = (highlightState + 1) % 3; // 1 -> 2 -> 0
-            if (highlightState === 0) {
-              highlightedDigit = null; // Fully turn off
-            }
-            renderBoard();
-            return; // Action complete, do not place a number.
-          }
-
           if (selectedCell.row !== null) {
             const { row, col } = selectedCell;
             const cellState = boardState[row][col];
