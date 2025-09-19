@@ -260,6 +260,44 @@
     </div>
 
     <div
+      id="date-modal"
+      class="fixed inset-0 z-20 hidden items-center justify-center bg-black bg-opacity-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-xl w-80">
+        <h3 class="text-lg font-medium text-center mb-2">
+          Enter a Date (2025-09-12 - )
+        </h3>
+        <input
+          type="text"
+          id="date-input"
+          maxlength="10"
+          inputmode="numeric"
+          pattern="\d*"
+          placeholder="YYYY-MM-DD"
+          class="w-full border p-2 rounded-md text-center mb-2"
+        />
+        <div
+          id="date-error"
+          class="text-red-600 text-sm font-semibold h-5 mb-2 text-center"
+        ></div>
+        <div class="flex justify-between">
+          <button
+            id="date-cancel-btn"
+            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            id="date-submit-btn"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
       id="candidate-modal"
       class="fixed inset-0 z-10 hidden items-center justify-center"
     >
@@ -448,6 +486,11 @@
             option.textContent = label;
             dateSelect.appendChild(option);
           });
+
+          const customOption = document.createElement("option");
+          customOption.value = "custom";
+          customOption.textContent = "Enter a date";
+          dateSelect.appendChild(customOption);
         }
 
         function findAndLoadSelectedPuzzle() {
@@ -610,6 +653,26 @@
           validateBoard();
         }
 
+        function isValidDate(yyyymmdd) {
+          if (!/^\d{8}$/.test(yyyymmdd)) return false;
+
+          const year = parseInt(yyyymmdd.slice(0, 4), 10);
+          const month = parseInt(yyyymmdd.slice(4, 6), 10);
+          const day = parseInt(yyyymmdd.slice(6, 8), 10);
+
+          // Month 1–12, Day 1–31
+          if (month < 1 || month > 12) return false;
+          if (day < 1 || day > 31) return false;
+
+          // Construct real JS Date
+          const d = new Date(year, month - 1, day);
+          return (
+            d.getFullYear() === year &&
+            d.getMonth() === month - 1 &&
+            d.getDate() === day
+          );
+        }
+
         function setupEventListeners() {
           gridContainer.addEventListener("click", handleCellClick);
           modeSelector.addEventListener("click", handleModeChange);
@@ -638,7 +701,19 @@
               showCandidatePopup(selectedCell.row, selectedCell.col);
             }
           });
-          dateSelect.addEventListener("change", findAndLoadSelectedPuzzle);
+          dateSelect.addEventListener("change", () => {
+            if (dateSelect.value === "custom") {
+              // open popup, do nothing to board yet
+              dateModal.classList.remove("hidden");
+              dateModal.classList.add("flex");
+              dateInput.value = "";
+              dateError.textContent = "";
+              dateInput.focus();
+            } else {
+              // only renew when a real date is chosen
+              findAndLoadSelectedPuzzle();
+            }
+          });
           levelSelect.addEventListener("change", findAndLoadSelectedPuzzle);
           document.addEventListener("keydown", handleKeyPress);
           // Hover effects for mode buttons
@@ -668,6 +743,106 @@
                 colorButton.textContent = "Color: Cell";
               else colorButton.textContent = "Color: Cand.";
             }
+          });
+          // Date modal elements
+          const dateModal = document.getElementById("date-modal");
+          const dateInput = document.getElementById("date-input");
+          const dateError = document.getElementById("date-error");
+          const dateSubmitBtn = document.getElementById("date-submit-btn");
+          const dateCancelBtn = document.getElementById("date-cancel-btn");
+
+          // Keydown events for popup
+          dateInput.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              dateModal.classList.add("hidden");
+              dateModal.classList.remove("flex");
+              dateSelect.value = dateSelect.querySelector("option").value; // reset selection
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              dateSubmitBtn.click(); // trigger submit
+            }
+            if (e.key === "Backspace") {
+              const pos = dateInput.selectionStart;
+              if (pos && (pos === 5 || pos === 8)) {
+                // skip over the dash
+                dateInput.setSelectionRange(pos - 1, pos - 1);
+              }
+            }
+          });
+
+          dateInput.addEventListener("input", () => {
+            // keep only digits
+            let val = dateInput.value.replace(/\D/g, "");
+            if (val.length > 8) val = val.slice(0, 8);
+
+            // build YYYY-MM-DD
+            let formatted = "";
+            if (val.length > 0) formatted = val.slice(0, 4);
+            if (val.length > 4) formatted += "-" + val.slice(4, 6);
+            if (val.length > 6) formatted += "-" + val.slice(6, 8);
+
+            dateInput.value = formatted;
+          });
+
+          dateSelect.addEventListener("change", () => {
+            if (dateSelect.value === "custom") {
+              dateModal.classList.remove("hidden");
+              dateModal.classList.add("flex");
+              dateInput.value = "";
+              dateError.textContent = "";
+              dateInput.focus();
+              return;
+            }
+            findAndLoadSelectedPuzzle();
+          });
+
+          dateSubmitBtn.addEventListener("click", () => {
+            const rawValue = dateInput.value.replace(/\D/g, ""); // remove "-"
+            if (!isValidDate(rawValue)) {
+              dateError.textContent =
+                "Please enter a valid calendar date (YYYY-MM-DD).";
+              return;
+            }
+
+            const dateNum = parseInt(rawValue, 10);
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, "0");
+            const dd = String(today.getDate()).padStart(2, "0");
+            const todayNum = parseInt(`${yyyy}${mm}${dd}`);
+
+            if (dateNum < 20250912 || dateNum > todayNum) {
+              dateError.textContent = `Date must be between 2025-09-12 and ${todayNum}.`;
+              return;
+            }
+
+            // Success → add option if not exists
+            let customOption = [...dateSelect.options].find(
+              (opt) => opt.value === rawValue
+            );
+            if (!customOption) {
+              customOption = document.createElement("option");
+              customOption.value = rawValue;
+              customOption.textContent = `${rawValue.slice(
+                0,
+                4
+              )}-${rawValue.slice(4, 6)}-${rawValue.slice(6, 8)}`;
+              dateSelect.appendChild(customOption);
+            }
+
+            dateSelect.value = rawValue;
+            // Close popup
+            dateModal.classList.add("hidden");
+            dateModal.classList.remove("flex");
+            findAndLoadSelectedPuzzle();
+          });
+
+          dateCancelBtn.addEventListener("click", () => {
+            dateModal.classList.add("hidden");
+            dateModal.classList.remove("flex");
+            dateSelect.value = dateSelect.querySelector("option").value; // reset to first valid option
           });
         }
 
