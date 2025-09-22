@@ -403,6 +403,8 @@
         let historyIndex = -1;
         let timerInterval = null;
         let startTime = 0;
+        let initialPuzzleString = "";
+        let isCustomPuzzle = false;
 
         function addSudokuCoachLink(puzzleString) {
           const container = document.getElementById("solver-link-container");
@@ -1268,7 +1270,46 @@
 
           // If no cells are empty, validate the board
           if (validateBoard()) {
-            showMessage("Congratulations! You solved it!", "green");
+            if (!isCustomPuzzle) {
+              // --- Share Logic for Daily Puzzles ---
+              messageArea.innerHTML = "";
+              messageArea.className =
+                "text-center text-sm font-semibold h-5 flex items-center justify-center";
+
+              const congratsText = document.createTextNode(
+                "Congratulations! You solved it! → "
+              );
+              const shareButton = document.createElement("button");
+              shareButton.textContent = "Share";
+              shareButton.className =
+                "text-blue-600 hover:text-blue-800 font-bold underline focus:outline-none";
+
+              shareButton.onclick = () => {
+                const shareText = generateDiscordShareText();
+                navigator.clipboard
+                  .writeText(shareText)
+                  .then(() => {
+                    showMessage(
+                      "Copied Discord sharable text to clipboard.",
+                      "green"
+                    );
+                  })
+                  .catch((err) => {
+                    console.error("Failed to copy text: ", err);
+                    showMessage(
+                      "Error: Could not copy text to clipboard.",
+                      "red"
+                    );
+                  });
+              };
+
+              messageArea.appendChild(congratsText);
+              messageArea.appendChild(shareButton);
+            } else {
+              // --- Default message for Custom Puzzles ---
+              showMessage("Congratulations! You solved it!", "green");
+            }
+
             triggerSolveAnimation();
             stopTimer();
           }
@@ -1373,11 +1414,13 @@
         }
 
         function loadPuzzle(puzzleString, puzzleData = null) {
+          isCustomPuzzle = puzzleData === null;
           if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
             showMessage("Error: Invalid puzzle string.", "red");
             addSudokuCoachLink(null); // Also clear the link on error
             return;
           }
+          initialPuzzleString = puzzleString;
           initBoardState();
           for (let i = 0; i < 81; i++) {
             const row = Math.floor(i / 9);
@@ -1522,15 +1565,81 @@
         }
 
         function showMessage(text, color) {
+          // First, clear any complex content like buttons
+          messageArea.innerHTML = "";
           messageArea.textContent = text;
+
+          const colorClasses = [
+            "text-red-600",
+            "text-green-600",
+            "text-gray-600",
+          ];
+
+          // Remove any previous color classes to avoid conflicts
+          messageArea.classList.remove(...colorClasses);
+
           const colors = {
             red: "text-red-600",
             green: "text-green-600",
             gray: "text-gray-600",
           };
-          messageArea.className = `text-center text-sm font-semibold h-5 ${
-            colors[color] || "text-gray-600"
-          }`;
+
+          // Add the specified color class, defaulting to gray for neutral messages
+          messageArea.classList.add(colors[color] || "text-gray-600");
+        }
+
+        function generateDiscordShareText() {
+          const title =
+            "[fsrs Daily Sudoku](https://fsrs.darksabun.club/sudoku.html)";
+
+          // 1. Get Date from the dropdown
+          const dateVal = dateSelect.value;
+          let puzzleDateStr = new Date().toISOString().slice(0, 10); // Fallback to today
+          if (dateVal && /^\d{8}$/.test(dateVal)) {
+            puzzleDateStr = `${dateVal.slice(0, 4)}-${dateVal.slice(
+              4,
+              6
+            )}-${dateVal.slice(6, 8)}`;
+          }
+
+          // 2. Get Level and Time
+          const level = levelSelect.value;
+          const levelWord = difficultyWords[level] || "Unknown";
+          const levelStr = `Level ${level} (${levelWord})`;
+          const timeStr = puzzleTimerEl.textContent;
+
+          const header = `${title} | ${puzzleDateStr}\n${levelStr} | Time ${timeStr}\n`;
+
+          // 3. Generate Emoji Grid
+          const digitMap = {
+            1: ":one:",
+            2: ":two:",
+            3: ":three:",
+            4: ":four:",
+            5: ":five:",
+            6: ":six:",
+            7: ":seven:",
+            8: ":eight:",
+            9: ":nine:",
+          };
+          const emptySquare = ":blue_square:";
+          let gridStr = "";
+
+          for (let r = 0; r < 9; r++) {
+            if (r > 0 && r % 3 === 0) {
+              gridStr += "\n"; // Extra newline between 3x3 blocks
+            }
+            for (let c = 0; c < 9; c++) {
+              if (c > 0 && c % 3 === 0) {
+                gridStr += " "; // Space between 3x3 blocks
+              }
+              const char = initialPuzzleString[r * 9 + c];
+              gridStr += digitMap[char] || emptySquare;
+            }
+            gridStr += "\n";
+          }
+
+          return header + "\n" + gridStr.trim();
         }
 
         // --- Timer Functions ---
