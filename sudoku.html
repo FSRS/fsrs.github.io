@@ -93,6 +93,18 @@
         border-color: #1d4ed8;
       }
 
+      .control-btn.active-green {
+        background-color: var(--color-green-700);
+        color: white;
+        border-color: var(--color-green-700);
+      }
+
+      .sudoku-cell.selected-green {
+        outline: 3px solid var(--color-green-700);
+        outline-offset: -3px;
+        z-index: 5;
+      }
+
       .color-btn.selected {
         outline: 2px solid #1d4ed8;
         outline-offset: 2px;
@@ -597,13 +609,24 @@
             const state = boardState[row][col];
 
             cell.innerHTML = "";
-            cell.classList.remove("selected", "invalid", "highlighted");
+            cell.classList.remove(
+              "selected",
+              "selected-green",
+              "invalid",
+              "highlighted"
+            );
             cell.style.backgroundColor = state.cellColor || "";
 
             if (row === selectedCell.row && col === selectedCell.col) {
-              cell.classList.add("selected");
+              const useGreenHighlight =
+                currentMode === "pencil" ||
+                (currentMode === "color" && coloringSubMode === "candidate");
+              if (useGreenHighlight) {
+                cell.classList.add("selected-green");
+              } else {
+                cell.classList.add("selected");
+              }
             }
-
             const content = document.createElement("div");
             content.className = "cell-content";
 
@@ -1152,11 +1175,21 @@
           showMessage(tip, "gray");
 
           // Update active classes for all buttons
-          modeToggleButton.classList.toggle(
-            "active",
-            currentMode === "concrete" || currentMode === "pencil"
-          );
-          colorButton.classList.toggle("active", currentMode === "color");
+          modeToggleButton.classList.remove("active", "active-green");
+          colorButton.classList.remove("active", "active-green");
+
+          if (currentMode === "concrete") {
+            modeToggleButton.classList.add("active"); // Blue
+          } else if (currentMode === "pencil") {
+            modeToggleButton.classList.add("active-green"); // Green
+          } else if (currentMode === "color") {
+            if (coloringSubMode === "candidate") {
+              colorButton.classList.add("active-green"); // Green for Color: Cand
+            } else {
+              // cell mode
+              colorButton.classList.add("active"); // Blue for Color: Cell
+            }
+          }
 
           // Update the number/color pad if the mode type changed
           const wasColor = previousMode === "color";
