@@ -453,6 +453,8 @@
         let startTime = 0;
         let initialPuzzleString = "";
         let isCustomPuzzle = false;
+        let hasUsedAutoPencil = false;
+        let autoPencilTipTimer = null;
 
         function updateButtonLabels() {
           const isMobile = window.innerWidth <= 550; // Breakpoint for mobile view
@@ -1489,6 +1491,7 @@
         }
 
         function autoPencil() {
+          hasUsedAutoPencil = true;
           const board = boardState.map((row) => row.map((cell) => cell.value));
           for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
@@ -1509,6 +1512,7 @@
         }
 
         function loadPuzzle(puzzleString, puzzleData = null) {
+          if (autoPencilTipTimer) clearTimeout(autoPencilTipTimer);
           isCustomPuzzle = puzzleData === null;
           if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
             showMessage("Error: Invalid puzzle string.", "red");
@@ -1546,6 +1550,17 @@
           addSudokuCoachLink(puzzleString);
           if (!puzzleData) showMessage("Custom puzzle loaded!", "green");
           startTimer();
+
+          // Set a new timer to show the auto-pencil tip after 10 seconds
+          autoPencilTipTimer = setTimeout(() => {
+            if (!hasUsedAutoPencil) {
+              const isMobile = window.innerWidth <= 550;
+              const tip = isMobile
+                ? "Tip: Touch 'Auto-Pencil' below to fill in all possible candidates."
+                : "Tip: Click 'Auto-Pencil' <span class='shortcut-highlight'>(or press 'A')</span> to fill in all possible candidates.";
+              showMessage(tip, "gray");
+            }
+          }, 10000); // 10,000 milliseconds = 10 seconds
         }
 
         function clearUserBoard() {
