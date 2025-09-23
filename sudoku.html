@@ -1536,6 +1536,47 @@
                 "Error: More than one number is missing; solution is not unique.",
             };
           }
+          // Pre-Check 3
+          // Check for two empty rows in any horizontal band
+          for (let bandStartRow = 0; bandStartRow < 9; bandStartRow += 3) {
+            let emptyRowCount = 0;
+            for (let r_offset = 0; r_offset < 3; r_offset++) {
+              const r = bandStartRow + r_offset;
+              if (board[r].every(cell => cell === 0)) {
+                emptyRowCount++;
+              }
+            }
+            if (emptyRowCount >= 2) {
+              return {
+                isValid: false,
+                message: "Error: Two empty rows in a band; solution is not unique.",
+              };
+            }
+          }
+        
+          // Check for two empty columns in any vertical band
+          for (let bandStartCol = 0; bandStartCol < 9; bandStartCol += 3) {
+            let emptyColCount = 0;
+            for (let c_offset = 0; c_offset < 3; c_offset++) {
+              const c = bandStartCol + c_offset;
+              let isColEmpty = true;
+              for (let r = 0; r < 9; r++) {
+                if (board[r][c] !== 0) {
+                  isColEmpty = false;
+                  break;
+                }
+              }
+              if (isColEmpty) {
+                emptyColCount++;
+              }
+            }
+            if (emptyColCount >= 2) {
+              return {
+                isValid: false,
+                message: "Error: Two empty columns in a band; solution is not unique.",
+              };
+            }
+          }
 
           function isBoardValid(b) {
             for (let r = 0; r < 9; r++) {
