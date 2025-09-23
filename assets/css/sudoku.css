@@ -338,6 +338,9 @@
   .fixed {
     position: fixed;
   }
+  .font-calligraphy {
+    font-family: "Satisfy", cursive;
+  }
   .inset-0 {
     inset: calc(var(--spacing) * 0);
   }
@@ -982,7 +985,27 @@
   .sudoku-cell.highlighted.has-color::after {
     border: 3px solid rgba(250, 204, 21, 0.1); /* softer glow */
   }
+  select {
+    background-color: #374151; /* gray-700 */
+    color: #f3f4f6; /* gray-100 */
+    border-color: #4b5563; /* gray-600 */
+  }
+  #date-cancel-btn,
+  #close-modal-btn {
+    background-color: #4b5563; /* gray-600 */
+    color: #e5e7eb; /* gray-200 */
+  }
+
+  /* Hover effect for the modal buttons */
+  #date-cancel-btn:hover,
+  #close-modal-btn:hover {
+    background-color: #374151; /* gray-700 */
+  }
+  .text-red-600 {
+    color: #f87171 !important; /* A brighter, more vibrant red */
+  }
 }
+
 @media (max-width: 550px) {
   #puzzle-selectors {
     flex-direction: column; /* Stack the selectors vertically */
