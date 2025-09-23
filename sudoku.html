@@ -472,8 +472,8 @@
                 : "Color: Cell";
             } else {
               colorButton.textContent = isMobile
-                ? "Color: Cand"
-                : "Color: Cand";
+                ? "Color: Cand."
+                : "Color: Cand.";
             }
           } else {
             colorButton.textContent = isMobile ? "Color" : "Color (X)";
@@ -852,8 +852,8 @@
             if (currentMode === "color") {
               if (coloringSubMode === "cell") {
                 colorButton.textContent = isMobile
-                  ? "Color: Cand?"
-                  : "Color: Cand?";
+                  ? "Color: Cand.?"
+                  : "Color: Cand.?";
               } else {
                 colorButton.textContent = isMobile
                   ? "Color: Cell?"
@@ -1244,34 +1244,32 @@
             }
           }
 
-          // // --- UI Update Logic (based on the new state) ---
-          // modeToggleButton.textContent =
-          //   currentMode === "pencil" ? "Pencil" : "Number (Z)";
+          // --- Tip Display Logic ---
+          const isMobile = window.innerWidth <= 550;
+          let tip = "";
 
-          // if (currentMode === "color") {
-          //   colorButton.textContent =
-          //     coloringSubMode === "cell" ? "Color: Cell" : "Color: Cand";
-          // } else {
-          //   colorButton.textContent = "Color (X)"; // Reset text if not in color mode
-          // }
+          if (currentMode === "concrete") {
+            tip = isMobile
+              ? "Tip: Touch a filled cell to highlight its number."
+              : "Tip: Click a filled cell (or press 'Enter') to highlight its number.";
+          } else if (currentMode === "pencil") {
+            tip = isMobile
+              ? "Tip: Touch a cell, then a digit to toggle a pencil mark."
+              : "Tip: Click a cell, then a digit to toggle a pencil mark.";
+          } else if (currentMode === "color") {
+            if (coloringSubMode === "cell") {
+              tip = isMobile
+                ? "Tip: Pick a color, then touch a cell to paint it."
+                : "Tip: Pick a color, then click a cell (or press 'C') to paint it.";
+            } else {
+              // candidate sub-mode
+              tip = isMobile
+                ? "Tip: Pick a color, then touch a cell to select a candidate."
+                : "Tip: Pick a color, then click a cell (or press 'C') to select a candidate.";
+            }
+          }
 
-          // // --- Tip Display Logic ---
-          // let tip = "";
-          // if (currentMode === "concrete") {
-          //   tip =
-          //     "Tip: Click a filled cell (or press 'Enter') to highlight its number.";
-          // } else if (currentMode === "pencil") {
-          //   tip = "Tip: Click a cell, then a digit to toggle a pencil mark.";
-          // } else if (currentMode === "color") {
-          //   if (coloringSubMode === "cell") {
-          //     tip =
-          //       "Tip: Pick a color, then click a cell (or press 'C') to paint it.";
-          //   } else {
-          //     tip =
-          //       "Tip: Pick a color, then click a cell (or press 'C') to select a candidate.";
-          //   }
-          // }
-          // showMessage(tip, "gray");
+          showMessage(tip, "gray"); // <-- ALSO UNCOMMENT THIS LINE
 
           // Update active classes for all buttons
           modeToggleButton.classList.remove("active", "active-green");
