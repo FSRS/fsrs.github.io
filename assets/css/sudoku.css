@@ -42,11 +42,15 @@
     --color-red-600: oklch(57.7% 0.245 27.325);
     --color-green-600: oklch(62.7% 0.194 149.214);
     --color-green-700: oklch(52.7% 0.154 150.069);
+    --color-blue-300: oklch(76.58% 0.138 256.12);
+    --color-blue-400: oklch(69.72% 0.175 258.11);
     --color-blue-500: oklch(62.3% 0.214 259.815);
     --color-blue-600: oklch(54.6% 0.245 262.881);
     --color-blue-700: oklch(48.8% 0.243 264.376);
     --color-orange-500: oklch(69.8% 0.19 50.5);
     --color-orange-600: oklch(64.5% 0.207 43.3);
+    --color-orange-700: oklch(55.3% 0.195 38.402);
+    --color-orange-800: oklch(47% 0.157 37.304);
     --color-indigo-600: oklch(51.1% 0.262 276.966);
     --color-indigo-700: oklch(45.7% 0.24 277.023);
     --color-gray-50: oklch(98.5% 0.002 247.839);
@@ -478,6 +482,12 @@
   .bg-orange-600 {
     background-color: var(--color-orange-600);
   }
+  .bg-orange-700 {
+    background-color: var(--color-orange-700);
+  }
+  .bg-orange-800 {
+    background-color: var(--color-orange-800);
+  }
   .bg-gray-100 {
     background-color: var(--color-gray-100);
   }
@@ -624,6 +634,9 @@
     .hover\:bg-indigo-700:hover {
       background-color: var(--color-indigo-700);
     }
+    .hover\:bg-orange-600:hover {
+      background-color: var(--color-orange-600);
+    }
   }
   .focus\:border-blue-500:focus {
     border-color: var(--color-blue-500);
@@ -653,6 +666,7 @@
     }
   }
 }
+
 @property --tw-rotate-x {
   syntax: "*";
   inherits: false;
@@ -756,4 +770,231 @@
   syntax: "*";
   inherits: false;
   initial-value: solid;
+}
+
+/* ============================
+   Auto Dark Mode Overrides
+   Uses system preference
+   ============================ */
+@media (prefers-color-scheme: dark) {
+  /* Page background */
+  body {
+    background-color: #111827; /* gray-900 */
+    color: #f3f4f6; /* gray-100 */
+  }
+
+  /* Card / panels */
+  .bg-white {
+    background-color: #1f2937 !important; /* gray-800 */
+  }
+
+  /* Headings and text */
+  .text-gray-800 {
+    color: #f3f4f6 !important; /* gray-100 */
+  }
+  .text-gray-700 {
+    color: #d1d5db !important; /* gray-300 */
+  }
+  .text-gray-600 {
+    color: #9ca3af !important; /* gray-400 */
+  }
+  .text-gray-500 {
+    color: #9ca3af !important; /* gray-400 */
+  }
+
+  /* Borders */
+  .border-gray-300 {
+    border-color: #4b5563 !important; /* gray-600 */
+  }
+  .border-gray-700 {
+    border-color: #374151 !important; /* gray-700 */
+  }
+
+  /* Buttons */
+  button.bg-white {
+    background-color: #374151; /* gray-700 */
+    color: #e5e7eb; /* gray-200 */
+    border-color: #4b5563; /* gray-600 */
+  }
+  button.bg-white:hover {
+    background-color: #4b5563; /* gray-600 */
+  }
+  button:disabled {
+    background-color: #4b5563 !important;
+    color: #6b7280 !important; /* gray-500 */
+    border-color: #4b5563 !important;
+  }
+
+  /* Sudoku grid and cells */
+  .sudoku-cell {
+    border-color: #4b5563 !important; /* gray-600 */
+    background-color: #1f2937; /* gray-800 */
+    position: relative; /* required for ::after positioning */
+  }
+  .sudoku-cell.selected {
+    outline-color: #3b82f6; /* blue-500 */
+  }
+  .sudoku-cell.selected-green {
+    outline-color: #c084fc; /* violet-400 */
+  }
+
+  .sudoku-cell .given-value {
+    color: #e5e7eb !important; /* gray-200 */
+  }
+  .sudoku-cell .user-value {
+    color: #60a5fa !important; /* blue-400 */
+  }
+  .sudoku-cell.invalid .user-value {
+    background-color: #7f1d1d !important; /* darker red */
+    color: #fecaca; /* keep some contrast */
+  }
+
+  /* Pencil marks */
+  .pencil-grid {
+    color: #9ca3af !important; /* gray-400 */
+  }
+
+  /* Modals */
+  #date-modal > div,
+  #candidate-modal > div {
+    background-color: #1f2937 !important; /* gray-800 */
+    color: #f3f4f6 !important; /* gray-100 */
+    border: 1px solid #4b5563; /* gray-600 */
+  }
+
+  /* Info bar */
+  #puzzle-info {
+    color: #9ca3af !important; /* gray-400 */
+  }
+}
+
+/* ---------------------------
+   Highlight behavior: cell color has priority
+   --------------------------- */
+
+/* Tagging helper: cells that have a custom color */
+.sudoku-cell.has-color {
+  /* Nothing required here; presence of this class is used by the selectors below */
+}
+
+/* If cell has custom color AND is highlighted -> do not replace background.
+   Instead show a subtle inset ring (overlay) so the cell color remains visible. */
+.sudoku-cell.highlighted.has-color {
+  /* The "background-color: unset !important;" line has been REMOVED */
+
+  /* Subtle inset ring — tweak alpha/radius if you want a stronger highlight */
+  box-shadow: inset 0 0 0 3px rgba(250, 204, 21, 0.18);
+}
+
+/* If NOT colored, highlight becomes a full background color (existing behavior) */
+.sudoku-cell.highlighted:not(.has-color) {
+  background-color: #fef08a; /* yellow-200 (same as before) */
+}
+
+/* If cell has a custom color → keep that color, add a boundary glow */
+.sudoku-cell.highlighted.has-color::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 3px solid rgba(250, 204, 21, 0.6); /* yellow glow */
+  pointer-events: none; /* don’t block clicks */
+}
+
+/* Keep selected outline behavior */
+.sudoku-cell.selected {
+  /* your existing outline styling remains effective */
+}
+
+/* For keyboard/selected-green variant use a similar rule if needed */
+.sudoku-cell.selected-green {
+  outline-color: #c084fc; /* as in your current style */
+}
+
+/* ----- Dark-mode versions ----- */
+@media (prefers-color-scheme: dark) {
+  /* Make Auto-Pencil button darker in dark mode */
+  #auto-pencil-btn {
+    background-color: var(--color-indigo-700); /* Darker Indigo */
+  }
+
+  /* Make Solve button darker in dark mode */
+  #solve-btn {
+    background-color: var(--color-green-700); /* Darker Green */
+  }
+
+  /* Make Export button darker in dark mode */
+  #solver-link-container a {
+    background-color: var(--color-orange-700); /* Darker Orange */
+  }
+
+  /* Base style for number pad buttons (1-9) */
+  #number-pad button[data-number] {
+    background-color: #374151; /* gray-700 */
+    border-color: #4b5563; /* gray-600 */
+    color: #d1d5db; /* gray-300, for softer text */
+  }
+
+  /* Hover effect for number pad buttons */
+  #number-pad button[data-number]:hover {
+    background-color: #4b5563; /* gray-600 */
+  }
+
+  #undo-btn:hover,
+  #redo-btn:hover,
+  #clear-btn:hover,
+  #clear-colors-btn:hover {
+    background-color: #4b5563 !important; /* gray-600 */
+  }
+
+  /* For Auto-Pencil */
+  #auto-pencil-btn:hover {
+    background-color: #3730a3; /* A darker indigo for hover */
+  }
+
+  /* For Solve */
+  #solve-btn:hover {
+    background-color: #166534; /* A darker green for hover */
+  }
+
+  /* For Export to Sudoku Coach Solver */
+  #solver-link-container a:hover {
+    background-color: #7c2d12; /* A darker orange for hover */
+  }
+
+  .is-solved .sudoku-cell {
+    background-color: #064e3b !important; /* A dark, muted green */
+  }
+
+  .color-btn.selected {
+    outline: 3px solid var(--color-blue-300) !important;
+    outline-offset: 2px;
+  }
+
+  .sudoku-cell.highlighted.has-color {
+    /* The "background-color: unset !important;" line has been REMOVED */
+    box-shadow: inset 0 0 0 3px rgba(250, 204, 21, 0.12);
+  }
+
+  .sudoku-cell.highlighted:not(.has-color) {
+    background-color: #374151; /* gray-700 */
+  }
+  .sudoku-cell.highlighted.has-color::after {
+    border: 3px solid rgba(250, 204, 21, 0.1); /* softer glow */
+  }
+}
+@media (max-width: 550px) {
+  #puzzle-selectors {
+    flex-direction: column; /* Stack the selectors vertically */
+    align-items: stretch; /* Make each item take the full width */
+    gap: 0.5rem; /* Reduce the gap between them */
+  }
+
+  #puzzle-selectors > div {
+    /* This makes the label and select box in each row spread apart nicely */
+    justify-content: space-between;
+  }
+  .shortcut-indicator {
+    display: none;
+  }
 }

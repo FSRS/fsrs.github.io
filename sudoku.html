@@ -106,7 +106,7 @@
       }
 
       .color-btn.selected {
-        outline: 2px solid #1d4ed8;
+        outline: 3px solid #1d4ed8;
         outline-offset: 2px;
       }
 
@@ -137,21 +137,24 @@
       }
 
       .is-solved .sudoku-cell {
-        background-color: #a7f3d0 !important;
+        background-color: #a7f3d0;
         animation: cell-solve-animation 1s ease-in-out;
         animation-delay: calc((var(--row) * 9 + var(--col)) * 20ms);
       }
     </style>
   </head>
   <body
-    class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4"
+    class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4"
   >
     <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-xl">
       <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">
         fsrs Daily Irred. Sudoku
       </h1>
 
-      <div class="mb-2 flex items-center justify-between gap-4 flex-wrap">
+      <div
+        id="puzzle-selectors"
+        class="mb-2 flex items-center justify-between gap-4 flex-wrap"
+      >
         <div class="flex items-center gap-2">
           <label for="date-select" class="text-sm font-medium">Date</label>
           <select
@@ -218,38 +221,42 @@
           id="undo-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
-          Undo (Ctrl+Z)
+          <span>Undo</span
+          ><span class="shortcut-indicator">&nbsp;(Ctrl+Z)</span>
         </button>
         <button
           id="redo-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
-          Redo (Ctrl+Y)
+          <span>Redo</span
+          ><span class="shortcut-indicator">&nbsp;(Ctrl+Y)</span>
         </button>
         <button
           id="auto-pencil-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
         >
-          Auto-Pencil (A)
+          <span>Auto-Pencil</span
+          ><span class="shortcut-indicator">&nbsp;(A)</span>
         </button>
         <button
           id="solve-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
         >
-          Solve (S)
+          <span>Solve</span><span class="shortcut-indicator">&nbsp;(S)</span>
         </button>
-
         <button
           id="clear-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
-          Quick Restart (Q)
+          <span>Quick Restart</span
+          ><span class="shortcut-indicator">&nbsp;(Q)</span>
         </button>
         <button
           id="clear-colors-btn"
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
         >
-          Wipe Colors (W)
+          <span>Wipe Colors</span
+          ><span class="shortcut-indicator">&nbsp;(W)</span>
         </button>
       </div>
       <div id="solver-link-container" class="text-center mt-2"></div>
@@ -365,7 +372,8 @@
           "VANQUISHER",
         ];
 
-        const colorPalette = [
+        // light-mode palette (your existing)
+        const colorPaletteLight = [
           "#f87171",
           "#fb923c",
           "#facc15",
@@ -376,6 +384,37 @@
           "#c084fc",
           "#f472b6",
         ];
+
+        // darker palette for dark-mode (deeper/jewel tones)
+        const colorPaletteDark = [
+          "#991b1b", // red-800
+          "#9a3412", // orange-800
+          "#92400e", // amber-800
+          "#3f6212", // lime-800
+          "#065f46", // emerald-800
+          "#155e75", // cyan-800
+          "#1e3a8a", // blue-900
+          "#5b21b6", // violet-800
+          "#9d174d", // pink-800
+        ];
+
+        // live palette variable used by updateControls()
+        let colorPalette =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? colorPaletteDark
+            : colorPaletteLight;
+
+        // react to changes in system preference (updates UI instantly)
+        const colorSchemeMQ = window.matchMedia("(prefers-color-scheme: dark)");
+        colorSchemeMQ.addEventListener?.("change", (e) => {
+          colorPalette = e.matches ? colorPaletteDark : colorPaletteLight;
+          updateControls(); // rebuild the number/color pad
+          renderBoard(); // re-render cells with new colors
+        });
+
+        // NOTE: updateControls() in your script already uses `colorPalette`
+        // so no other change to updateControls() should be required.
 
         const levelTips = [
           "Lv. 0: Singles",
@@ -406,6 +445,37 @@
         let initialPuzzleString = "";
         let isCustomPuzzle = false;
 
+        function updateButtonLabels() {
+          const isMobile = window.innerWidth <= 550; // Breakpoint for mobile view
+
+          // 1. Update Number/Pencil Button
+          if (currentMode === "pencil") {
+            modeToggleButton.textContent = isMobile ? "Pen." : "Pencil";
+          } else {
+            modeToggleButton.textContent = isMobile ? "Num." : "Number (Z)";
+          }
+
+          // 2. Update Color Button
+          if (currentMode === "color") {
+            if (coloringSubMode === "cell") {
+              colorButton.textContent = isMobile
+                ? "Color: Cell"
+                : "Color: Cell";
+            } else {
+              colorButton.textContent = isMobile
+                ? "Color: Cand"
+                : "Color: Cand";
+            }
+          } else {
+            colorButton.textContent = isMobile ? "Color" : "Color (X)";
+          }
+
+          // 3. Update Display Format Button
+          formatToggleBtn.textContent = isMobile
+            ? `Dspl. ${candidatePopupFormat}`
+            : `Dspl. ${candidatePopupFormat} (D)`;
+        }
+
         function addSudokuCoachLink(puzzleString) {
           const container = document.getElementById("solver-link-container");
           if (!container) return;
@@ -421,13 +491,18 @@
           // Create the link element
           const link = document.createElement("a");
           link.href = solverUrl;
-          link.target = "_blank"; // Opens in a new tab
-          link.rel = "noopener noreferrer"; // Security best practice
-          link.textContent = "Export to Sudoku Coach Solver (E)";
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+
+          // Check screen width and set text accordingly
+          const isMobile = window.innerWidth <= 550;
+          link.textContent = isMobile
+            ? "Export to SC Solver"
+            : "Export to Sudoku Coach Solver (E)";
 
           // Apply the new button styling
           link.className =
-            "w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orang-600";
+            "w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orange-600";
 
           container.appendChild(link);
         }
@@ -437,6 +512,7 @@
           updateControls();
           initBoardState();
           setupEventListeners();
+          updateButtonLabels();
 
           try {
             const response = await fetch("sudoku.json");
@@ -618,6 +694,11 @@
               "highlighted"
             );
             cell.style.backgroundColor = state.cellColor || "";
+            if (state.cellColor) {
+              cell.classList.add("has-color");
+            } else {
+              cell.classList.remove("has-color");
+            }
 
             if (row === selectedCell.row && col === selectedCell.col) {
               const useGreenHighlight =
@@ -714,9 +795,10 @@
           closeModalBtn.addEventListener("click", () =>
             candidateModal.classList.add("hidden")
           );
+          window.addEventListener("resize", updateButtonLabels);
           formatToggleBtn.addEventListener("click", () => {
             candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
-            formatToggleBtn.textContent = `Dspl. ${candidatePopupFormat} (D)`;
+            updateButtonLabels();
             renderBoard(); // Re-render the main board to update pencil marks
             // If the popup is open, re-render it too
             if (
@@ -743,31 +825,37 @@
           document.addEventListener("keydown", handleKeyPress);
           // Hover effects for mode buttons
           modeToggleButton.addEventListener("mouseenter", () => {
-            if (currentMode === "concrete")
-              modeToggleButton.textContent = "Pencil?";
-            else if (currentMode === "pencil")
-              modeToggleButton.textContent = "Number?";
+            const isMobile = window.innerWidth <= 550;
+            if (currentMode === "concrete") {
+              modeToggleButton.textContent = isMobile ? "Pen.?" : "Pencil?";
+            } else if (currentMode === "pencil") {
+              modeToggleButton.textContent = isMobile ? "Num.?" : "Number?";
+            }
           });
+
+          // This is now simpler and respects the responsive labels
           modeToggleButton.addEventListener("mouseleave", () => {
-            if (currentMode === "concrete")
-              modeToggleButton.textContent = "Number";
-            else if (currentMode === "pencil")
-              modeToggleButton.textContent = "Pencil";
+            updateButtonLabels();
           });
 
           colorButton.addEventListener("mouseenter", () => {
+            const isMobile = window.innerWidth <= 550;
             if (currentMode === "color") {
-              if (coloringSubMode === "cell")
-                colorButton.textContent = "Color: Cand?";
-              else colorButton.textContent = "Color: Cell?";
+              if (coloringSubMode === "cell") {
+                colorButton.textContent = isMobile
+                  ? "Color: Cand?"
+                  : "Color: Cand?";
+              } else {
+                colorButton.textContent = isMobile
+                  ? "Color: Cell?"
+                  : "Color: Cell?";
+              }
             }
           });
+
+          // This is now simpler and respects the responsive labels
           colorButton.addEventListener("mouseleave", () => {
-            if (currentMode === "color") {
-              if (coloringSubMode === "cell")
-                colorButton.textContent = "Color: Cell";
-              else colorButton.textContent = "Color: Cand.";
-            }
+            updateButtonLabels();
           });
           // Date modal elements
           const dateModal = document.getElementById("date-modal");
@@ -1147,34 +1235,34 @@
             }
           }
 
-          // --- UI Update Logic (based on the new state) ---
-          modeToggleButton.textContent =
-            currentMode === "pencil" ? "Pencil" : "Number (Z)";
+          // // --- UI Update Logic (based on the new state) ---
+          // modeToggleButton.textContent =
+          //   currentMode === "pencil" ? "Pencil" : "Number (Z)";
 
-          if (currentMode === "color") {
-            colorButton.textContent =
-              coloringSubMode === "cell" ? "Color: Cell" : "Color: Cand";
-          } else {
-            colorButton.textContent = "Color (X)"; // Reset text if not in color mode
-          }
+          // if (currentMode === "color") {
+          //   colorButton.textContent =
+          //     coloringSubMode === "cell" ? "Color: Cell" : "Color: Cand";
+          // } else {
+          //   colorButton.textContent = "Color (X)"; // Reset text if not in color mode
+          // }
 
-          // --- Tip Display Logic ---
-          let tip = "";
-          if (currentMode === "concrete") {
-            tip =
-              "Tip: Click a filled cell (or press 'Enter') to highlight its number.";
-          } else if (currentMode === "pencil") {
-            tip = "Tip: Click a cell, then a digit to toggle a pencil mark.";
-          } else if (currentMode === "color") {
-            if (coloringSubMode === "cell") {
-              tip =
-                "Tip: Pick a color, then click a cell (or press 'C') to paint it.";
-            } else {
-              tip =
-                "Tip: Pick a color, then click a cell (or press 'C') to select a candidate.";
-            }
-          }
-          showMessage(tip, "gray");
+          // // --- Tip Display Logic ---
+          // let tip = "";
+          // if (currentMode === "concrete") {
+          //   tip =
+          //     "Tip: Click a filled cell (or press 'Enter') to highlight its number.";
+          // } else if (currentMode === "pencil") {
+          //   tip = "Tip: Click a cell, then a digit to toggle a pencil mark.";
+          // } else if (currentMode === "color") {
+          //   if (coloringSubMode === "cell") {
+          //     tip =
+          //       "Tip: Pick a color, then click a cell (or press 'C') to paint it.";
+          //   } else {
+          //     tip =
+          //       "Tip: Pick a color, then click a cell (or press 'C') to select a candidate.";
+          //   }
+          // }
+          // showMessage(tip, "gray");
 
           // Update active classes for all buttons
           modeToggleButton.classList.remove("active", "active-green");
