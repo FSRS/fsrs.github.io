@@ -1511,6 +1511,78 @@
           showMessage("Auto-Pencil complete!", "green");
         }
 
+        /**
+         * Checks if a puzzle board has a unique solution and returns the result.
+         * @param {number[][]} board - The initial puzzle board.
+         * @returns {{isValid: boolean, message: string}} An object with the validation result.
+         */
+        function checkPuzzleUniqueness(board) {
+          // Pre-check 1: Clue count
+          const clueCount = board.flat().filter((v) => v !== 0).length;
+          if (clueCount < 17) {
+            return {
+              isValid: false,
+              message:
+                "Error: Puzzle has fewer than 17 clues; solution is not unique.",
+            };
+          }
+
+          // Pre-check 2: Missing numbers
+          const presentNumbers = new Set(board.flat().filter((v) => v !== 0));
+          if (presentNumbers.size < 8) {
+            return {
+              isValid: false,
+              message:
+                "Error: More than one number is missing; solution is not unique.",
+            };
+          }
+
+          function isBoardValid(b) {
+            for (let r = 0; r < 9; r++) {
+              for (let c = 0; c < 9; c++) {
+                if (b[r][c] !== 0) {
+                  const num = b[r][c];
+                  b[r][c] = 0;
+                  const valid = isValid(b, r, c, num);
+                  b[r][c] = num;
+                  if (!valid) return false;
+                }
+              }
+            }
+            return true;
+          }
+          // Pre-check 3: Initial conflicts (on a copy to be safe)
+          if (!isBoardValid(board.map((row) => [...row]))) {
+            return {
+              isValid: false,
+              message: "Error: The initial puzzle state has conflicts.",
+            };
+          }
+
+          const boardCopy = board.map((row) => [...row]);
+          while (findAndPlaceOneHiddenSingle(boardCopy)) {
+            // This loop simplifies the board before counting.
+          }
+
+          // Final Check: Count solutions (on a copy to be safe)
+          const solutionCount = countSolutions(boardCopy);
+
+          if (solutionCount === 0) {
+            return {
+              isValid: false,
+              message: "Error: This puzzle has no solution.",
+            };
+          }
+          if (solutionCount > 1) {
+            return {
+              isValid: false,
+              message: "Error: This puzzle has more than one solution.",
+            };
+          }
+
+          return { isValid: true, message: "Puzzle has a unique solution." };
+        }
+
         function loadPuzzle(puzzleString, puzzleData = null) {
           if (autoPencilTipTimer) clearTimeout(autoPencilTipTimer);
           isCustomPuzzle = puzzleData === null;
@@ -1521,12 +1593,30 @@
           }
           initialPuzzleString = puzzleString;
           initBoardState();
+          const boardForValidation = Array(9)
+            .fill(null)
+            .map(() => Array(9).fill(0));
+
           for (let i = 0; i < 81; i++) {
             const row = Math.floor(i / 9);
             const col = i % 9;
-            if (puzzleString[i] !== "." && puzzleString[i] !== "0") {
-              boardState[row][col].value = parseInt(puzzleString[i]);
+            const char = puzzleString[i];
+            if (char !== "." && char !== "0") {
+              const num = parseInt(char);
+              // Populate the main board state for display
+              boardState[row][col].value = num;
               boardState[row][col].isGiven = true;
+              // ALSO populate the separate board for validation
+              boardForValidation[row][col] = num;
+            }
+          }
+          if (isCustomPuzzle) {
+            const validity = checkPuzzleUniqueness(boardForValidation);
+            if (!validity.isValid) {
+              // Show the error message after a short delay
+              setTimeout(() => {
+                showMessage(validity.message, "red");
+              }, 750);
             }
           }
           selectedCell = { row: null, col: null };
@@ -1601,45 +1691,220 @@
           return allValid;
         }
 
+        /**
+         * Counts the number of solutions for a given board up to a specified limit.
+         * @param {number[][]} board - The Sudoku board to solve.
+         * @param {number} limit - The maximum number of solutions to find before stopping.
+         * @returns {number} The number of solutions found (up to the limit).
+         */
+        function countSolutions(board, limit = 2) {
+          let count = 0;
+
+          function search() {
+            // The hidden single loop has been removed from here.
+
+            const find = findEmpty(board);
+            if (!find) {
+              count++;
+              return count >= limit; // Stop if we've reached the limit
+            }
+
+            const [row, col] = find;
+            for (let num = 1; num <= 9; num++) {
+              if (isValid(board, row, col, num)) {
+                board[row][col] = num;
+                if (search()) {
+                  return true; // Propagate the stop signal
+                }
+              }
+            }
+            board[row][col] = 0; // Backtrack
+            return false;
+          }
+
+          search();
+          return count;
+        }
+
         function solve() {
-          if (!validateBoard()) {
-            showMessage(
-              "Conflicts on board! Correct red cells before solving.",
-              "red"
-            );
+          if (!initialPuzzleString) {
+            showMessage("Error: No initial puzzle loaded.", "red");
             return;
           }
 
-          let board = boardState.map((row) => row.map((cell) => cell.value));
-          if (solveSudoku(board)) {
-            for (let r = 0; r < 9; r++) {
-              for (let c = 0; c < 9; c++) {
-                boardState[r][c].value = board[r][c];
-                boardState[r][c].pencils.clear();
-              }
-            }
-            saveState();
-            renderBoard();
+          const startTime = performance.now(); // Start the timer
 
-            showMessage("Puzzle Solved!", "green");
-            triggerSolveAnimation();
-            updateButtonStates();
-            stopTimer();
-          } else {
-            showMessage(
-              "This puzzle is unsolvable from the current state. Revise the filled numbers.",
-              "red"
-            );
+          const initialBoard = Array(9)
+            .fill(null)
+            .map(() => Array(9).fill(0));
+          for (let i = 0; i < 81; i++) {
+            const char = initialPuzzleString[i];
+            if (char !== "." && char !== "0") {
+              initialBoard[Math.floor(i / 9)][i % 9] = parseInt(char);
+            }
           }
+
+          const validity = checkPuzzleUniqueness(initialBoard);
+          if (!validity.isValid) {
+            const duration = (performance.now() - startTime).toFixed(2);
+            // Append the time to the existing error message from checkPuzzleUniqueness
+            showMessage(`${validity.message} (took ${duration} ms)`, "red");
+            return;
+          }
+
+          while (findAndPlaceOneHiddenSingle(initialBoard)) {
+            // This loop will repeatedly fill in hidden singles until none are left.
+          }
+
+          // If we get here, the solution is unique. Solve and display it.
+          solveSudoku(initialBoard);
+          for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+              boardState[r][c].value = initialBoard[r][c];
+              boardState[r][c].pencils.clear();
+            }
+          }
+
+          const duration = (performance.now() - startTime).toFixed(2); // Stop the timer
+
+          saveState();
+          renderBoard();
+          showMessage(
+            `Puzzle Solved! (Unique Solution Found in ${duration} ms)`,
+            "green"
+          );
+          triggerSolveAnimation();
+          stopTimer();
         }
 
         function findEmpty(board) {
+          let bestCell = null;
+          let minRemainingValues = 10; // Start with a value higher than the max possible (9)
+
           for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
-              if (board[r][c] === 0) return [r, c];
+              if (board[r][c] === 0) {
+                // This cell is empty, so count its legal moves
+                let remainingValues = 0;
+                for (let num = 1; num <= 9; num++) {
+                  if (isValid(board, r, c, num)) {
+                    remainingValues++;
+                  }
+                }
+
+                // If this cell is more constrained than the best one we've found so far
+                if (remainingValues < minRemainingValues) {
+                  minRemainingValues = remainingValues;
+                  bestCell = [r, c];
+                }
+
+                // Optimization: If a cell has only 0 or 1 possible value, it's the best we can do.
+                if (minRemainingValues <= 1) {
+                  return bestCell;
+                }
+              }
             }
           }
-          return null;
+          return bestCell; // This will be null if the board is full
+        }
+
+        /**
+         * Finds and places the first available "Hidden Single" on the board.
+         * This version is more robust and scans houses systematically.
+         * @param {number[][]} board - The Sudoku board.
+         * @returns {boolean} - True if a hidden single was found and placed, otherwise false.
+         */
+        function findAndPlaceOneHiddenSingle(board) {
+          // --- Scan by ROW ---
+          for (let r = 0; r < 9; r++) {
+            for (let num = 1; num <= 9; num++) {
+              // First, check if the number already exists in this row
+              let numExists = false;
+              for (let c = 0; c < 9; c++) {
+                if (board[r][c] === num) {
+                  numExists = true;
+                  break;
+                }
+              }
+              if (numExists) continue; // If it exists, move to the next number
+
+              // If it doesn't exist, find where it could go
+              let possibleCells = [];
+              for (let c = 0; c < 9; c++) {
+                if (board[r][c] === 0 && isValid(board, r, c, num)) {
+                  possibleCells.push(c);
+                }
+              }
+              if (possibleCells.length === 1) {
+                board[r][possibleCells[0]] = num;
+                return true; // Found one, restart the whole process
+              }
+            }
+          }
+
+          // --- Scan by COLUMN ---
+          for (let c = 0; c < 9; c++) {
+            for (let num = 1; num <= 9; num++) {
+              let numExists = false;
+              for (let r = 0; r < 9; r++) {
+                if (board[r][c] === num) {
+                  numExists = true;
+                  break;
+                }
+              }
+              if (numExists) continue;
+
+              let possibleCells = [];
+              for (let r = 0; r < 9; r++) {
+                if (board[r][c] === 0 && isValid(board, r, c, num)) {
+                  possibleCells.push(r);
+                }
+              }
+              if (possibleCells.length === 1) {
+                board[possibleCells[0]][c] = num;
+                return true;
+              }
+            }
+          }
+
+          // --- Scan by BOX ---
+          for (let boxStartRow = 0; boxStartRow < 9; boxStartRow += 3) {
+            for (let boxStartCol = 0; boxStartCol < 9; boxStartCol += 3) {
+              for (let num = 1; num <= 9; num++) {
+                let numExists = false;
+                for (let r_off = 0; r_off < 3; r_off++) {
+                  for (let c_off = 0; c_off < 3; c_off++) {
+                    if (
+                      board[boxStartRow + r_off][boxStartCol + c_off] === num
+                    ) {
+                      numExists = true;
+                      break;
+                    }
+                  }
+                  if (numExists) break;
+                }
+                if (numExists) continue;
+
+                let possibleCells = [];
+                for (let r_offset = 0; r_offset < 3; r_offset++) {
+                  for (let c_offset = 0; c_offset < 3; c_offset++) {
+                    let r = boxStartRow + r_offset;
+                    let c = boxStartCol + c_offset;
+                    if (board[r][c] === 0 && isValid(board, r, c, num)) {
+                      possibleCells.push({ r, c });
+                    }
+                  }
+                }
+                if (possibleCells.length === 1) {
+                  const { r, c } = possibleCells[0];
+                  board[r][c] = num;
+                  return true;
+                }
+              }
+            }
+          }
+
+          return false; // No hidden singles found in a full pass
         }
 
         function isValid(board, row, col, num) {
