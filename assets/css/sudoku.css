@@ -341,6 +341,10 @@
   .font-calligraphy {
     font-family: "Satisfy", cursive;
   }
+  .shortcut-highlight {
+    color: var(--color-orange-600);
+    font-weight: 600; /* semibold */
+  }
   .inset-0 {
     inset: calc(var(--spacing) * 0);
   }
@@ -1003,6 +1007,9 @@
   }
   .text-red-600 {
     color: #f87171 !important; /* A brighter, more vibrant red */
+  }
+  .shortcut-highlight {
+    color: var(--color-orange-500); /* A brighter orange for dark mode */
   }
 }
 

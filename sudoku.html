@@ -220,7 +220,7 @@
             id="format-toggle-btn"
             class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm"
           >
-            Dspl. A (D)
+            Display A (D)
           </button>
         </div>
         <div class="grid grid-cols-9 gap-1" id="number-pad"></div>
@@ -473,7 +473,7 @@
             } else {
               colorButton.textContent = isMobile
                 ? "Color: Cand."
-                : "Color: Cand.";
+                : "Color: Candidate";
             }
           } else {
             colorButton.textContent = isMobile ? "Color" : "Color (X)";
@@ -482,7 +482,7 @@
           // 3. Update Display Format Button
           formatToggleBtn.textContent = isMobile
             ? `Dspl. ${candidatePopupFormat}`
-            : `Dspl. ${candidatePopupFormat} (D)`;
+            : `Display ${candidatePopupFormat} (D)`;
         }
 
         function addSudokuCoachLink(puzzleString) {
@@ -853,7 +853,7 @@
               if (coloringSubMode === "cell") {
                 colorButton.textContent = isMobile
                   ? "Color: Cand.?"
-                  : "Color: Cand.?";
+                  : "Color: Candidate?";
               } else {
                 colorButton.textContent = isMobile
                   ? "Color: Cell?"
@@ -1251,7 +1251,7 @@
           if (currentMode === "concrete") {
             tip = isMobile
               ? "Tip: Touch a filled cell to highlight its number."
-              : "Tip: Click a filled cell (or press 'Enter') to highlight its number.";
+              : "Tip: Click a filled cell <span class='shortcut-highlight'>(or press 'Enter')</span> to highlight its number.";
           } else if (currentMode === "pencil") {
             tip = isMobile
               ? "Tip: Touch a cell, then a digit to toggle a pencil mark."
@@ -1260,12 +1260,12 @@
             if (coloringSubMode === "cell") {
               tip = isMobile
                 ? "Tip: Pick a color, then touch a cell to paint it."
-                : "Tip: Pick a color, then click a cell (or press 'C') to paint it.";
+                : "Tip: Pick a color, then click a cell <span class='shortcut-highlight'>(or press 'C')</span> to paint it.";
             } else {
               // candidate sub-mode
               tip = isMobile
                 ? "Tip: Pick a color, then touch a cell to select a candidate."
-                : "Tip: Pick a color, then click a cell (or press 'C') to select a candidate.";
+                : "Tip: Pick a color, then click a cell <span class='shortcut-highlight'>(or press 'C')</span> to select a candidate.";
             }
           }
 
@@ -1662,7 +1662,7 @@
         function showMessage(text, color) {
           // First, clear any complex content like buttons
           messageArea.innerHTML = "";
-          messageArea.textContent = text;
+          messageArea.innerHTML = text;
 
           const colorClasses = [
             "text-red-600",
