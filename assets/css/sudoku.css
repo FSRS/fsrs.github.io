@@ -51,6 +51,7 @@
     --color-orange-600: oklch(64.5% 0.207 43.3);
     --color-orange-700: oklch(55.3% 0.195 38.402);
     --color-orange-800: oklch(47% 0.157 37.304);
+    --color-indigo-500: oklch(62.55% 0.207 274.22);
     --color-indigo-600: oklch(51.1% 0.262 276.966);
     --color-indigo-700: oklch(45.7% 0.24 277.023);
     --color-gray-50: oklch(98.5% 0.002 247.839);
@@ -342,7 +343,7 @@
     font-family: "Satisfy", cursive;
   }
   .shortcut-highlight {
-    color: var(--color-orange-600);
+    color: var(--color-indigo-700);
     font-weight: 600; /* semibold */
   }
   .inset-0 {
@@ -895,7 +896,7 @@
 
 /* If NOT colored, highlight becomes a full background color (existing behavior) */
 .sudoku-cell.highlighted:not(.has-color) {
-  background-color: #fef08a; /* yellow-200 (same as before) */
+  background-color: #c7d2fe;
 }
 
 /* If cell has a custom color → keep that color, add a boundary glow */

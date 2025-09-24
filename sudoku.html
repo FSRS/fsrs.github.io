@@ -14,28 +14,82 @@
       rel="stylesheet"
     />
     <style>
-      body {
-        font-family: "Inter", sans-serif;
+      /* --- Start of Themed Style Block --- */
+      :root {
+        --nc-bg-1: #e6e6fa;
+        --nc-tx-1: #4b0082;
+        --nc-accent-color: #8a2be2;
+        --nc-accent-hover-color: #9d48ff;
+        --nc-header-bg: #f2e6ff;
+        --nc-border-color: #d8c0ff;
+        --nc-text-light: #f0e6ff;
       }
 
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --nc-bg-1: #1e003a;
+          --nc-tx-1: #d8bfd8;
+          --nc-header-bg: #272041;
+          --nc-border-color: #3b3a5b;
+        }
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--nc-bg-1);
+        color: var(--nc-tx-1);
+      }
+
+      /* Override Tailwind classes for main container & text */
+      .bg-white {
+        background-color: var(--nc-header-bg) !important;
+      }
+
+      /* Forms */
+      select,
+      input[type="text"] {
+        background-color: var(--nc-header-bg);
+        border-color: var(--nc-border-color);
+        color: var(--nc-tx-1);
+      }
+
+      /* Disabled Buttons */
+      button:disabled {
+        background-color: var(--nc-border-color) !important;
+        color: var(--nc-tx-1) !important;
+        opacity: 0.5;
+        cursor: not-allowed;
+        border-color: transparent !important;
+      }
+      button:disabled:hover {
+        background-color: var(--nc-border-color) !important;
+      }
+
+      /* Sudoku Grid Theming */
       .sudoku-cell {
         width: 11.11%;
         padding-bottom: 11.11%;
         position: relative;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--nc-border-color);
         transition: background-color 0.2s;
         cursor: pointer;
       }
 
       .sudoku-cell.highlighted {
-        background-color: #fef08a; /* yellow-200*/
+        background-color: #c7d2fe;
       }
 
       .sudoku-cell.selected {
-        /* A strong blue outline to ensure visibility on top of any cell color */
-        outline: 3px solid #2563eb; /* blue-600 */
+        outline: 3px solid var(--color-indigo-500);
         outline-offset: -3px;
-        z-index: 5; /* Ensures the outline renders above adjacent cell borders */
+        z-index: 5;
+      }
+      @media (prefers-color-scheme: light) {
+        .sudoku-cell.selected {
+          outline: 3px solid var(--color-indigo-600);
+          outline-offset: -3px;
+          z-index: 5;
+        }
       }
 
       .sudoku-cell .cell-content {
@@ -51,15 +105,15 @@
       }
 
       .sudoku-cell .user-value {
-        color: #3b82f6;
-      } /* blue-500 */
+        color: var(--nc-accent-color);
+      }
       .sudoku-cell .given-value {
-        color: #1f2937;
+        color: var(--nc-tx-1);
         font-weight: 600;
-      } /* gray-800 */
+      }
       .sudoku-cell.invalid .user-value {
         background-color: #fecaca;
-      } /* red-200 */
+      } /* Keeping red for universal error contrast */
 
       .pencil-grid {
         display: grid;
@@ -67,11 +121,11 @@
         width: 100%;
         height: 100%;
         font-size: 0.7rem;
-        color: #6b7280; /* gray-500 */
+        color: var(--nc-tx-1);
+        opacity: 0.8;
         text-align: center;
         line-height: 1.2;
       }
-
       .pencil-mark {
         display: flex;
         align-items: center;
@@ -82,50 +136,73 @@
       /* Thicker borders for the 3x3 subgrids */
       .sudoku-grid .grid-row .sudoku-cell:nth-child(3),
       .sudoku-grid .grid-row .sudoku-cell:nth-child(6) {
-        border-right-width: 3px;
-        border-right-color: #374151;
+        border-right: 3px solid var(--nc-tx-1);
       }
       .sudoku-grid .grid-row:nth-child(3),
       .sudoku-grid .grid-row:nth-child(6) {
-        border-bottom-width: 3px;
-        border-bottom-color: #374151;
+        border-bottom: 3px solid var(--nc-tx-1);
       }
 
+      /* Controls & Number Pad */
       .control-btn.active {
-        background-color: #1d4ed8; /* blue-700 */
+        background-color: var(--color-indigo-600);
         color: white;
-        border-color: #1d4ed8;
+        border-color: var(--nc-accent-color);
       }
-
+      /* Override for Light Mode */
+      @media (prefers-color-scheme: light) {
+        .control-btn.active {
+          /* A brighter version of indigo, for example */
+          background-color: var(--color-indigo-500);
+        }
+      }
       .control-btn.active-green {
         background-color: #c084fc;
         color: white;
         border-color: #c084fc;
       }
-
       .sudoku-cell.selected-green {
         outline: 3px solid #c084fc;
         outline-offset: -3px;
         z-index: 5;
       }
-
       .color-btn.selected {
-        outline: 3px solid #1d4ed8;
+        outline: 3px solid var(--nc-accent-color);
         outline-offset: 2px;
       }
+      #number-pad button {
+        background-color: transparent;
+        border-color: var(--nc-border-color);
+        color: var(--nc-tx-1);
+      }
+      #number-pad button:hover {
+        background-color: var(--nc-border-color);
+      }
 
-      #candidate-modal {
+      /* Modals */
+      #candidate-modal,
+      #date-modal {
         background-color: rgba(0, 0, 0, 0.5);
+        z-index: 50;
       }
-      button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        background-color: #d1d5db; /* gray-300 */
-        color: #6b7280; /* gray-500 */
-        border-color: #d1d5db;
+      #candidate-modal > div,
+      #date-modal > div {
+        background-color: var(--nc-header-bg);
+        border: 1px solid var(--nc-border-color);
       }
-      button:disabled:hover {
-        background-color: #d1d5db;
+      #candidate-grid button:not(:disabled):hover {
+        background-color: var(--nc-border-color) !important;
+      }
+
+      #date-cancel-btn,
+      #close-modal-btn {
+        background-color: transparent;
+        border: 1px solid var(--nc-border-color);
+        color: var(--nc-tx-1);
+      }
+      #date-cancel-btn:hover,
+      #close-modal-btn:hover {
+        background-color: var(--nc-border-color);
       }
 
       /* Solve Animation */
@@ -136,15 +213,15 @@
         }
         50% {
           transform: scale(1.1);
-          /* background-color: #a7f3d0; */
         }
       }
 
       .is-solved .sudoku-cell {
-        background-color: #a7f3d0;
+        background-color: var(--nc-border-color);
         animation: cell-solve-animation 1s ease-in-out;
         animation-delay: calc((var(--row) * 9 + var(--col)) * 20ms);
       }
+      /* --- End of Themed Style Block --- */
     </style>
   </head>
   <body
@@ -1542,18 +1619,19 @@
             let emptyRowCount = 0;
             for (let r_offset = 0; r_offset < 3; r_offset++) {
               const r = bandStartRow + r_offset;
-              if (board[r].every(cell => cell === 0)) {
+              if (board[r].every((cell) => cell === 0)) {
                 emptyRowCount++;
               }
             }
             if (emptyRowCount >= 2) {
               return {
                 isValid: false,
-                message: "Error: Two empty rows in a band; solution is not unique.",
+                message:
+                  "Error: Two empty rows in a band; solution is not unique.",
               };
             }
           }
-        
+
           // Check for two empty columns in any vertical band
           for (let bandStartCol = 0; bandStartCol < 9; bandStartCol += 3) {
             let emptyColCount = 0;
@@ -1573,7 +1651,8 @@
             if (emptyColCount >= 2) {
               return {
                 isValid: false,
-                message: "Error: Two empty columns in a band; solution is not unique.",
+                message:
+                  "Error: Two empty columns in a band; solution is not unique.",
               };
             }
           }
