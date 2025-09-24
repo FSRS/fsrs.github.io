@@ -223,6 +223,9 @@
         animation: cell-solve-animation 1s ease-in-out;
         animation-delay: calc((var(--row) * 9 + var(--col)) * 20ms);
       }
+      .mobile-title {
+        display: none;
+      }
       /* --- End of Themed Style Block --- */
     </style>
   </head>
@@ -236,7 +239,7 @@
           class="hover:underline font-calligraphy"
           >fsrs</a
         >
-        Daily Sudoku
+        <span id="sudoku-title-text"> Daily Sudoku</span>
       </h1>
 
       <div
@@ -244,7 +247,7 @@
         class="mb-2 flex items-center justify-between gap-4 flex-wrap"
       >
         <div class="flex items-center gap-2">
-          <label for="date-select" class="text-sm font-medium">Date</label>
+          <label for="date-select" class="text-lg font-medium">Date</label>
           <select
             id="date-select"
             class="block p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -252,7 +255,7 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <label for="level-select" class="text-sm font-medium">Level</label>
+          <label for="level-select" class="text-lg font-medium">Level</label>
           <select
             id="level-select"
             class="block p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -537,6 +540,16 @@
 
         function updateButtonLabels() {
           const isMobile = window.innerWidth <= 550; // Breakpoint for mobile view
+          const titleText = document.getElementById("sudoku-title-text");
+
+          if (titleText) {
+            if (isMobile) {
+              // The HTML string no longer contains the style attribute
+              titleText.innerHTML = ` <a href="https://darksabun.club/" class="hover:underline">D.S.</a>`;
+            } else {
+              titleText.textContent = " Daily Sudoku";
+            }
+          }
 
           // 1. Update Number/Pencil Button
           if (currentMode === "pencil") {
@@ -1870,7 +1883,7 @@
           if (!validity.isValid) {
             const duration = (performance.now() - startTime).toFixed(2);
             // Append the time to the existing error message from checkPuzzleUniqueness
-            showMessage(`${validity.message} (took ${duration} ms)`, "red");
+            showMessage(`${validity.message} (${duration} ms)`, "red");
             return;
           }
 
@@ -1891,10 +1904,7 @@
 
           saveState();
           renderBoard();
-          showMessage(
-            `Puzzle Solved! (Unique Solution Found in ${duration} ms)`,
-            "green"
-          );
+          showMessage(`Puzzle Solved! (Unique; ${duration} ms)`, "green");
           triggerSolveAnimation();
           stopTimer();
         }
