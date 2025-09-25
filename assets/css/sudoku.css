@@ -394,6 +394,9 @@
   .h-5 {
     height: calc(var(--spacing) * 5);
   }
+  .h-10 {
+    height: calc(var(--spacing) * 10);
+  }
   .h-12 {
     height: calc(var(--spacing) * 12);
   }
@@ -546,6 +549,10 @@
   .text-sm {
     font-size: var(--text-sm);
     line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+  .text-xs {
+    font-size: 0.75rem; /* 12px */
+    line-height: 1rem; /* 16px */
   }
   .font-bold {
     --tw-font-weight: var(--font-weight-bold);
@@ -1027,5 +1034,8 @@
   }
   .shortcut-indicator {
     display: none;
+  }
+  .pencil-grid {
+    font-size: 0.7rem !important;
   }
 }
