@@ -644,20 +644,21 @@
           dateSelect.innerHTML = "";
 
           // Fetch today's date based on KST, with a fallback to local time.
-          let today;
           try {
             const res = await fetch(
               "https://worldtimeapi.org/api/timezone/Asia/Seoul"
             );
             if (!res.ok) throw new Error("API request failed");
             const data = await res.json();
-            today = new Date(data.datetime);
+            // Assign the fetched date to the global variable
+            kstToday = new Date(data.datetime);
           } catch (error) {
             console.error(
               "Failed to fetch KST time, falling back to local time:",
               error
             );
-            kstToday = new Date(); // Fallback to local time if API fails
+            // This part was already correct
+            kstToday = new Date();
           }
 
           const minDateNum = 20250912;
