@@ -1478,17 +1478,11 @@
                 navigator.clipboard
                   .writeText(shareText)
                   .then(() => {
-                    showMessage(
-                      "Copied Discord sharable text to clipboard.",
-                      "green"
-                    );
+                    showMessage("Copied Discord sharable text!", "green");
                   })
                   .catch((err) => {
                     console.error("Failed to copy text: ", err);
-                    showMessage(
-                      "Error: Could not copy text to clipboard.",
-                      "red"
-                    );
+                    showMessage("Error: Could not copy text!", "red");
                   });
               };
 
