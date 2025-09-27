@@ -537,7 +537,6 @@
         let isCustomPuzzle = false;
         let hasUsedAutoPencil = false;
         let autoPencilTipTimer = null;
-        let kstToday = null;
 
         function updateButtonLabels() {
           const isMobile = window.innerWidth <= 550; // Breakpoint for mobile view
@@ -642,32 +641,20 @@
 
           // Populate Date selector (last 7 days including today, but not before 20250912)
           dateSelect.innerHTML = "";
-
-          // Fetch today's date based on KST, with a fallback to local time.
-          try {
-            const res = await fetch(
-              "https://worldtimeapi.org/api/timezone/Asia/Seoul"
-            );
-            if (!res.ok) throw new Error("API request failed");
-            const data = await res.json();
-            // Assign the fetched date to the global variable
-            kstToday = new Date(data.datetime);
-          } catch (error) {
-            console.error(
-              "Failed to fetch KST time, falling back to local time:",
-              error
-            );
-            // This part was already correct
-            kstToday = new Date();
-          }
+          const today = new Date();
 
           const minDateNum = 20250912;
 
           const recentDates = [];
 
           for (let i = 0; i < 7; i++) {
-            const date = new Date(kstToday);
-            date.setDate(kstToday.getDate() - i);
+            const now = new Date();
+            const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000; // get UTC time in msec
+            const kstOffset = 9 * 60 * 60 * 1000; // KST is UTC+9
+            const today = new Date(utc + kstOffset);
+
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
 
             const yyyy = date.getFullYear();
             const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -1032,7 +1019,7 @@
             findAndLoadSelectedPuzzle();
           });
 
-          dateSubmitBtn.addEventListener("click", async () => {
+          dateSubmitBtn.addEventListener("click", () => {
             const rawValue = dateInput.value.replace(/\D/g, ""); // Remove non-digits
 
             if (!isValidDate(rawValue)) {
@@ -1042,20 +1029,16 @@
             }
 
             const dateNum = parseInt(rawValue, 10);
+            // Calculate current date in KST (UTC+9)
+            const now = new Date();
+            const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000; // get UTC time in msec
+            const kstOffset = 9 * 60 * 60 * 1000; // KST is UTC+9
+            const today = new Date(utc + kstOffset);
 
-            // Use the stored KST date from page load instead of fetching again
-            if (!kstToday) {
-              // A safety check
-              dateError.textContent =
-                "Could not verify the current date. Please reload.";
-              return;
-            }
-
-            const yyyy = kstToday.getFullYear();
-            const mm = String(kstToday.getMonth() + 1).padStart(2, "0");
-            const dd = String(kstToday.getDate()).padStart(2, "0");
-
-            const todayNum = parseInt(`${yyyy}${mm}${dd}`, 10);
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, "0");
+            const dd = String(today.getDate()).padStart(2, "0");
+            const todayNum = parseInt(`${yyyy}${mm}${dd}`);
             const todayStr = `${yyyy}-${mm}-${dd}`;
 
             // Validate date range
