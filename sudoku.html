@@ -461,7 +461,6 @@
           "VANQUISHER",
         ];
 
-        // light-mode palette (your existing)
         const colorPaletteLight = [
           "#f87171",
           "#fb923c",
@@ -487,23 +486,33 @@
           "#9d174d", // pink-800
         ];
 
-        // live palette variable used by updateControls()
-        let colorPalette =
+        // live palette variables used by updateControls()
+        let cellColorPalette;
+        let candidateColorPalette;
+
+        function updateColorPalettes(isDarkMode) {
+          if (isDarkMode) {
+            cellColorPalette = colorPaletteDark;
+            candidateColorPalette = colorPaletteLight;
+          } else {
+            cellColorPalette = colorPaletteLight;
+            candidateColorPalette = colorPaletteDark;
+          }
+        }
+
+        // Initialize palettes based on the initial system preference
+        updateColorPalettes(
           window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? colorPaletteDark
-            : colorPaletteLight;
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+        );
 
         // react to changes in system preference (updates UI instantly)
         const colorSchemeMQ = window.matchMedia("(prefers-color-scheme: dark)");
         colorSchemeMQ.addEventListener?.("change", (e) => {
-          colorPalette = e.matches ? colorPaletteDark : colorPaletteLight;
+          updateColorPalettes(e.matches);
           updateControls(); // rebuild the number/color pad
           renderBoard(); // re-render cells with new colors
         });
-
-        // NOTE: updateControls() in your script already uses `colorPalette`
-        // so no other change to updateControls() should be required.
 
         const levelTips = [
           "Lv. 0: Singles",
@@ -759,10 +768,14 @@
         function updateControls() {
           numberPad.innerHTML = "";
           if (currentMode === "color") {
+            const activePalette =
+              coloringSubMode === "candidate"
+                ? candidateColorPalette
+                : cellColorPalette;
             for (let i = 0; i < 9; i++) {
               const btn = document.createElement("button");
-              btn.style.backgroundColor = colorPalette[i];
-              btn.dataset.color = colorPalette[i];
+              btn.style.backgroundColor = activePalette[i];
+              btn.dataset.color = activePalette[i];
 
               // 1. Add the number (1-9) as the button's text
               btn.textContent = i + 1;
@@ -1396,7 +1409,7 @@
           // Update the number/color pad if the mode type changed
           const wasColor = previousMode === "color";
           const isColor = currentMode === "color";
-          if (wasColor !== isColor) {
+          if (isColor || wasColor) {
             updateControls();
             if (!isColor) {
               selectedColor = null; // Clear selected color when leaving color mode
