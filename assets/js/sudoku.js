@@ -51,6 +51,18 @@ document.addEventListener("DOMContentLoaded", () => {
     "#f472b6",
   ];
 
+  const colorPaletteMid = [
+    "#dc2626", // red-600
+    "#ea580c", // orange-600
+    "#ca8a04", // yellow-600
+    "#65a30d", // lime-600
+    "#16a34a", // green-600
+    "#0891b2", // cyan-600
+    "#2563eb", // blue-600
+    "#7c3aed", // violet-600
+    "#db2777", // pink-600
+  ];
+
   // darker palette for dark-mode (deeper/jewel tones)
   const colorPaletteDark = [
     "#991b1b", // red-800
@@ -74,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
       candidateColorPalette = colorPaletteLight;
     } else {
       cellColorPalette = colorPaletteLight;
-      candidateColorPalette = colorPaletteDark;
+      candidateColorPalette = colorPaletteMid;
     }
   }
 
@@ -1870,7 +1882,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function showMessage(text, color) {
     // First, clear any complex content like buttons
     messageArea.innerHTML = "";
-    messageArea.innerHTML = text;
+    // Wrap the entire message in a single span
+    messageArea.innerHTML = `<span>${text}</span>`;
 
     const colorClasses = [
       "text-red-600",
