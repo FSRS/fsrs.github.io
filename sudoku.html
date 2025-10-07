@@ -777,12 +777,35 @@
               btn.style.backgroundColor = activePalette[i];
               btn.dataset.color = activePalette[i];
 
-              // 1. Add the number (1-9) as the button's text
+              // 1. Label text (1–9)
               btn.textContent = i + 1;
 
-              // 2. Add a class to make the text dim and readable
+              // 2. Compute adaptive label color
+              const isDarkMode =
+                window.matchMedia &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches;
+              const labelColor =
+                coloringSubMode === "candidate"
+                  ? isDarkMode
+                    ? "#1f2937"
+                    : "#e5e7eb" // gray-800 / gray-200
+                  : "rgba(255,255,255,0.6)"; // softer for cell mode
+
               btn.className =
-                "color-btn p-2 text-lg font-bold border rounded-md shadow-sm h-12 text-white/50";
+                "color-btn p-2 text-lg font-bold border rounded-md shadow-sm h-12";
+              btn.style.color = labelColor;
+
+              // 3. Add hover brightness effect
+              btn.addEventListener("mouseenter", () => {
+                const base = activePalette[i];
+                // brighten in dark mode, darken in light mode
+                btn.style.filter = isDarkMode
+                  ? "brightness(1.25)"
+                  : "brightness(0.9)";
+              });
+              btn.addEventListener("mouseleave", () => {
+                btn.style.filter = "brightness(1)";
+              });
 
               numberPad.appendChild(btn);
             }
@@ -800,6 +823,8 @@
 
         function renderBoard() {
           const cells = gridContainer.querySelectorAll(".sudoku-cell");
+          const isMobile = window.innerWidth <= 550;
+
           cells.forEach((cell) => {
             const row = parseInt(cell.dataset.row);
             const col = parseInt(cell.dataset.col);
@@ -818,6 +843,23 @@
             } else {
               cell.classList.remove("has-color");
             }
+
+            cell.addEventListener("mouseover", () => {
+              if (
+                currentMode === "color" &&
+                coloringSubMode === "cell" &&
+                selectedColor
+              ) {
+                cell.style.backgroundColor = selectedColor;
+              }
+            });
+
+            cell.addEventListener("mouseout", () => {
+              if (currentMode === "color" && coloringSubMode === "cell") {
+                // Revert to original color (either a set color or default)
+                cell.style.backgroundColor = state.cellColor || "";
+              }
+            });
 
             if (row === selectedCell.row && col === selectedCell.col) {
               const useGreenHighlight =
@@ -853,6 +895,42 @@
                   mark.textContent = i;
                   if (state.pencilColors.has(i)) {
                     mark.style.color = state.pencilColors.get(i);
+                  }
+
+                  if (!isMobile) {
+                    mark.addEventListener("mouseover", () => {
+                      if (
+                        currentMode === "color" &&
+                        coloringSubMode === "candidate" &&
+                        selectedColor
+                      ) {
+                        mark.style.color = selectedColor;
+                      }
+                    });
+
+                    mark.addEventListener("mouseout", () => {
+                      // Revert to original color (either a set color or default)
+                      mark.style.color = state.pencilColors.get(i) || "";
+                    });
+
+                    mark.addEventListener("click", (e) => {
+                      if (
+                        currentMode === "color" &&
+                        coloringSubMode === "candidate" &&
+                        selectedColor
+                      ) {
+                        e.stopPropagation(); // Prevent cell click from firing ONLY in candidate mode
+                        const cellState = boardState[row][col];
+                        const currentColor = cellState.pencilColors.get(i);
+                        if (currentColor === selectedColor) {
+                          cellState.pencilColors.delete(i);
+                        } else {
+                          cellState.pencilColors.set(i, selectedColor);
+                        }
+                        saveState();
+                        renderBoard(); // Re-render to show permanent change
+                      }
+                    });
                   }
                 }
                 pencilGrid.appendChild(mark);
@@ -1299,10 +1377,12 @@
 
         function handleCellClick(e) {
           const cell = e.target.closest(".sudoku-cell");
+          if (!cell) return;
 
           selectedCell.row = parseInt(cell.dataset.row);
           selectedCell.col = parseInt(cell.dataset.col);
           const cellState = boardState[selectedCell.row][selectedCell.col];
+          const isMobile = window.innerWidth <= 550;
 
           if (currentMode === "color") {
             if (coloringSubMode === "cell") {
@@ -1315,11 +1395,13 @@
               }
             } else {
               // candidate mode
-              showCandidatePopup(selectedCell.row, selectedCell.col);
+              if (isMobile) {
+                showCandidatePopup(selectedCell.row, selectedCell.col);
+              }
+              // On desktop, this is handled by direct clicks on pencil marks
             }
           } else {
             // --- Revised Highlight Logic ---
-
             if (highlightState === 0 && cellState.pencils.size === 2) {
               highlightedDigit = null;
               highlightState = 2;
@@ -1383,7 +1465,7 @@
               // candidate sub-mode
               tip = isMobile
                 ? "Tip: Pick a color, then touch a cell to select a candidate."
-                : "Tip: Pick a color, then click a&nbsp;cell&nbsp;<span class='shortcut-highlight'>(or press 'C')</span> to select a candidate.";
+                : "Tip: Pick a color, hover over a candidate to preview, and click to apply.";
             }
           }
 
@@ -1488,7 +1570,7 @@
               // --- Share Logic for Daily Puzzles ---
               messageArea.innerHTML = "";
               messageArea.className =
-                "text-center text-sm font-semibold h-5 flex items-center justify-center";
+                "text-center text-sm font-semibold h-5 flex items-center justify-center gap-2";
 
               const congratsText = document.createTextNode(
                 "Congratulations! You solved it! → "
@@ -1496,14 +1578,42 @@
               const shareButton = document.createElement("button");
               shareButton.textContent = "Share";
               shareButton.className =
-                "text-blue-600 hover:text-blue-800 font-bold underline focus:outline-none";
+                "px-2 py-1 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors";
 
               shareButton.onclick = () => {
                 const shareText = generateDiscordShareText();
                 navigator.clipboard
                   .writeText(shareText)
                   .then(() => {
-                    showMessage("Copied Discord sharable text!", "green");
+                    // Manually build the success message with a "Copy Again" button
+                    messageArea.innerHTML = ""; // Clear "Congratulations..." text
+
+                    // Set the success text color on the container
+                    const colorClasses = [
+                      "text-red-600",
+                      "text-green-600",
+                      "text-gray-600",
+                    ];
+                    messageArea.classList.remove(...colorClasses);
+                    messageArea.classList.add("text-green-600");
+
+                    // Create and append the success message
+                    const successText = document.createTextNode(
+                      "Copied Discord sharable text!"
+                    );
+                    messageArea.appendChild(successText);
+
+                    // Create, style, and append the "Copy Again" button
+                    const copyAgainButton = document.createElement("button");
+                    copyAgainButton.textContent = "Copy Again";
+                    // Reuse the same style as the "Share" button for consistency
+                    copyAgainButton.className =
+                      "px-2 py-1 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors";
+
+                    // Make the "Copy Again" button trigger the same copy action
+                    copyAgainButton.onclick = shareButton.onclick;
+
+                    messageArea.appendChild(copyAgainButton);
                   })
                   .catch((err) => {
                     console.error("Failed to copy text: ", err);

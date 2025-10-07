@@ -213,7 +213,7 @@
   iframe,
   embed,
   object {
-    vertical-align: middle;
+    /* vertical-align: middle; */
     display: block;
   }
   img,
@@ -887,11 +887,6 @@
    Highlight behavior: cell color has priority
    --------------------------- */
 
-/* Tagging helper: cells that have a custom color */
-.sudoku-cell.has-color {
-  /* Nothing required here; presence of this class is used by the selectors below */
-}
-
 /* If cell has custom color AND is highlighted -> do not replace background.
    Instead show a subtle inset ring (overlay) so the cell color remains visible. */
 .sudoku-cell.highlighted.has-color {
@@ -914,11 +909,6 @@
   border-radius: inherit;
   border: 3px solid rgba(250, 204, 21, 0.6); /* yellow glow */
   pointer-events: none; /* don’t block clicks */
-}
-
-/* Keep selected outline behavior */
-.sudoku-cell.selected {
-  /* your existing outline styling remains effective */
 }
 
 /* For keyboard/selected-green variant use a similar rule if needed */
