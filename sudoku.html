@@ -302,6 +302,12 @@
           >
             Display A (D)
           </button>
+          <button
+            id="expt-mode-btn"
+            class="control-btn hidden px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm"
+          >
+            Expt. OFF
+          </button>
         </div>
         <div class="grid grid-cols-9 gap-1" id="number-pad"></div>
       </div>
@@ -439,6 +445,7 @@
         const candidateGrid = document.getElementById("candidate-grid");
         const closeModalBtn = document.getElementById("close-modal-btn");
         const formatToggleBtn = document.getElementById("format-toggle-btn");
+        const exptModeBtn = document.getElementById("expt-mode-btn"); // Get the new button
         const dateSelect = document.getElementById("date-select");
         const levelSelect = document.getElementById("level-select");
         const puzzleInfoContainer = document.getElementById("puzzle-info");
@@ -447,6 +454,7 @@
         const puzzleTimerEl = document.getElementById("puzzle-timer");
         const modeToggleButton = document.getElementById("mode-toggle-btn");
         const colorButton = modeSelector.querySelector('[data-mode="color"]');
+        let isExperimentalMobileMode = false;
 
         const difficultyWords = [
           "ROOKIE",
@@ -521,7 +529,7 @@
           "Lv. 3: Quads, X-Wing, XY-Wing, Remote Pair",
           "Lv. 4: Unique Rectangles, BUG+1, XYZ-Wing, W-Wing, Swordfish, Jellyfish",
           "Lv. 5: Hidden Rectangles, BUG Lite (6 cells), (Grouped) Turbot-Fishes",
-          "Lv. 6: WXYZ-Wing, Finned Fishes, X-Chain, Firework, Sue de Coq",
+          "Lv. 6: Finned Fishes, X-Chain, Firework, WXYZ-Wing, Sue de Coq",
           "Lv. 7: Grouped X-Chain, 3D Medusa, Alternating Inference Chain",
           "Lv. 8: Grouped AIC, Pair Subset Exclusion, ALS-XZ",
           "Lv. 9: Triple Sub. Excl., ALS-XY/W-Wing, Finned Franken/Mutant Swordfish",
@@ -580,10 +588,24 @@
             colorButton.textContent = isMobile ? "Color" : "Color (X)";
           }
 
-          // 3. Update Display Format Button
-          formatToggleBtn.textContent = isMobile
-            ? `Dspl. ${candidatePopupFormat}`
-            : `Display ${candidatePopupFormat} (D)`;
+          // 3. Update Display/Expt Button based on screen size
+          if (isMobile) {
+            formatToggleBtn.style.display = "none";
+            exptModeBtn.style.display = "inline-flex";
+            exptModeBtn.textContent = isExperimentalMobileMode
+              ? "Expt. ON"
+              : "Expt. OFF";
+            // Highlight if ON
+            if (isExperimentalMobileMode) {
+              exptModeBtn.classList.add("active-green");
+            } else {
+              exptModeBtn.classList.remove("active-green");
+            }
+          } else {
+            formatToggleBtn.style.display = "inline-flex";
+            exptModeBtn.style.display = "none";
+            formatToggleBtn.textContent = `Display ${candidatePopupFormat} (D)`;
+          }
         }
 
         function addSudokuCoachLink(puzzleString) {
@@ -897,7 +919,8 @@
                     mark.style.color = state.pencilColors.get(i);
                   }
 
-                  if (!isMobile) {
+                  // Enable direct coloring for PC, or for Mobile when Experimental Mode is ON
+                  if (!isMobile || (isMobile && isExperimentalMobileMode)) {
                     mark.addEventListener("mouseover", () => {
                       if (
                         currentMode === "color" &&
@@ -993,10 +1016,19 @@
             candidateModal.classList.add("hidden")
           );
           window.addEventListener("resize", updateButtonLabels);
-          formatToggleBtn.addEventListener("click", () => {
+          formatToggleBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); // Stop the event from bubbling up to the parent
+
             candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
             updateButtonLabels();
             renderBoard(); // Re-render the main board to update pencil marks
+
+            // Add the concise tip message
+            const tip = `Candidate display set to ${
+              candidatePopupFormat === "A" ? "Numpad (A)" : "Phone (B)"
+            } layout.`;
+            showMessage(tip, "gray");
+
             // If the popup is open, re-render it too
             if (
               !candidateModal.classList.contains("hidden") &&
@@ -1162,6 +1194,18 @@
             dateModal.classList.add("hidden");
             dateModal.classList.remove("flex");
             dateSelect.value = dateSelect.querySelector("option").value; // reset to first valid option
+          });
+
+          // Add listener for the experimental mode button
+          exptModeBtn.addEventListener("click", (e) => {
+            // Add "e" for event
+            e.stopPropagation(); // Stop the event from bubbling up to the parent
+            isExperimentalMobileMode = !isExperimentalMobileMode;
+            updateButtonLabels();
+            const tip = isExperimentalMobileMode
+              ? "Direct candidate coloring enabled."
+              : "Direct candidate coloring disabled.";
+            showMessage(tip, "gray");
           });
         }
 
@@ -1395,7 +1439,7 @@
               }
             } else {
               // candidate mode
-              if (isMobile) {
+              if (isMobile && !isExperimentalMobileMode) {
                 showCandidatePopup(selectedCell.row, selectedCell.col);
               }
               // On desktop, this is handled by direct clicks on pencil marks
