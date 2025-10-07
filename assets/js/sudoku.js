@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const puzzleTimerEl = document.getElementById("puzzle-timer");
   const modeToggleButton = document.getElementById("mode-toggle-btn");
   const colorButton = modeSelector.querySelector('[data-mode="color"]');
+  const difficultyLamp = document.getElementById("difficulty-lamp");
   let isExperimentalMode = false;
 
   const difficultyWords = [
@@ -101,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
   colorSchemeMQ.addEventListener?.("change", (e) => {
     updateColorPalettes(e.matches);
     updateControls(); // rebuild the number/color pad
-    renderBoard(); // re-render cells with new colors
+    onBoardUpdated();
   });
 
   const levelTips = [
@@ -131,11 +132,14 @@ document.addEventListener("DOMContentLoaded", () => {
   let timerInterval = null;
   let startTime = 0;
   let initialPuzzleString = "";
+  let solutionBoard = null;
   let isCustomPuzzle = false;
   let hasUsedAutoPencil = false;
   let isAutoPencilPending = false;
   let isSolvePending = false;
   let autoPencilTipTimer = null;
+  let lampWorker = null;
+  let lampEvaluationTimeout = null;
 
   function updateButtonLabels() {
     const isMobile = window.innerWidth <= 550; // Breakpoint for mobile view
@@ -317,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 1500);
     } else {
       initBoardState();
-      renderBoard();
+      onBoardUpdated();
       showMessage("No puzzle found for this date and level.", "red");
       puzzleLevelEl.textContent = "";
       puzzleScoreEl.textContent = "";
@@ -521,7 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     cellState.pencilColors.set(i, selectedColor);
                   }
                   saveState();
-                  renderBoard();
+                  onBoardUpdated();
                 }
                 // In Pencil mode + Expt ON, click a candidate to REMOVE it
                 else if (isExperimentalMode && currentMode === "pencil") {
@@ -530,7 +534,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   if (cellState.pencils.has(i)) {
                     cellState.pencils.delete(i);
                     saveState();
-                    renderBoard();
+                    onBoardUpdated();
                   }
                 }
                 // In Number mode + Expt ON, click a candidate to SET it as the value
@@ -543,7 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   cellState.pencils.clear();
                   autoEliminatePencils(row, col, i);
                   saveState();
-                  renderBoard();
+                  onBoardUpdated();
                   checkCompletion();
                 }
               });
@@ -592,6 +596,24 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  // --- Difficulty Lamp Functions ---
+  function updateLamp(color) {
+    if (!difficultyLamp) return;
+    const colors = ["white", "green", "yellow", "orange", "red", "gray"];
+    difficultyLamp.classList.remove(...colors.map((c) => `lamp-${c}`));
+    difficultyLamp.classList.add(`lamp-${color}`);
+
+    const tooltips = {
+      white: "Easy: Solvable with singles.",
+      green: "Medium: Requires pairs, triples, or intersections.",
+      yellow: "Hard: Requires advanced techniques like X-Wing.",
+      orange: "Unfair: Requires techniques beyond this solver's scope.",
+      red: "Error: Current state conflicts with the solution.",
+      gray: "Invalid: This puzzle does not have a unique solution.",
+    };
+    difficultyLamp.title = tooltips[color] || "Difficulty Indicator";
+  }
+
   function setupEventListeners() {
     gridContainer.addEventListener("click", handleCellClick);
     modeSelector.addEventListener("click", handleModeChange);
@@ -614,7 +636,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
       updateButtonLabels();
-      renderBoard(); // Re-render the main board to update pencil marks
+      onBoardUpdated(); // Re-render the main board to update pencil marks
 
       // Add the concise tip message
       const tip = `Candidate display set to ${
@@ -793,6 +815,15 @@ document.addEventListener("DOMContentLoaded", () => {
       isExperimentalMode = !isExperimentalMode;
       updateButtonLabels();
 
+      // Toggle lamp visibility
+      difficultyLamp.classList.toggle("hidden", !isExperimentalMode);
+
+      // Run evaluation when turned on, otherwise clear it
+      if (isExperimentalMode) {
+        evaluateBoardDifficulty();
+      } else {
+        updateLamp("gray"); // Reset to neutral when hidden
+      }
       // Generate platform-specific tip messages
       const isMobile = window.innerWidth <= 550;
       let tip = "";
@@ -887,7 +918,7 @@ document.addEventListener("DOMContentLoaded", () => {
           selectedCell.col = (col + 1) % 9;
         }
       }
-      renderBoard();
+      onBoardUpdated();
       return;
     }
 
@@ -906,7 +937,7 @@ document.addEventListener("DOMContentLoaded", () => {
             highlightState = 0;
           }
         }
-        renderBoard();
+        onBoardUpdated();
       }
       return;
     }
@@ -914,7 +945,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (key === "Shift") {
       highlightedDigit = null;
       highlightState = 0;
-      renderBoard();
+      onBoardUpdated();
       return;
     }
 
@@ -931,7 +962,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cellState.value = 0;
           cellState.pencils.clear();
           saveState();
-          renderBoard();
+          onBoardUpdated();
         }
       }
       return;
@@ -966,7 +997,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // candidate mode
           showCandidatePopup(selectedCell.row, selectedCell.col);
         }
-        renderBoard();
+        onBoardUpdated();
       }
       return;
     }
@@ -1057,7 +1088,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     }
-    renderBoard();
+    onBoardUpdated();
     return;
   }
 
@@ -1148,7 +1179,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedColor = null;
       }
     }
-    renderBoard();
+    onBoardUpdated();
     updateButtonLabels(); // <-- FIX: Update labels immediately after mode change
   }
 
@@ -1195,13 +1226,15 @@ document.addEventListener("DOMContentLoaded", () => {
           changeMade = true;
         }
       }
+
+      // If a change was made, save it and check for puzzle completion.
       if (changeMade) {
         saveState();
-        renderBoard();
         checkCompletion();
-      } else {
-        renderBoard();
       }
+
+      // ALWAYS re-render the board after any interaction.
+      onBoardUpdated();
     }
   }
 
@@ -1320,7 +1353,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           saveState();
           candidateModal.classList.add("hidden");
-          renderBoard();
+          onBoardUpdated();
         };
       } else {
         btn.disabled = true;
@@ -1332,28 +1365,18 @@ document.addEventListener("DOMContentLoaded", () => {
     candidateModal.classList.add("flex");
   }
 
-  function clearAllColors() {
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        boardState[r][c].cellColor = null;
-        boardState[r][c].pencilColors.clear();
-      }
-    }
-    saveState();
-    renderBoard();
-    showMessage("All colors cleared.", "gray");
-  }
-
   function autoEliminatePencils(row, col, num) {
-    // Eliminate from row
+    // Eliminate from the same row
     for (let c = 0; c < 9; c++) {
       boardState[row][c].pencils.delete(num);
     }
-    // Eliminate from column
+
+    // Eliminate from the same column
     for (let r = 0; r < 9; r++) {
       boardState[r][col].pencils.delete(num);
     }
-    // Eliminate from 3x3 box
+
+    // Eliminate from the same 3x3 box
     const boxRowStart = Math.floor(row / 3) * 3;
     const boxColStart = Math.floor(col / 3) * 3;
     for (let r = 0; r < 3; r++) {
@@ -1363,18 +1386,50 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function clearAllColors() {
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        boardState[r][c].cellColor = null;
+        boardState[r][c].pencilColors.clear();
+      }
+    }
+    saveState();
+    onBoardUpdated();
+    showMessage("All colors cleared.", "gray");
+  }
+
+  function calculateAllPencils(board) {
+    const newPencils = Array(9)
+      .fill(null)
+      .map(() =>
+        Array(9)
+          .fill(null)
+          .map(() => new Set())
+      );
+    const boardValues = board.map((row) => row.map((cell) => cell.value));
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (boardValues[r][c] === 0) {
+          for (let num = 1; num <= 9; num++) {
+            if (isValid(boardValues, r, c, num)) {
+              newPencils[r][c].add(num);
+            }
+          }
+        }
+      }
+    }
+    return newPencils;
+  }
+
   function autoPencil() {
-    // If used before and confirmation is NOT pending, show a warning first.
     if (hasUsedAutoPencil && !isAutoPencilPending) {
       showMessage(
         "This will overwrite pencil marks. Click again to apply.",
         "orange"
       );
-      isAutoPencilPending = true; // Set confirmation pending state
-      return; // Stop execution
+      isAutoPencilPending = true;
+      return;
     }
-
-    // Proceed with Auto-Pencil logic (for first-time use or after confirmation)
     const board = boardState.map((row) => row.map((cell) => cell.value));
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
@@ -1389,14 +1444,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     }
-
     saveState();
-    renderBoard();
+    onBoardUpdated();
     showMessage("Auto-Pencil complete!", "green");
-
-    // Update state flags
     hasUsedAutoPencil = true;
-    isAutoPencilPending = false; // Reset pending state after execution
+    isAutoPencilPending = false;
   }
 
   /**
@@ -1518,7 +1570,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isCustomPuzzle = puzzleData === null;
     if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
       showMessage("Error: Invalid puzzle string.", "red");
-      addSudokuCoachLink(null); // Also clear the link on error
+      addSudokuCoachLink(null);
       return;
     }
     initialPuzzleString = puzzleString;
@@ -1533,47 +1585,47 @@ document.addEventListener("DOMContentLoaded", () => {
       const char = puzzleString[i];
       if (char !== "." && char !== "0") {
         const num = parseInt(char);
-        // Populate the main board state for display
         boardState[row][col].value = num;
         boardState[row][col].isGiven = true;
-        // ALSO populate the separate board for validation
         boardForValidation[row][col] = num;
       }
     }
+
+    const initialBoardForSolution = boardForValidation.map((row) => [...row]);
+    solveSudoku(initialBoardForSolution);
+    solutionBoard = initialBoardForSolution;
+
     if (isCustomPuzzle) {
       const validity = checkPuzzleUniqueness(boardForValidation);
       if (!validity.isValid) {
-        // Show the error message after a short delay
-        setTimeout(() => {
-          showMessage(validity.message, "red");
-        }, 750);
+        setTimeout(() => showMessage(validity.message, "red"), 750);
       }
     }
+
     selectedCell = { row: null, col: null };
     history = [];
     historyIndex = -1;
+    hasUsedAutoPencil = false;
     isAutoPencilPending = false;
     isSolvePending = false;
+    puzzleInfoContainer.classList.toggle("hidden", !puzzleData);
 
     if (puzzleData) {
-      // Format the display text with both number and word
       puzzleLevelEl.textContent = `Lv. ${puzzleData.level} (${
         difficultyWords[puzzleData.level]
       })`;
       puzzleScoreEl.textContent = `Score: ${puzzleData.score}`;
-      puzzleInfoContainer.classList.remove("hidden");
     } else {
       puzzleLevelEl.textContent = "";
       puzzleScoreEl.textContent = "";
-      puzzleInfoContainer.classList.add("hidden");
     }
-    saveState();
-    renderBoard();
+
+    saveState(); // This will trigger the first lamp evaluation
+    onBoardUpdated();
     addSudokuCoachLink(puzzleString);
     if (!puzzleData) showMessage("Custom puzzle loaded!", "green");
     startTimer();
 
-    // Set a new timer to show the auto-pencil tip after 5 seconds
     autoPencilTipTimer = setTimeout(() => {
       if (!hasUsedAutoPencil) {
         const isMobile = window.innerWidth <= 550;
@@ -1582,7 +1634,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : "Tip: Click&nbsp;'Auto-Pencil'&nbsp;<span class='shortcut-highlight'>(or press 'A')</span> to fill in all possible candidates.";
         showMessage(tip, "gray");
       }
-    }, 5000); // 5000 milliseconds = 5 seconds
+    }, 5000);
   }
 
   function clearUserBoard() {
@@ -1597,7 +1649,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isAutoPencilPending = false; // Reset pending state
     isSolvePending = false;
     saveState();
-    renderBoard();
+    onBoardUpdated();
     showMessage("Board cleared.", "gray");
     // startTimer();
   }
@@ -1661,7 +1713,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function solve() {
-    // Add confirmation step
     if (!isSolvePending) {
       showMessage(
         "This will reveal the solution. Click again to solve.",
@@ -1670,15 +1721,12 @@ document.addEventListener("DOMContentLoaded", () => {
       isSolvePending = true;
       return;
     }
-
     if (!initialPuzzleString) {
       showMessage("Error: No initial puzzle loaded.", "red");
-      isSolvePending = false; // Reset on error
+      isSolvePending = false;
       return;
     }
-
-    const startTime = performance.now(); // Start the timer
-
+    const startTime = performance.now();
     const initialBoard = Array(9)
       .fill(null)
       .map(() => Array(9).fill(0));
@@ -1688,32 +1736,24 @@ document.addEventListener("DOMContentLoaded", () => {
         initialBoard[Math.floor(i / 9)][i % 9] = parseInt(char);
       }
     }
-
     const validity = checkPuzzleUniqueness(initialBoard);
     if (!validity.isValid) {
       const duration = (performance.now() - startTime).toFixed(2);
-      // Append the time to the existing error message from checkPuzzleUniqueness
       showMessage(`${validity.message} (${duration} ms)`, "red");
       return;
     }
 
-    while (findAndPlaceOneHiddenSingle(initialBoard)) {
-      // This loop will repeatedly fill in hidden singles until none are left.
-    }
-
-    // If we get here, the solution is unique. Solve and display it.
-    solveSudoku(initialBoard);
+    // Use the pre-calculated solution
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        boardState[r][c].value = initialBoard[r][c];
+        boardState[r][c].value = solutionBoard[r][c];
         boardState[r][c].pencils.clear();
       }
     }
 
-    const duration = (performance.now() - startTime).toFixed(2); // Stop the timer
-
+    const duration = (performance.now() - startTime).toFixed(2);
     saveState();
-    renderBoard();
+    onBoardUpdated();
     showMessage(`Puzzle Solved! (Unique; ${duration} ms)`, "green");
     triggerSolveAnimation();
     stopTimer();
@@ -2012,11 +2052,23 @@ document.addEventListener("DOMContentLoaded", () => {
     updateUndoRedoButtons();
   }
 
+  function onBoardUpdated() {
+    renderBoard(); // Always draw the board first
+    queueLampEvaluation(); // Then schedule lamp update
+  }
+
+  function queueLampEvaluation() {
+    if (lampEvaluationTimeout) clearTimeout(lampEvaluationTimeout);
+    lampEvaluationTimeout = setTimeout(() => {
+      evaluateBoardDifficulty();
+    }, 100); // small delay avoids blocking UI
+  }
+
   function undo() {
     if (historyIndex > 0) {
       historyIndex--;
       boardState = cloneBoardState(history[historyIndex]);
-      renderBoard();
+      onBoardUpdated();
       updateUndoRedoButtons();
     }
   }
@@ -2025,7 +2077,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (historyIndex < history.length - 1) {
       historyIndex++;
       boardState = cloneBoardState(history[historyIndex]);
-      renderBoard();
+      onBoardUpdated();
       updateUndoRedoButtons();
     }
   }
@@ -2033,6 +2085,845 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateUndoRedoButtons() {
     undoBtn.disabled = historyIndex <= 0;
     redoBtn.disabled = historyIndex >= history.length - 1;
+  }
+
+  // --- Difficulty Evaluation Logic ---
+  // A container for all the solving techniques translated from Python
+  const techniques = {
+    // --- New Helper Functions ---
+    _getBoxIndex: (r, c) => Math.floor(r / 3) * 3 + Math.floor(c / 3),
+
+    _sees: (cell1, cell2) => {
+      const [r1, c1] = cell1;
+      const [r2, c2] = cell2;
+      if (r1 === r2 || c1 === c2) return true;
+      return (
+        techniques._getBoxIndex(r1, c1) === techniques._getBoxIndex(r2, c2)
+      );
+    },
+
+    _commonVisibleCells: (cell1, cell2) => {
+      const common = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (
+            techniques._sees([r, c], cell1) &&
+            techniques._sees([r, c], cell2)
+          ) {
+            common.push([r, c]);
+          }
+        }
+      }
+      return common;
+    },
+    // --- End of New Helpers ---
+
+    combinations: function* (arr, size) {
+      if (size > arr.length) return;
+      const indices = Array.from({ length: size }, (_, i) => i);
+      while (true) {
+        yield indices.map((i) => arr[i]);
+        let i = size - 1;
+        while (i >= 0 && indices[i] === i + arr.length - size) {
+          i--;
+        }
+        if (i < 0) return;
+        indices[i]++;
+        for (let j = i + 1; j < size; j++) {
+          indices[j] = indices[j - 1] + 1;
+        }
+      }
+    },
+
+    _getUnitCells: (unitType, idx) => {
+      const cells = [];
+      if (unitType === "row") for (let c = 0; c < 9; c++) cells.push([idx, c]);
+      else if (unitType === "col")
+        for (let r = 0; r < 9; r++) cells.push([r, idx]);
+      else if (unitType === "box") {
+        const startRow = Math.floor(idx / 3) * 3;
+        const startCol = (idx % 3) * 3;
+        for (let r_offset = 0; r_offset < 3; r_offset++) {
+          for (let c_offset = 0; c_offset < 3; c_offset++) {
+            cells.push([startRow + r_offset, startCol + c_offset]);
+          }
+        }
+      }
+      return cells;
+    },
+
+    nakedSingle: (board, pencils) => {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0 && pencils[r][c].size === 1) {
+            const num = pencils[r][c].values().next().value;
+            return { change: true, type: "place", r, c, num };
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    hiddenSingle: (board, pencils) => {
+      const units = [];
+      for (let i = 0; i < 9; i++) {
+        units.push(techniques._getUnitCells("row", i));
+        units.push(techniques._getUnitCells("col", i));
+        units.push(techniques._getUnitCells("box", i));
+      }
+      for (const unit of units) {
+        for (let num = 1; num <= 9; num++) {
+          const possibleCells = [];
+          for (const [r, c] of unit) {
+            if (board[r][c] === 0 && pencils[r][c].has(num)) {
+              possibleCells.push([r, c]);
+            }
+          }
+          if (possibleCells.length === 1) {
+            const [r, c] = possibleCells[0];
+            return { change: true, type: "place", r, c, num };
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    intersection: (board, pencils) => {
+      // Pointing (Row/Col to Box)
+      for (let i = 0; i < 9; i++) {
+        for (let num = 1; num <= 9; num++) {
+          const rowColsWithNum = [];
+          for (let c = 0; c < 9; c++)
+            if (pencils[i][c].has(num)) rowColsWithNum.push(c);
+          if (
+            rowColsWithNum.length > 1 &&
+            new Set(rowColsWithNum.map((c) => Math.floor(c / 3))).size === 1
+          ) {
+            const boxIdx =
+              Math.floor(i / 3) * 3 + Math.floor(rowColsWithNum[0] / 3);
+            const boxCells = techniques._getUnitCells("box", boxIdx);
+            for (const [r, c] of boxCells) {
+              if (r !== i && pencils[r][c].has(num))
+                return { change: true, type: "remove", cells: [{ r, c, num }] };
+            }
+          }
+          const colRowsWithNum = [];
+          for (let r = 0; r < 9; r++)
+            if (pencils[r][i].has(num)) colRowsWithNum.push(r);
+          if (
+            colRowsWithNum.length > 1 &&
+            new Set(colRowsWithNum.map((r) => Math.floor(r / 3))).size === 1
+          ) {
+            const boxIdx =
+              Math.floor(colRowsWithNum[0] / 3) * 3 + Math.floor(i / 3);
+            const boxCells = techniques._getUnitCells("box", boxIdx);
+            for (const [r, c] of boxCells) {
+              if (c !== i && pencils[r][c].has(num))
+                return { change: true, type: "remove", cells: [{ r, c, num }] };
+            }
+          }
+        }
+      }
+      // Claiming (Box to Row/Col)
+      for (let boxIdx = 0; boxIdx < 9; boxIdx++) {
+        for (let num = 1; num <= 9; num++) {
+          const boxCellsWithNum = [];
+          const boxCells = techniques._getUnitCells("box", boxIdx);
+          for (const [r, c] of boxCells)
+            if (pencils[r][c].has(num)) boxCellsWithNum.push([r, c]);
+          if (boxCellsWithNum.length > 1) {
+            if (new Set(boxCellsWithNum.map(([r, c]) => r)).size === 1) {
+              const row = boxCellsWithNum[0][0];
+              for (let c = 0; c < 9; c++)
+                if (
+                  Math.floor(c / 3) !== Math.floor(boxCellsWithNum[0][1] / 3) &&
+                  pencils[row][c].has(num)
+                )
+                  return {
+                    change: true,
+                    type: "remove",
+                    cells: [{ r: row, c, num }],
+                  };
+            }
+            if (new Set(boxCellsWithNum.map(([r, c]) => c)).size === 1) {
+              const col = boxCellsWithNum[0][1];
+              for (let r = 0; r < 9; r++)
+                if (
+                  Math.floor(r / 3) !== Math.floor(boxCellsWithNum[0][0] / 3) &&
+                  pencils[r][col].has(num)
+                )
+                  return {
+                    change: true,
+                    type: "remove",
+                    cells: [{ r, c: col, num }],
+                  };
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    nakedSubset: (board, pencils, size) => {
+      const units = [];
+      for (let i = 0; i < 9; i++) {
+        units.push(techniques._getUnitCells("row", i));
+        units.push(techniques._getUnitCells("col", i));
+        units.push(techniques._getUnitCells("box", i));
+      }
+      for (const unit of units) {
+        const potentialCells = unit.filter(
+          ([r, c]) =>
+            board[r][c] === 0 &&
+            pencils[r][c].size >= 2 &&
+            pencils[r][c].size <= size
+        );
+        if (potentialCells.length < size) continue;
+        for (const cellGroup of techniques.combinations(potentialCells, size)) {
+          const union = new Set();
+          cellGroup.forEach(([r, c]) =>
+            pencils[r][c].forEach((p) => union.add(p))
+          );
+          if (union.size === size) {
+            const removals = [];
+            const cellGroupSet = new Set(cellGroup.map(JSON.stringify));
+            for (const [r, c] of unit) {
+              if (
+                board[r][c] === 0 &&
+                !cellGroupSet.has(JSON.stringify([r, c]))
+              ) {
+                for (const num of union)
+                  if (pencils[r][c].has(num)) removals.push({ r, c, num });
+              }
+            }
+            if (removals.length > 0)
+              return { change: true, type: "remove", cells: removals };
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    hiddenSubset: (board, pencils, size) => {
+      const units = [];
+      for (let i = 0; i < 9; i++) {
+        units.push(techniques._getUnitCells("row", i));
+        units.push(techniques._getUnitCells("col", i));
+        units.push(techniques._getUnitCells("box", i));
+      }
+      for (const unit of units) {
+        const emptyCells = unit.filter(([r, c]) => board[r][c] === 0);
+        if (emptyCells.length <= size) continue;
+        const unitCandidates = new Set();
+        emptyCells.forEach(([r, c]) =>
+          pencils[r][c].forEach((p) => unitCandidates.add(p))
+        );
+        if (unitCandidates.size < size) continue;
+
+        for (const numGroup of techniques.combinations(
+          [...unitCandidates],
+          size
+        )) {
+          const numGroupSet = new Set(numGroup);
+          const cellsWithNums = emptyCells.filter(
+            ([r, c]) => ![...numGroupSet].every((n) => !pencils[r][c].has(n))
+          );
+          if (cellsWithNums.length === size) {
+            const removals = [];
+            for (const [r, c] of cellsWithNums) {
+              for (const p of pencils[r][c])
+                if (!numGroupSet.has(p)) removals.push({ r, c, num: p });
+            }
+            if (removals.length > 0)
+              return { change: true, type: "remove", cells: removals };
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    fish: (board, pencils, size) => {
+      for (const isRowBased of [true, false]) {
+        for (let num = 1; num <= 9; num++) {
+          const candidatesInDim = [];
+          for (let i = 0; i < 9; i++) {
+            const indices = [];
+            for (let j = 0; j < 9; j++) {
+              const [r, c] = isRowBased ? [i, j] : [j, i];
+              if (pencils[r][c].has(num)) indices.push(j);
+            }
+            if (indices.length >= 2 && indices.length <= size) {
+              candidatesInDim.push([i, indices]);
+            }
+          }
+          if (candidatesInDim.length < size) continue;
+
+          for (const lines of techniques.combinations(candidatesInDim, size)) {
+            const allSecondaryIndices = new Set();
+            lines.forEach(([_, indices]) =>
+              indices.forEach((idx) => allSecondaryIndices.add(idx))
+            );
+            if (allSecondaryIndices.size === size) {
+              const removals = [];
+              const primaryLineIndices = new Set(lines.map(([i, _]) => i));
+              for (const secIdx of allSecondaryIndices) {
+                for (let primIdx = 0; primIdx < 9; primIdx++) {
+                  if (!primaryLineIndices.has(primIdx)) {
+                    const [r, c] = isRowBased
+                      ? [primIdx, secIdx]
+                      : [secIdx, primIdx];
+                    if (pencils[r][c].has(num)) removals.push({ r, c, num });
+                  }
+                }
+              }
+              if (removals.length > 0)
+                return { change: true, type: "remove", cells: removals };
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    // --- Start of newly added techniques ---
+    xyWing: (board, pencils) => {
+      const bivalueCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size === 2) {
+            bivalueCells.push({ r, c, cands: [...pencils[r][c]].sort() });
+          }
+        }
+      }
+
+      if (bivalueCells.length < 3) return { change: false };
+
+      for (const pivot of bivalueCells) {
+        const [x, y] = pivot.cands;
+        const pincer1Candidates = bivalueCells.filter(
+          (cell) =>
+            (cell.r !== pivot.r || cell.c !== pivot.c) &&
+            techniques._sees([cell.r, cell.c], [pivot.r, pivot.c]) &&
+            cell.cands.includes(x) &&
+            !cell.cands.includes(y)
+        );
+        const pincer2Candidates = bivalueCells.filter(
+          (cell) =>
+            (cell.r !== pivot.r || cell.c !== pivot.c) &&
+            techniques._sees([cell.r, cell.c], [pivot.r, pivot.c]) &&
+            cell.cands.includes(y) &&
+            !cell.cands.includes(x)
+        );
+
+        for (const pincer1 of pincer1Candidates) {
+          const z = pincer1.cands.find((c) => c !== x);
+          if (z === undefined) continue;
+          for (const pincer2 of pincer2Candidates) {
+            if (
+              pincer2.cands.includes(z) &&
+              !techniques._sees([pincer1.r, pincer1.c], [pincer2.r, pincer2.c])
+            ) {
+              const removals = [];
+              const commonSeers = techniques._commonVisibleCells(
+                [pincer1.r, pincer1.c],
+                [pincer2.r, pincer2.c]
+              );
+              for (const [r, c] of commonSeers) {
+                if (pencils[r][c].has(z) && !(r === pivot.r && c === pivot.c)) {
+                  removals.push({ r, c, num: z });
+                }
+              }
+              if (removals.length > 0) {
+                return { change: true, type: "remove", cells: removals };
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    xyzWing: (board, pencils) => {
+      const trivalueCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size === 3) {
+            trivalueCells.push({ r, c, cands: new Set(pencils[r][c]) });
+          }
+        }
+      }
+      const bivalueCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size === 2) {
+            bivalueCells.push({ r, c, cands: new Set(pencils[r][c]) });
+          }
+        }
+      }
+
+      for (const pivot of trivalueCells) {
+        const wings = bivalueCells.filter(
+          (cell) =>
+            techniques._sees([cell.r, cell.c], [pivot.r, pivot.c]) &&
+            [...cell.cands].every((cand) => pivot.cands.has(cand))
+        );
+        if (wings.length < 2) continue;
+
+        for (const wingCombo of techniques.combinations(wings, 2)) {
+          const [wing1, wing2] = wingCombo;
+          const intersection = new Set(
+            [...wing1.cands].filter((c) => wing2.cands.has(c))
+          );
+          if (intersection.size === 1) {
+            const z = intersection.values().next().value;
+            const removals = [];
+            for (let r = 0; r < 9; r++) {
+              for (let c = 0; c < 9; c++) {
+                if (
+                  pencils[r][c].has(z) &&
+                  techniques._sees([r, c], [pivot.r, pivot.c]) &&
+                  techniques._sees([r, c], [wing1.r, wing1.c]) &&
+                  techniques._sees([r, c], [wing2.r, wing2.c])
+                ) {
+                  removals.push({ r, c, num: z });
+                }
+              }
+            }
+            if (removals.length > 0) {
+              return { change: true, type: "remove", cells: removals };
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    wWing: (board, pencils) => {
+      const bivalueCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size === 2) {
+            bivalueCells.push({ r, c, cands: new Set(pencils[r][c]) });
+          }
+        }
+      }
+      if (bivalueCells.length < 2) return { change: false };
+
+      for (const pair of techniques.combinations(bivalueCells, 2)) {
+        const [cell1, cell2] = pair;
+        if (cell1.cands.size !== 2 || cell2.cands.size !== 2) continue;
+        const cands1 = [...cell1.cands].sort();
+        const cands2 = [...cell2.cands].sort();
+        if (cands1[0] !== cands2[0] || cands1[1] !== cands2[1]) continue;
+        if (techniques._sees([cell1.r, cell1.c], [cell2.r, cell2.c])) continue;
+
+        const [x, y] = cands1;
+        // Strong link on x, eliminate y
+        let result = techniques._findWWingElimination(
+          board,
+          pencils,
+          cell1,
+          cell2,
+          x,
+          y
+        );
+        if (result.change) return result;
+        // Strong link on y, eliminate x
+        result = techniques._findWWingElimination(
+          board,
+          pencils,
+          cell1,
+          cell2,
+          y,
+          x
+        );
+        if (result.change) return result;
+      }
+      return { change: false };
+    },
+
+    _findWWingElimination: (board, pencils, cell1, cell2, x, y) => {
+      const units = [];
+      for (let i = 0; i < 9; i++) {
+        units.push(techniques._getUnitCells("row", i));
+        units.push(techniques._getUnitCells("col", i));
+        units.push(techniques._getUnitCells("box", i));
+      }
+
+      for (const unit of units) {
+        const x_cells = unit.filter(([r, c]) => pencils[r][c].has(x));
+        if (x_cells.length === 2) {
+          const [link1, link2] = x_cells;
+          const sees_l1_c1 = techniques._sees(link1, [cell1.r, cell1.c]);
+          const sees_l1_c2 = techniques._sees(link1, [cell2.r, cell2.c]);
+          const sees_l2_c1 = techniques._sees(link2, [cell1.r, cell1.c]);
+          const sees_l2_c2 = techniques._sees(link2, [cell2.r, cell2.c]);
+
+          if (
+            (sees_l1_c1 && sees_l2_c2 && !sees_l1_c2 && !sees_l2_c1) ||
+            (sees_l1_c2 && sees_l2_c1 && !sees_l1_c1 && !sees_l2_c2)
+          ) {
+            const removals = [];
+            const commonSeers = techniques._commonVisibleCells(
+              [cell1.r, cell1.c],
+              [cell2.r, cell2.c]
+            );
+            for (const [r, c] of commonSeers) {
+              if (pencils[r][c].has(y)) {
+                removals.push({ r, c, num: y });
+              }
+            }
+            if (removals.length > 0) {
+              return { change: true, type: "remove", cells: removals };
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    remotePair: (board, pencils) => {
+      const bivalueCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size === 2) {
+            const cands = [...pencils[r][c]].sort().join("");
+            bivalueCells.push({ r, c, cands });
+          }
+        }
+      }
+
+      const pairGroups = new Map();
+      for (const cell of bivalueCells) {
+        if (!pairGroups.has(cell.cands)) {
+          pairGroups.set(cell.cands, []);
+        }
+        pairGroups.get(cell.cands).push([cell.r, cell.c]);
+      }
+
+      for (const [pairStr, cells] of pairGroups.entries()) {
+        if (cells.length < 4) continue;
+        const pair = pairStr.split("").map(Number);
+        const adj = new Map();
+        cells.forEach((cell) => adj.set(JSON.stringify(cell), []));
+
+        for (let i = 0; i < cells.length; i++) {
+          for (let j = i + 1; j < cells.length; j++) {
+            if (techniques._sees(cells[i], cells[j])) {
+              adj.get(JSON.stringify(cells[i])).push(cells[j]);
+              adj.get(JSON.stringify(cells[j])).push(cells[i]);
+            }
+          }
+        }
+
+        for (const startNode of cells) {
+          const queue = [[startNode, [startNode]]]; // [node, path]
+          const visitedPaths = new Set();
+          visitedPaths.add(JSON.stringify([startNode]));
+
+          while (queue.length > 0) {
+            const [current, path] = queue.shift();
+
+            if (path.length >= 4 && path.length % 2 === 0) {
+              const end1 = path[0];
+              const end2 = path[path.length - 1];
+              const commonSeers = techniques._commonVisibleCells(end1, end2);
+              const removals = [];
+
+              for (const [r, c] of commonSeers) {
+                if (!path.some((p) => p[0] === r && p[1] === c)) {
+                  if (pencils[r][c].has(pair[0]))
+                    removals.push({ r, c, num: pair[0] });
+                  if (pencils[r][c].has(pair[1]))
+                    removals.push({ r, c, num: pair[1] });
+                }
+              }
+              if (removals.length > 0) {
+                return { change: true, type: "remove", cells: removals };
+              }
+            }
+
+            const currentStr = JSON.stringify(current);
+            for (const neighbor of adj.get(currentStr)) {
+              if (
+                !path.some((p) => p[0] === neighbor[0] && p[1] === neighbor[1])
+              ) {
+                const newPath = [...path, neighbor];
+                const newPathStr = JSON.stringify(
+                  newPath.map((p) => p.join(",")).sort()
+                ); // Path invariant to direction
+                if (!visitedPaths.has(newPathStr)) {
+                  queue.push([neighbor, newPath]);
+                  visitedPaths.add(newPathStr);
+                }
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    chuteRemotePair: (board, pencils) => {
+      let result = techniques._runChuteLogic(board, pencils, true); // Rows
+      if (result.change) return result;
+      result = techniques._runChuteLogic(board, pencils, false); // Columns
+      return result;
+    },
+
+    _runChuteLogic: (board, pencils, isRowVersion) => {
+      for (let chuteIndex = 0; chuteIndex < 3; chuteIndex++) {
+        const bivalueCells = [];
+        const chuteRange = [
+          chuteIndex * 3,
+          chuteIndex * 3 + 1,
+          chuteIndex * 3 + 2,
+        ];
+
+        for (const i of chuteRange) {
+          for (let j = 0; j < 9; j++) {
+            const [r, c] = isRowVersion ? [i, j] : [j, i];
+            if (pencils[r][c].size === 2) {
+              bivalueCells.push({ r, c, cands: pencils[r][c] });
+            }
+          }
+        }
+
+        if (bivalueCells.length < 2) continue;
+
+        for (const pair of techniques.combinations(bivalueCells, 2)) {
+          const [cell1, cell2] = pair;
+          if (techniques._sees([cell1.r, cell1.c], [cell2.r, cell2.c]))
+            continue;
+
+          const cands1Str = [...cell1.cands].sort().join("");
+          const cands2Str = [...cell2.cands].sort().join("");
+          if (cands1Str !== cands2Str) continue;
+
+          const [x, y] = [...cell1.cands];
+          const intersectionCandidates = new Set();
+          let other_line, other_box_start;
+
+          if (isRowVersion) {
+            const pair_rows = new Set([cell1.r, cell2.r]);
+            other_line = chuteRange.find((r) => !pair_rows.has(r));
+
+            const chute_boxes = new Set([
+              chuteIndex * 3,
+              chuteIndex * 3 + 1,
+              chuteIndex * 3 + 2,
+            ]);
+            const pair_boxes = new Set([
+              techniques._getBoxIndex(cell1.r, cell1.c),
+              techniques._getBoxIndex(cell2.r, cell2.c),
+            ]);
+            const other_box_index = [...chute_boxes].find(
+              (b) => !pair_boxes.has(b)
+            );
+            if (other_box_index === undefined) continue;
+            other_box_start = (other_box_index % 3) * 3;
+
+            for (let c = other_box_start; c < other_box_start + 3; c++) {
+              pencils[other_line][c].forEach((cand) =>
+                intersectionCandidates.add(cand)
+              );
+              if (board[other_line][c] !== 0)
+                intersectionCandidates.add(board[other_line][c]);
+            }
+          } else {
+            // Column version
+            const pair_cols = new Set([cell1.c, cell2.c]);
+            other_line = chuteRange.find((c) => !pair_cols.has(c));
+
+            const chute_boxes = new Set([
+              chuteIndex,
+              chuteIndex + 3,
+              chuteIndex + 6,
+            ]);
+            const pair_boxes = new Set([
+              techniques._getBoxIndex(cell1.r, cell1.c),
+              techniques._getBoxIndex(cell2.r, cell2.c),
+            ]);
+            const other_box_index = [...chute_boxes].find(
+              (b) => !pair_boxes.has(b)
+            );
+            if (other_box_index === undefined) continue;
+            other_box_start = Math.floor(other_box_index / 3) * 3;
+
+            for (let r = other_box_start; r < other_box_start + 3; r++) {
+              pencils[r][other_line].forEach((cand) =>
+                intersectionCandidates.add(cand)
+              );
+              if (board[r][other_line] !== 0)
+                intersectionCandidates.add(board[r][other_line]);
+            }
+          }
+
+          const removals = [];
+          const commonSeers = techniques._commonVisibleCells(
+            [cell1.r, cell1.c],
+            [cell2.r, cell2.c]
+          );
+          if (!intersectionCandidates.has(x)) {
+            for (const [r, c] of commonSeers) {
+              if (pencils[r][c].has(y)) removals.push({ r, c, num: y });
+            }
+          }
+          if (!intersectionCandidates.has(y)) {
+            for (const [r, c] of commonSeers) {
+              if (pencils[r][c].has(x)) removals.push({ r, c, num: x });
+            }
+          }
+          if (removals.length > 0) {
+            const uniqueRemovals = Array.from(
+              new Set(removals.map(JSON.stringify))
+            ).map(JSON.parse);
+            return { change: true, type: "remove", cells: uniqueRemovals };
+          }
+        }
+      }
+      return { change: false };
+    },
+    // --- End of newly added techniques ---
+  };
+
+  async function evaluateBoardDifficulty() {
+    await new Promise(requestAnimationFrame);
+    if (!initialPuzzleString || !solutionBoard) {
+      updateLamp("gray");
+      return;
+    }
+
+    // 1. Invalid Sudoku check
+    const initialBoardForValidation = Array(9)
+      .fill(null)
+      .map(() => Array(9).fill(0));
+    for (let i = 0; i < 81; i++) {
+      const char = initialPuzzleString[i];
+      if (char !== "." && char !== "0") {
+        initialBoardForValidation[Math.floor(i / 9)][i % 9] = parseInt(char);
+      }
+    }
+    if (!checkPuzzleUniqueness(initialBoardForValidation).isValid) {
+      updateLamp("gray");
+      return;
+    }
+
+    // 2. Determine starting state
+    const currentBoardForEval = cloneBoardState(boardState);
+    let emptyCount = 0;
+    let emptyWithNoPencils = 0;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (currentBoardForEval[r][c].value === 0) {
+          emptyCount++;
+          if (currentBoardForEval[r][c].pencils.size === 0)
+            emptyWithNoPencils++;
+        }
+      }
+    }
+
+    let startingPencils;
+    if (emptyCount <= 3 || emptyWithNoPencils >= 4) {
+      startingPencils = calculateAllPencils(currentBoardForEval);
+    } else {
+      startingPencils = currentBoardForEval.map((row) =>
+        row.map((cell) => new Set(cell.pencils))
+      );
+    }
+    const virtualBoard = currentBoardForEval.map((row) =>
+      row.map((cell) => cell.value)
+    );
+
+    // 3. Wrong progression check
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (
+          virtualBoard[r][c] !== 0 &&
+          virtualBoard[r][c] !== solutionBoard[r][c]
+        ) {
+          updateLamp("red");
+          return;
+        }
+        if (
+          virtualBoard[r][c] === 0 &&
+          startingPencils[r][c].size > 0 && // Only check if pencils exist
+          !startingPencils[r][c].has(solutionBoard[r][c])
+        ) {
+          updateLamp("red");
+          return;
+        }
+      }
+    }
+
+    // 4. Easy check
+    if (emptyCount <= 3) {
+      updateLamp("white");
+      return;
+    }
+
+    // 5. Iterative solving
+    let maxDifficulty = 0;
+    const techniqueOrder = [
+      { func: techniques.nakedSingle, level: 0 },
+      { func: techniques.hiddenSingle, level: 0 },
+      { func: (b, p) => techniques.intersection(b, p), level: 1 },
+      { func: (b, p) => techniques.nakedSubset(b, p, 2), level: 1 },
+      { func: (b, p) => techniques.hiddenSubset(b, p, 2), level: 1 },
+      { func: (b, p) => techniques.nakedSubset(b, p, 3), level: 1 },
+      { func: (b, p) => techniques.hiddenSubset(b, p, 3), level: 1 },
+      { func: (b, p) => techniques.nakedSubset(b, p, 4), level: 1 },
+      { func: (b, p) => techniques.hiddenSubset(b, p, 4), level: 1 },
+      { func: (b, p) => techniques.fish(b, p, 2), level: 2 }, // X-Wing
+      { func: (b, p) => techniques.xyWing(b, p), level: 2 },
+      { func: (b, p) => techniques.remotePair(b, p), level: 2 },
+      { func: (b, p) => techniques.chuteRemotePair(b, p), level: 2 },
+      { func: (b, p) => techniques.xyzWing(b, p), level: 2 },
+      { func: (b, p) => techniques.wWing(b, p), level: 2 },
+      { func: (b, p) => techniques.fish(b, p, 3), level: 2 }, // Swordfish
+      { func: (b, p) => techniques.fish(b, p, 4), level: 2 }, // Jellyfish
+    ];
+
+    let progressMade = true;
+    while (progressMade) {
+      progressMade = false;
+      for (const tech of techniqueOrder) {
+        const result = tech.func(virtualBoard, startingPencils);
+        if (result.change) {
+          maxDifficulty = Math.max(maxDifficulty, tech.level);
+          if (result.type === "place") {
+            virtualBoard[result.r][result.c] = result.num;
+            startingPencils[result.r][result.c].clear();
+            // Basic auto-elimination after placing a number
+            for (let i = 0; i < 9; i++) {
+              startingPencils[result.r][i].delete(result.num);
+              startingPencils[i][result.c].delete(result.num);
+            }
+            const boxR = Math.floor(result.r / 3) * 3,
+              boxC = Math.floor(result.c / 3) * 3;
+            for (let i = 0; i < 3; i++)
+              for (let j = 0; j < 3; j++)
+                startingPencils[boxR + i][boxC + j].delete(result.num);
+          } else if (result.type === "remove") {
+            result.cells.forEach(({ r, c, num }) =>
+              startingPencils[r][c].delete(num)
+            );
+          }
+          progressMade = true;
+          break; // Restart scan
+        }
+      }
+    }
+
+    // 6. Set lamp color based on results
+    const isSolved = virtualBoard.flat().every((v) => v !== 0);
+    if (isSolved) {
+      if (maxDifficulty === 0) updateLamp("white");
+      else if (maxDifficulty === 1) updateLamp("green");
+      else if (maxDifficulty === 2) updateLamp("yellow");
+    } else {
+      updateLamp("orange");
+    }
   }
 
   initialize();

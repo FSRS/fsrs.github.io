@@ -870,8 +870,8 @@ button:disabled:hover {
 
 /* Message Area for displaying information to the user */
 #message-area {
-  min-height: 2rem;
-  max-height: 3rem;
+  min-height: 2.5rem;
+  max-height: 3.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -884,6 +884,34 @@ button:disabled:hover {
 |   5. COMPONENTS                                                              |
 ================================================================================
 */
+
+/* --- Component: Difficulty Lamp --- */
+#difficulty-lamp {
+  width: 0.75rem; /* 12px */
+  height: 2rem; /* 32px */
+  border-radius: 0.25rem; /* 4px */
+  border: 2px solid var(--nc-tx-1);
+  transition: background-color 0.3s ease;
+  flex-shrink: 0; /* Prevents the lamp from shrinking */
+}
+.lamp-white {
+  background-color: #ffffff;
+}
+.lamp-green {
+  background-color: #4ade80;
+}
+.lamp-yellow {
+  background-color: #facc15;
+}
+.lamp-orange {
+  background-color: #fb923c;
+}
+.lamp-red {
+  background-color: #f87171;
+}
+.lamp-gray {
+  background-color: #9ca3af;
+}
 
 /* --- Component: Sudoku Grid & Cells --- */
 .sudoku-cell {
@@ -1138,6 +1166,29 @@ button:disabled:hover {
   .border-gray-700 {
     border-color: #374151 !important; /* gray-700 */
   }
+
+  /* --- Difficulty Lamp (Dark Mode) --- */
+  #difficulty-lamp {
+    border-color: var(--nc-tx-1);
+  }
+  .lamp-white {
+    background-color: #e5e7eb;
+  } /* gray-200 */
+  .lamp-green {
+    background-color: #22c55e;
+  } /* green-500 */
+  .lamp-yellow {
+    background-color: #eab308;
+  } /* yellow-500 */
+  .lamp-orange {
+    background-color: #f97316;
+  } /* orange-500 */
+  .lamp-red {
+    background-color: #ef4444;
+  } /* red-500 */
+  .lamp-gray {
+    background-color: #6b7280;
+  } /* gray-500 */
 
   /* --- Sudoku Grid (Gray Theme) --- */
   .sudoku-cell {
