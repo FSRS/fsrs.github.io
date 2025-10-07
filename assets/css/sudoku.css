@@ -1037,3 +1037,232 @@
     font-size: 0.8rem !important;
   }
 }
+
+/* ============================
+   Custom Themed Styles
+   (Moved from HTML)
+   ============================ */
+:root {
+  --nc-bg-1: #e6e6fa;
+  --nc-tx-1: #4b0082;
+  --nc-accent-color: #8a2be2;
+  --nc-accent-hover-color: #9d48ff;
+  --nc-header-bg: #f2e6ff;
+  --nc-border-color: #d8c0ff;
+  --nc-text-light: #f0e6ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nc-bg-1: #1e003a;
+    --nc-tx-1: #d8bfd8;
+    --nc-header-bg: #272041;
+    --nc-border-color: #3b3a5b;
+  }
+}
+
+body {
+  font-family: "Fira Code", "Nanum Gothic Coding", "M PLUS 1 Code", monospace;
+  background-color: var(--nc-bg-1);
+  color: var(--nc-tx-1);
+}
+
+/* Override Tailwind classes for main container & text */
+.bg-white {
+  background-color: var(--nc-header-bg) !important;
+}
+
+/* Forms */
+select,
+input[type="text"] {
+  background-color: var(--nc-header-bg);
+  border-color: var(--nc-border-color);
+  color: var(--nc-tx-1);
+}
+
+/* Disabled Buttons */
+button:disabled {
+  background-color: var(--nc-border-color) !important;
+  color: var(--nc-tx-1) !important;
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: transparent !important;
+}
+button:disabled:hover {
+  background-color: var(--nc-border-color) !important;
+}
+
+/* Sudoku Grid Theming */
+.sudoku-cell {
+  width: 11.11%;
+  padding-bottom: 11.11%;
+  position: relative;
+  border: 1px solid var(--nc-border-color);
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+.sudoku-cell.highlighted {
+  background-color: #c7d2fe;
+}
+.sudoku-cell.selected {
+  outline: 3px solid var(--color-indigo-500);
+  outline-offset: -3px;
+  z-index: 5;
+}
+@media (prefers-color-scheme: light) {
+  .sudoku-cell.selected {
+    outline: 3px solid var(--color-indigo-600);
+    outline-offset: -3px;
+    z-index: 5;
+  }
+}
+.sudoku-cell .cell-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+}
+.sudoku-cell .user-value {
+  color: var(--nc-accent-color);
+}
+.sudoku-cell .given-value {
+  color: var(--nc-tx-1);
+  font-weight: 600;
+}
+.sudoku-cell.invalid .user-value {
+  background-color: #fecaca;
+}
+
+/* Pencil Grid */
+.pencil-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  font-size: 0.9rem;
+  color: var(--nc-tx-1);
+  opacity: 0.8;
+  text-align: center;
+  line-height: 1.2;
+}
+.pencil-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* 3x3 Borders */
+.sudoku-grid .grid-row .sudoku-cell:nth-child(3),
+.sudoku-grid .grid-row .sudoku-cell:nth-child(6) {
+  border-right: 3px solid var(--nc-tx-1);
+}
+.sudoku-grid .grid-row:nth-child(3),
+.sudoku-grid .grid-row:nth-child(6) {
+  border-bottom: 3px solid var(--nc-tx-1);
+}
+
+/* Controls & Buttons */
+.control-btn.active {
+  background-color: var(--color-indigo-600);
+  color: white;
+  border-color: var(--nc-accent-color);
+}
+@media (prefers-color-scheme: light) {
+  .control-btn.active {
+    background-color: var(--color-indigo-500);
+  }
+}
+.control-btn.active-green {
+  background-color: #c084fc;
+  color: white;
+  border-color: #c084fc;
+}
+.sudoku-cell.selected-green {
+  outline: 3px solid #c084fc;
+  outline-offset: -3px;
+  z-index: 5;
+}
+.color-btn.selected {
+  outline: 3px solid var(--nc-accent-color);
+  outline-offset: 2px;
+}
+
+/* Number Pad */
+#number-pad button {
+  background-color: transparent;
+  border-color: var(--nc-border-color);
+  color: var(--nc-tx-1);
+}
+#number-pad button:hover {
+  background-color: var(--nc-border-color);
+}
+
+/* Modals */
+#candidate-modal,
+#date-modal {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+#candidate-modal > div,
+#date-modal > div {
+  background-color: var(--nc-header-bg);
+  border: 1px solid var(--nc-border-color);
+}
+#candidate-grid button:not(:disabled):hover {
+  background-color: var(--nc-border-color) !important;
+}
+#date-cancel-btn,
+#close-modal-btn {
+  background-color: transparent;
+  border: 1px solid var(--nc-border-color);
+  color: var(--nc-tx-1);
+}
+#date-cancel-btn:hover,
+#close-modal-btn:hover {
+  background-color: var(--nc-border-color);
+}
+
+/* Solve Animation */
+@keyframes cell-solve-animation {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+.is-solved .sudoku-cell {
+  background-color: var(--nc-border-color);
+  animation: cell-solve-animation 1s ease-in-out;
+  animation-delay: calc((var(--row) * 9 + var(--col)) * 20ms);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 550px) {
+  body.p-4 {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+  .bg-white.p-4 {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+}
+
+/* Message Area */
+#message-area {
+  min-height: 2rem;
+  max-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow-y: auto;
+}

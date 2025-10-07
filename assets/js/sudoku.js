@@ -1,0 +1,2026 @@
+document.addEventListener("DOMContentLoaded", () => {
+  const gridContainer = document.getElementById("sudoku-grid");
+  const puzzleStringInput = document.getElementById("puzzle-string");
+  const loadBtn = document.getElementById("load-btn");
+  const solveBtn = document.getElementById("solve-btn");
+  const clearBtn = document.getElementById("clear-btn");
+  const clearColorsBtn = document.getElementById("clear-colors-btn");
+  const autoPencilBtn = document.getElementById("auto-pencil-btn");
+  const undoBtn = document.getElementById("undo-btn");
+  const redoBtn = document.getElementById("redo-btn");
+  const messageArea = document.getElementById("message-area");
+  const modeSelector = document.getElementById("mode-selector");
+  const numberPad = document.getElementById("number-pad");
+  const candidateModal = document.getElementById("candidate-modal");
+  const candidateGrid = document.getElementById("candidate-grid");
+  const closeModalBtn = document.getElementById("close-modal-btn");
+  const formatToggleBtn = document.getElementById("format-toggle-btn");
+  const exptModeBtn = document.getElementById("expt-mode-btn"); // Get the new button
+  const dateSelect = document.getElementById("date-select");
+  const levelSelect = document.getElementById("level-select");
+  const puzzleInfoContainer = document.getElementById("puzzle-info");
+  const puzzleLevelEl = document.getElementById("puzzle-level");
+  const puzzleScoreEl = document.getElementById("puzzle-score");
+  const puzzleTimerEl = document.getElementById("puzzle-timer");
+  const modeToggleButton = document.getElementById("mode-toggle-btn");
+  const colorButton = modeSelector.querySelector('[data-mode="color"]');
+  let isExperimentalMode = false;
+
+  const difficultyWords = [
+    "ROOKIE",
+    "LAYMAN",
+    "AMATEUR",
+    "TECHNICIAN",
+    "WIZARD",
+    "EXPERT",
+    "MASTER",
+    "NEMESIS",
+    "DOMINATOR",
+    "VANQUISHER",
+  ];
+
+  const colorPaletteLight = [
+    "#f87171",
+    "#fb923c",
+    "#facc15",
+    "#a3e635",
+    "#34d399",
+    "#22d3ee",
+    "#60a5fa",
+    "#c084fc",
+    "#f472b6",
+  ];
+
+  // darker palette for dark-mode (deeper/jewel tones)
+  const colorPaletteDark = [
+    "#991b1b", // red-800
+    "#9a3412", // orange-800
+    "#92400e", // amber-800
+    "#3f6212", // lime-800
+    "#065f46", // emerald-800
+    "#155e75", // cyan-800
+    "#1e3a8a", // blue-900
+    "#5b21b6", // violet-800
+    "#9d174d", // pink-800
+  ];
+
+  // live palette variables used by updateControls()
+  let cellColorPalette;
+  let candidateColorPalette;
+
+  function updateColorPalettes(isDarkMode) {
+    if (isDarkMode) {
+      cellColorPalette = colorPaletteDark;
+      candidateColorPalette = colorPaletteLight;
+    } else {
+      cellColorPalette = colorPaletteLight;
+      candidateColorPalette = colorPaletteDark;
+    }
+  }
+
+  // Initialize palettes based on the initial system preference
+  updateColorPalettes(
+    window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
+
+  // react to changes in system preference (updates UI instantly)
+  const colorSchemeMQ = window.matchMedia("(prefers-color-scheme: dark)");
+  colorSchemeMQ.addEventListener?.("change", (e) => {
+    updateColorPalettes(e.matches);
+    updateControls(); // rebuild the number/color pad
+    renderBoard(); // re-render cells with new colors
+  });
+
+  const levelTips = [
+    "Lv. 0: Singles",
+    "Lv. 1: Locked Pair, Locked Triple",
+    "Lv. 2: Intersections, Pairs, Triples",
+    "Lv. 3: Quads, X-Wing, XY-Wing, Remote Pair",
+    "Lv. 4: Unique Rectangles, BUG+1, XYZ-Wing, W-Wing, Swordfish, Jellyfish",
+    "Lv. 5: Hidden Rectangles, BUG Lite (6 cells), (Grouped) Turbot-Fishes",
+    "Lv. 6: Finned Fishes, X-Chain, Firework, WXYZ-Wing, Sue de Coq",
+    "Lv. 7: Grouped X-Chain, 3D Medusa, Alternating Inference Chain",
+    "Lv. 8: Grouped AIC, Pair Subset Exclusion, ALS-XZ",
+    "Lv. 9: Triple Sub. Excl., ALS-XY/W-Wing, Finned Franken/Mutant Swordfish",
+  ];
+
+  let boardState = [];
+  let allPuzzles = [];
+  let selectedCell = { row: null, col: null };
+  let currentMode = "concrete";
+  let coloringSubMode = "cell";
+  let candidatePopupFormat = "A"; // 'A' for numpad, 'B' for phone pad
+  let selectedColor = null;
+  let highlightedDigit = null;
+  let highlightState = 0; // 0: off, 1: digit, 2: bi-value
+  let history = [];
+  let historyIndex = -1;
+  let timerInterval = null;
+  let startTime = 0;
+  let initialPuzzleString = "";
+  let isCustomPuzzle = false;
+  let hasUsedAutoPencil = false;
+  let isAutoPencilPending = false;
+  let isSolvePending = false;
+  let autoPencilTipTimer = null;
+
+  function updateButtonLabels() {
+    const isMobile = window.innerWidth <= 550; // Breakpoint for mobile view
+    const titleText = document.getElementById("sudoku-title-text");
+
+    if (titleText) {
+      if (isMobile) {
+        // The HTML string no longer contains the style attribute
+        titleText.innerHTML = ` <a href="https://darksabun.club/" class="hover:underline">D.S.</a>`;
+      } else {
+        titleText.textContent = " Daily Sudoku";
+      }
+    }
+
+    // 1. Update Number/Pencil Button
+    if (currentMode === "pencil") {
+      modeToggleButton.textContent = isMobile ? "Pen." : "Pencil";
+    } else {
+      modeToggleButton.textContent = isMobile ? "Num." : "Number (Z)";
+    }
+
+    // 2. Update Color Button
+    if (currentMode === "color") {
+      if (coloringSubMode === "cell") {
+        colorButton.textContent = isMobile ? "Color: Cell" : "Color: Cell";
+      } else {
+        colorButton.textContent = isMobile
+          ? "Color: Cand."
+          : "Color: Candidate";
+      }
+    } else {
+      colorButton.textContent = isMobile ? "Color" : "Color (X)";
+    }
+
+    // 3. Unify Display/Expt button for all platforms
+    formatToggleBtn.style.display = "none"; // Always hide the A/B button
+    exptModeBtn.style.display = "inline-flex"; // Always show the Expt button
+    const exptShortcut = isMobile ? "" : " (E)";
+    exptModeBtn.textContent =
+      (isExperimentalMode ? "Expt. ON" : "Expt. OFF") + exptShortcut;
+    // Highlight if ON
+    if (isExperimentalMode) {
+      exptModeBtn.classList.add("active-green");
+    } else {
+      exptModeBtn.classList.remove("active-green");
+    }
+  }
+
+  function addSudokuCoachLink(puzzleString) {
+    const container = document.getElementById("solver-link-container");
+    if (!container) return;
+
+    // Clear any previous link
+    container.innerHTML = "";
+    if (!puzzleString) return; // Don't add a link if the puzzle string is empty
+
+    // Convert '.' to '0' for the URL
+    const puzzleForLink = puzzleString.replace(/\./g, "0");
+    const solverUrl = `https://sudoku.coach/en/solver/${puzzleForLink}`;
+
+    // Create the link element
+    const link = document.createElement("a");
+    link.href = solverUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+
+    // Check screen width and set text accordingly
+    const isMobile = window.innerWidth <= 550;
+    link.textContent = isMobile
+      ? "Export to SC Solver"
+      : "Export to Sudoku Coach Solver (Ctrl+E)";
+
+    // Apply the new button styling
+    link.className =
+      "w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orange-600";
+
+    container.appendChild(link);
+  }
+
+  async function initialize() {
+    createGrid();
+    updateControls();
+    initBoardState();
+    setupEventListeners();
+    updateButtonLabels();
+
+    try {
+      const response = await fetch("sudoku.json");
+      if (!response.ok) throw new Error("Failed to load sudoku.json");
+      allPuzzles = await response.json();
+      await populateSelectors();
+      findAndLoadSelectedPuzzle();
+    } catch (error) {
+      console.error("Error loading puzzles:", error);
+    }
+  }
+
+  async function populateSelectors() {
+    // Populate Level selector (0-9)
+    levelSelect.innerHTML = "";
+    for (let i = 0; i < 10; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      // Format the text to include both number and word
+      option.textContent = `${i} (${difficultyWords[i]})`;
+      levelSelect.appendChild(option);
+    }
+
+    // Populate Date selector (last 7 days including today, but not before 20250912)
+    dateSelect.innerHTML = "";
+    const today = new Date();
+
+    const minDateNum = 20250912;
+
+    const recentDates = [];
+
+    for (let i = 0; i < 7; i++) {
+      const now = new Date();
+      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000; // get UTC time in msec
+      const kstOffset = 9 * 60 * 60 * 1000; // KST is UTC+9
+      const today = new Date(utc + kstOffset);
+
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+
+      const dateNum = parseInt(`${yyyy}${mm}${dd}`);
+
+      if (dateNum >= minDateNum) {
+        recentDates.push({
+          dateNum,
+          label:
+            i === 0 ? "Today" : i === 1 ? "Yesterday" : `${yyyy}-${mm}-${dd}`,
+        });
+      }
+    }
+
+    // Ensure descending order
+    recentDates.sort((a, b) => b.dateNum - a.dateNum);
+
+    recentDates.forEach(({ dateNum, label }) => {
+      const option = document.createElement("option");
+      option.value = dateNum;
+      option.textContent = label;
+      dateSelect.appendChild(option);
+    });
+
+    const customOption = document.createElement("option");
+    customOption.value = "custom";
+    customOption.textContent = "Enter a date";
+    dateSelect.appendChild(customOption);
+  }
+
+  function findAndLoadSelectedPuzzle() {
+    const selectedDate = parseInt(dateSelect.value, 10);
+    const selectedLevel = parseInt(levelSelect.value, 10);
+
+    const puzzle = allPuzzles.find(
+      (p) => p.date === selectedDate && p.level === selectedLevel
+    );
+
+    if (puzzle) {
+      puzzleStringInput.value = puzzle.puzzle;
+      loadPuzzle(puzzle.puzzle, puzzle);
+      showMessage(
+        `Loaded puzzle for ${
+          dateSelect.options[dateSelect.selectedIndex].text
+        }, Level ${selectedLevel}`,
+        "green"
+      );
+      setTimeout(() => {
+        const tip = levelTips[selectedLevel];
+        if (tip) {
+          showMessage(tip, "gray");
+        }
+      }, 1500);
+    } else {
+      initBoardState();
+      renderBoard();
+      showMessage("No puzzle found for this date and level.", "red");
+      puzzleLevelEl.textContent = "";
+      puzzleScoreEl.textContent = "";
+      puzzleTimerEl.textContent = "";
+      stopTimer();
+      addSudokuCoachLink(null);
+    }
+  }
+
+  function initBoardState() {
+    boardState = Array(9)
+      .fill(null)
+      .map(() =>
+        Array(9)
+          .fill(null)
+          .map(() => ({
+            value: 0,
+            isGiven: false,
+            pencils: new Set(),
+            cellColor: null,
+            pencilColors: new Map(),
+          }))
+      );
+  }
+
+  function createGrid() {
+    gridContainer.innerHTML = "";
+    for (let i = 0; i < 9; i++) {
+      const rowEl = document.createElement("div");
+      rowEl.className = "grid-row flex";
+      for (let j = 0; j < 9; j++) {
+        const cellEl = document.createElement("div");
+        cellEl.className = "sudoku-cell";
+        cellEl.dataset.row = i;
+        cellEl.dataset.col = j;
+        rowEl.appendChild(cellEl);
+      }
+      gridContainer.appendChild(rowEl);
+    }
+  }
+
+  function updateControls() {
+    numberPad.innerHTML = "";
+    if (currentMode === "color") {
+      const activePalette =
+        coloringSubMode === "candidate"
+          ? candidateColorPalette
+          : cellColorPalette;
+      for (let i = 0; i < 9; i++) {
+        const btn = document.createElement("button");
+        btn.style.backgroundColor = activePalette[i];
+        btn.dataset.color = activePalette[i];
+
+        // 1. Label text (1–9)
+        btn.textContent = i + 1;
+
+        // 2. Compute adaptive label color
+        const isDarkMode =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const labelColor =
+          coloringSubMode === "candidate"
+            ? isDarkMode
+              ? "#1f2937"
+              : "#e5e7eb" // gray-800 / gray-200
+            : "rgba(255,255,255,0.6)"; // softer for cell mode
+
+        btn.className =
+          "color-btn p-2 text-lg font-bold border rounded-md shadow-sm h-12";
+        btn.style.color = labelColor;
+
+        // 3. Add hover brightness effect
+        btn.addEventListener("mouseenter", () => {
+          const base = activePalette[i];
+          // brighten in dark mode, darken in light mode
+          btn.style.filter = isDarkMode
+            ? "brightness(1.25)"
+            : "brightness(0.9)";
+        });
+        btn.addEventListener("mouseleave", () => {
+          btn.style.filter = "brightness(1)";
+        });
+
+        numberPad.appendChild(btn);
+      }
+    } else {
+      for (let i = 1; i <= 9; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.dataset.number = i;
+        btn.className =
+          "p-2 text-lg font-bold border rounded-md shadow-sm hover:bg-gray-100 h-12";
+        numberPad.appendChild(btn);
+      }
+    }
+  }
+
+  function renderBoard() {
+    const cells = gridContainer.querySelectorAll(".sudoku-cell");
+    const isMobile = window.innerWidth <= 550;
+
+    cells.forEach((cell) => {
+      const row = parseInt(cell.dataset.row);
+      const col = parseInt(cell.dataset.col);
+      const state = boardState[row][col];
+
+      cell.innerHTML = "";
+      cell.classList.remove(
+        "selected",
+        "selected-green",
+        "invalid",
+        "highlighted"
+      );
+      cell.style.backgroundColor = state.cellColor || "";
+      if (state.cellColor) {
+        cell.classList.add("has-color");
+      } else {
+        cell.classList.remove("has-color");
+      }
+
+      cell.addEventListener("mouseover", () => {
+        if (
+          currentMode === "color" &&
+          coloringSubMode === "cell" &&
+          selectedColor
+        ) {
+          cell.style.backgroundColor = selectedColor;
+        }
+      });
+
+      cell.addEventListener("mouseout", () => {
+        if (currentMode === "color" && coloringSubMode === "cell") {
+          // Revert to original color (either a set color or default)
+          cell.style.backgroundColor = state.cellColor || "";
+        }
+      });
+
+      if (row === selectedCell.row && col === selectedCell.col) {
+        const useGreenHighlight =
+          currentMode === "pencil" ||
+          (currentMode === "color" && coloringSubMode === "candidate");
+        if (useGreenHighlight) {
+          cell.classList.add("selected-green");
+        } else {
+          cell.classList.add("selected");
+        }
+      }
+      const content = document.createElement("div");
+      content.className = "cell-content";
+
+      if (state.value !== 0) {
+        content.textContent = state.value;
+        content.classList.add(state.isGiven ? "given-value" : "user-value");
+      } else if (state.pencils.size > 0) {
+        const pencilGrid = document.createElement("div");
+        pencilGrid.className = "pencil-grid";
+
+        const orderA = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        const orderB = [7, 8, 9, 4, 5, 6, 1, 2, 3];
+        const currentOrder = candidatePopupFormat === "A" ? orderA : orderB;
+
+        currentOrder.forEach((i) => {
+          const mark = document.createElement("div");
+          mark.className = "pencil-mark";
+          if (state.pencils.has(i)) {
+            mark.textContent = i;
+            if (state.pencilColors.has(i)) {
+              mark.style.color = state.pencilColors.get(i);
+            }
+
+            // Enable direct coloring for PC, or for Mobile when Experimental Mode is ON
+            if (!isMobile || (isMobile && isExperimentalMode)) {
+              mark.addEventListener("mouseover", () => {
+                if (
+                  currentMode === "color" &&
+                  coloringSubMode === "candidate" &&
+                  selectedColor
+                ) {
+                  mark.style.color = selectedColor;
+                }
+              });
+
+              mark.addEventListener("mouseout", () => {
+                // Revert to original color (either a set color or default)
+                mark.style.color = state.pencilColors.get(i) || "";
+              });
+
+              mark.addEventListener("click", (e) => {
+                // Handle coloring in color mode
+                if (
+                  currentMode === "color" &&
+                  coloringSubMode === "candidate" &&
+                  selectedColor
+                ) {
+                  e.stopPropagation();
+                  const cellState = boardState[row][col];
+                  const currentColor = cellState.pencilColors.get(i);
+                  if (currentColor === selectedColor) {
+                    cellState.pencilColors.delete(i);
+                  } else {
+                    cellState.pencilColors.set(i, selectedColor);
+                  }
+                  saveState();
+                  renderBoard();
+                }
+                // In Pencil mode + Expt ON, click a candidate to REMOVE it
+                else if (isExperimentalMode && currentMode === "pencil") {
+                  e.stopPropagation();
+                  const cellState = boardState[row][col];
+                  if (cellState.pencils.has(i)) {
+                    cellState.pencils.delete(i);
+                    saveState();
+                    renderBoard();
+                  }
+                }
+                // In Number mode + Expt ON, click a candidate to SET it as the value
+                else if (isExperimentalMode && currentMode === "concrete") {
+                  e.stopPropagation();
+                  const cellState = boardState[row][col];
+                  if (cellState.isGiven) return;
+
+                  cellState.value = i;
+                  cellState.pencils.clear();
+                  autoEliminatePencils(row, col, i);
+                  saveState();
+                  renderBoard();
+                  checkCompletion();
+                }
+              });
+            }
+          }
+          pencilGrid.appendChild(mark);
+        });
+        content.appendChild(pencilGrid);
+      }
+      cell.appendChild(content);
+
+      // Apply highlight if a digit is selected for highlighting
+      if (highlightState === 1 && highlightedDigit !== null) {
+        if (
+          state.value === highlightedDigit ||
+          (state.value === 0 && state.pencils.has(highlightedDigit))
+        ) {
+          cell.classList.add("highlighted");
+        }
+      } else if (highlightState === 2) {
+        if (state.value === 0 && state.pencils.size === 2) {
+          cell.classList.add("highlighted");
+        }
+      }
+    });
+    validateBoard();
+  }
+
+  function isValidDate(yyyymmdd) {
+    if (!/^\d{8}$/.test(yyyymmdd)) return false;
+
+    const year = parseInt(yyyymmdd.slice(0, 4), 10);
+    const month = parseInt(yyyymmdd.slice(4, 6), 10);
+    const day = parseInt(yyyymmdd.slice(6, 8), 10);
+
+    // Month 1–12, Day 1–31
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    // Construct real JS Date
+    const d = new Date(year, month - 1, day);
+    return (
+      d.getFullYear() === year &&
+      d.getMonth() === month - 1 &&
+      d.getDate() === day
+    );
+  }
+
+  function setupEventListeners() {
+    gridContainer.addEventListener("click", handleCellClick);
+    modeSelector.addEventListener("click", handleModeChange);
+    numberPad.addEventListener("click", handleNumberPadClick);
+    loadBtn.addEventListener("click", () =>
+      loadPuzzle(puzzleStringInput.value)
+    );
+    solveBtn.addEventListener("click", solve);
+    clearBtn.addEventListener("click", clearUserBoard);
+    clearColorsBtn.addEventListener("click", clearAllColors);
+    autoPencilBtn.addEventListener("click", autoPencil);
+    undoBtn.addEventListener("click", undo);
+    redoBtn.addEventListener("click", redo);
+    closeModalBtn.addEventListener("click", () =>
+      candidateModal.classList.add("hidden")
+    );
+    window.addEventListener("resize", updateButtonLabels);
+    formatToggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Stop the event from bubbling up to the parent
+
+      candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
+      updateButtonLabels();
+      renderBoard(); // Re-render the main board to update pencil marks
+
+      // Add the concise tip message
+      const tip = `Candidate display set to ${
+        candidatePopupFormat === "A" ? "Numpad (A)" : "Phone (B)"
+      } layout.`;
+      showMessage(tip, "gray");
+
+      // If the popup is open, re-render it too
+      if (
+        !candidateModal.classList.contains("hidden") &&
+        selectedCell.row !== null
+      ) {
+        showCandidatePopup(selectedCell.row, selectedCell.col);
+      }
+    });
+    dateSelect.addEventListener("change", () => {
+      if (dateSelect.value === "custom") {
+        // open popup, do nothing to board yet
+        dateModal.classList.remove("hidden");
+        dateModal.classList.add("flex");
+        dateInput.value = "";
+        dateError.textContent = "";
+        dateInput.focus();
+      } else {
+        // only renew when a real date is chosen
+        findAndLoadSelectedPuzzle();
+      }
+    });
+    levelSelect.addEventListener("change", findAndLoadSelectedPuzzle);
+    document.addEventListener("keydown", handleKeyPress);
+    // Hover effects for mode buttons
+    modeToggleButton.addEventListener("mouseenter", () => {
+      const isMobile = window.innerWidth <= 550;
+      if (currentMode === "concrete") {
+        modeToggleButton.textContent = isMobile ? "Pen.?" : "Pencil?";
+      } else if (currentMode === "pencil") {
+        modeToggleButton.textContent = isMobile ? "Num.?" : "Number?";
+      }
+    });
+
+    // This is now simpler and respects the responsive labels
+    modeToggleButton.addEventListener("mouseleave", () => {
+      updateButtonLabels();
+    });
+
+    colorButton.addEventListener("mouseenter", () => {
+      const isMobile = window.innerWidth <= 550;
+      if (currentMode === "color") {
+        if (coloringSubMode === "cell") {
+          colorButton.textContent = isMobile
+            ? "Color: Cand.?"
+            : "Color: Candidate?";
+        } else {
+          colorButton.textContent = isMobile ? "Color: Cell?" : "Color: Cell?";
+        }
+      }
+    });
+
+    // This is now simpler and respects the responsive labels
+    colorButton.addEventListener("mouseleave", () => {
+      updateButtonLabels();
+    });
+    // Date modal elements
+    const dateModal = document.getElementById("date-modal");
+    const dateInput = document.getElementById("date-input");
+    const dateError = document.getElementById("date-error");
+    const dateSubmitBtn = document.getElementById("date-submit-btn");
+    const dateCancelBtn = document.getElementById("date-cancel-btn");
+
+    // Keydown events for popup
+    dateInput.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        dateModal.classList.add("hidden");
+        dateModal.classList.remove("flex");
+        dateSelect.value = dateSelect.querySelector("option").value; // reset selection
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        dateSubmitBtn.click(); // trigger submit
+      }
+      if (e.key === "Backspace") {
+        const pos = dateInput.selectionStart;
+        if (pos && (pos === 5 || pos === 8)) {
+          // skip over the dash
+          dateInput.setSelectionRange(pos - 1, pos - 1);
+        }
+      }
+    });
+
+    dateInput.addEventListener("input", () => {
+      // keep only digits
+      let val = dateInput.value.replace(/\D/g, "");
+      if (val.length > 8) val = val.slice(0, 8);
+
+      // build YYYY-MM-DD
+      let formatted = "";
+      if (val.length > 0) formatted = val.slice(0, 4);
+      if (val.length > 4) formatted += "-" + val.slice(4, 6);
+      if (val.length > 6) formatted += "-" + val.slice(6, 8);
+
+      dateInput.value = formatted;
+    });
+
+    dateSelect.addEventListener("change", () => {
+      if (dateSelect.value === "custom") {
+        dateModal.classList.remove("hidden");
+        dateModal.classList.add("flex");
+        dateInput.value = "";
+        dateError.textContent = "";
+        dateInput.focus();
+        return;
+      }
+      findAndLoadSelectedPuzzle();
+    });
+
+    dateSubmitBtn.addEventListener("click", () => {
+      const rawValue = dateInput.value.replace(/\D/g, ""); // Remove non-digits
+
+      if (!isValidDate(rawValue)) {
+        dateError.textContent =
+          "Please enter a valid calendar date (YYYY-MM-DD).";
+        return;
+      }
+
+      const dateNum = parseInt(rawValue, 10);
+      // Calculate current date in KST (UTC+9)
+      const now = new Date();
+      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000; // get UTC time in msec
+      const kstOffset = 9 * 60 * 60 * 1000; // KST is UTC+9
+      const today = new Date(utc + kstOffset);
+
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const todayNum = parseInt(`${yyyy}${mm}${dd}`);
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      // Validate date range
+      if (dateNum < 20250912 || dateNum > todayNum) {
+        dateError.textContent = `Date must be between 2025-09-12 and ${todayStr}.`;
+        return;
+      }
+
+      // Add new option if it doesn't exist
+      let customOption = [...dateSelect.options].find(
+        (opt) => opt.value === rawValue
+      );
+      if (!customOption) {
+        customOption = document.createElement("option");
+        customOption.value = rawValue;
+        customOption.textContent = `${rawValue.slice(0, 4)}-${rawValue.slice(
+          4,
+          6
+        )}-${rawValue.slice(6, 8)}`;
+        dateSelect.appendChild(customOption);
+      }
+
+      dateSelect.value = rawValue;
+
+      // Close modal and trigger puzzle load
+      dateModal.classList.add("hidden");
+      dateModal.classList.remove("flex");
+      findAndLoadSelectedPuzzle();
+    });
+
+    dateCancelBtn.addEventListener("click", () => {
+      dateModal.classList.add("hidden");
+      dateModal.classList.remove("flex");
+      dateSelect.value = dateSelect.querySelector("option").value; // reset to first valid option
+    });
+
+    // Add listener for the experimental mode button
+    exptModeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      isExperimentalMode = !isExperimentalMode;
+      updateButtonLabels();
+
+      // Generate platform-specific tip messages
+      const isMobile = window.innerWidth <= 550;
+      let tip = "";
+      if (isExperimentalMode) {
+        tip = isMobile
+          ? "Expt. ON: Direct coloring, plus click candidates to remove (Pencil) or set (Number)."
+          : "Expt. ON: Click candidates to remove (Pencil mode) or set as value (Number mode).";
+      } else {
+        tip = isMobile
+          ? "Expt. OFF: Popup coloring enabled."
+          : "Expt. OFF: Click-to-set/remove candidates disabled.";
+      }
+      showMessage(tip, "gray");
+    });
+  }
+
+  function handleKeyPress(e) {
+    const key = e.key;
+    const key_lower = e.key.toLowerCase();
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+    // --- New Undo/Redo Handling ---
+    // Handle these combinations first and stop further execution.
+    if (isCtrlOrCmd && key_lower === "z") {
+      e.preventDefault();
+      undo();
+      return; // Exit the function to prevent collision
+    }
+    if (isCtrlOrCmd && key_lower === "y") {
+      e.preventDefault();
+      redo();
+      return; // Exit the function
+    }
+    if (isCtrlOrCmd && key_lower === "e") {
+      e.preventDefault(); // Prevent browser default for Ctrl+E
+      // Find the solver button (which is an <a> tag) inside its container
+      const solverButton = document.querySelector("#solver-link-container a");
+
+      // If the button exists, click it
+      if (solverButton) {
+        solverButton.click();
+      }
+      return;
+    }
+    // --- End of New Logic ---
+
+    // Do not trigger shortcuts if typing in an input field
+    if (document.activeElement.tagName === "INPUT") {
+      return;
+    }
+
+    // Close modal with Escape key
+    if (key === "Escape" && !candidateModal.classList.contains("hidden")) {
+      candidateModal.classList.add("hidden");
+      return;
+    }
+
+    // Priority 1: Candidate Modal is open
+    if (!candidateModal.classList.contains("hidden")) {
+      if (key >= "1" && key <= "9") {
+        const candidateButtons = candidateGrid.querySelectorAll("button");
+        let targetButton = null;
+        candidateButtons.forEach((btn) => {
+          if (btn.textContent === key) {
+            targetButton = btn;
+          }
+        });
+
+        if (targetButton && !targetButton.disabled) {
+          targetButton.click();
+        }
+      }
+      return; // Stop further processing if modal is open
+    }
+
+    // Handle Arrow Keys for navigation
+    if (key.startsWith("Arrow")) {
+      e.preventDefault(); // Prevent page scrolling
+      let { row, col } = selectedCell;
+
+      if (row === null || col === null) {
+        // If no cell is selected, start at the top-left
+        selectedCell = { row: 0, col: 0 };
+      } else {
+        if (key === "ArrowUp") {
+          selectedCell.row = (row - 1 + 9) % 9;
+        } else if (key === "ArrowDown") {
+          selectedCell.row = (row + 1) % 9;
+        } else if (key === "ArrowLeft") {
+          selectedCell.col = (col - 1 + 9) % 9;
+        } else if (key === "ArrowRight") {
+          selectedCell.col = (col + 1) % 9;
+        }
+      }
+      renderBoard();
+      return;
+    }
+
+    if (key === "Enter") {
+      if (selectedCell.row !== null) {
+        const cellState = boardState[selectedCell.row][selectedCell.col];
+        if (highlightState === 0 && cellState.pencils.size === 2) {
+          highlightedDigit = null;
+          highlightState = 2;
+        } else if (cellState.value !== 0) {
+          if (highlightedDigit !== cellState.value) {
+            highlightedDigit = cellState.value;
+            highlightState = 1;
+          } else {
+            highlightedDigit = null;
+            highlightState = 0;
+          }
+        }
+        renderBoard();
+      }
+      return;
+    }
+
+    if (key === "Shift") {
+      highlightedDigit = null;
+      highlightState = 0;
+      renderBoard();
+      return;
+    }
+
+    // Handle Delete/Backspace to clear cell
+    if (key === "Delete" || key === "Backspace") {
+      e.preventDefault(); // Prevent browser back navigation on backspace
+      if (selectedCell.row !== null) {
+        const { row, col } = selectedCell;
+        const cellState = boardState[row][col];
+        if (
+          !cellState.isGiven &&
+          (cellState.value !== 0 || cellState.pencils.size > 0)
+        ) {
+          cellState.value = 0;
+          cellState.pencils.clear();
+          saveState();
+          renderBoard();
+        }
+      }
+      return;
+    }
+
+    // Handle Mode Toggle Keys
+    if (key_lower === "z") {
+      modeToggleButton.click();
+      return;
+    }
+    if (key_lower === "x") {
+      colorButton.click();
+      return;
+    }
+
+    if (key_lower === "c") {
+      if (
+        currentMode === "color" &&
+        selectedCell.row !== null &&
+        selectedColor !== null
+      ) {
+        if (coloringSubMode === "cell") {
+          const { row, col } = selectedCell;
+          const cellState = boardState[row][col];
+          const oldColor = cellState.cellColor;
+          const newColor = oldColor === selectedColor ? null : selectedColor;
+          if (oldColor !== newColor) {
+            cellState.cellColor = newColor;
+            saveState();
+          }
+        } else {
+          // candidate mode
+          showCandidatePopup(selectedCell.row, selectedCell.col);
+        }
+        renderBoard();
+      }
+      return;
+    }
+
+    if (key_lower === "d") {
+      formatToggleBtn.click();
+      return;
+    }
+
+    // Handle Action Keys
+    if (key_lower === "a") {
+      autoPencilBtn.click();
+      return;
+    }
+    if (key_lower === "s") {
+      solveBtn.click();
+      return;
+    }
+    if (key_lower === "e" && !isCtrlOrCmd) {
+      exptModeBtn.click();
+      return;
+    }
+    if (key_lower === "q") {
+      clearBtn.click();
+      return;
+    }
+    if (key_lower === "w") {
+      clearColorsBtn.click();
+      return;
+    }
+
+    // Priority 2: Not modal, handle number keys based on current mode
+    if (key >= "1" && key <= "9") {
+      if (currentMode === "color") {
+        const colorButtons = numberPad.querySelectorAll("button");
+        const colorIndex = parseInt(key) - 1;
+        if (colorButtons[colorIndex]) {
+          colorButtons[colorIndex].click();
+        }
+      } else if (currentMode === "concrete" || currentMode === "pencil") {
+        if (selectedCell.row === null) return;
+        const numPadButton = numberPad.querySelector(
+          `button[data-number="${key}"]`
+        );
+        if (numPadButton) {
+          numPadButton.click();
+        }
+      }
+    }
+  }
+
+  function handleCellClick(e) {
+    const cell = e.target.closest(".sudoku-cell");
+    if (!cell) return;
+
+    selectedCell.row = parseInt(cell.dataset.row);
+    selectedCell.col = parseInt(cell.dataset.col);
+    const cellState = boardState[selectedCell.row][selectedCell.col];
+    const isMobile = window.innerWidth <= 550;
+
+    if (currentMode === "color") {
+      if (coloringSubMode === "cell") {
+        const oldColor = cellState.cellColor;
+        const newColor = oldColor === selectedColor ? null : selectedColor;
+        if (oldColor !== newColor) {
+          cellState.cellColor = newColor;
+          saveState();
+        }
+      } else {
+        // candidate mode
+        if (isMobile && !isExperimentalMode) {
+          showCandidatePopup(selectedCell.row, selectedCell.col);
+        }
+        // On desktop, this is handled by direct clicks on pencil marks
+      }
+    } else {
+      // --- Revised Highlight Logic ---
+      if (highlightState === 0 && cellState.pencils.size === 2) {
+        highlightedDigit = null;
+        highlightState = 2;
+      } else if (cellState.value !== 0) {
+        if (highlightedDigit !== cellState.value) {
+          highlightedDigit = cellState.value;
+          highlightState = 1;
+        } else {
+          highlightedDigit = null;
+          highlightState = 0;
+        }
+      }
+    }
+    renderBoard();
+    return;
+  }
+
+  function handleModeChange(e) {
+    const clickedButton = e.target.closest("button");
+    if (!clickedButton) return;
+
+    const previousMode = currentMode;
+
+    // --- State Update Logic ---
+    if (clickedButton === modeToggleButton) {
+      currentMode =
+        currentMode === "concrete" || currentMode === "pencil"
+          ? currentMode === "concrete"
+            ? "pencil"
+            : "concrete"
+          : "concrete";
+    } else if (clickedButton === colorButton) {
+      if (currentMode !== "color") {
+        currentMode = "color";
+        coloringSubMode = "cell"; // Always start with 'cell' when entering color mode
+      } else {
+        // If already in color mode, just toggle the sub-mode
+        coloringSubMode = coloringSubMode === "cell" ? "candidate" : "cell";
+      }
+    }
+
+    // --- Tip Display Logic ---
+    const isMobile = window.innerWidth <= 550;
+    let tip = "";
+
+    if (currentMode === "concrete") {
+      tip = isMobile
+        ? "Tip: Touch a filled cell to highlight its number."
+        : "Tip: Click a filled&nbsp;cell&nbsp;<span class='shortcut-highlight'>(or press 'Enter')</span> to highlight its number.";
+    } else if (currentMode === "pencil") {
+      tip = isMobile
+        ? "Tip: Touch a cell, then a digit to toggle a pencil mark."
+        : "Tip: Click a cell, then a digit to toggle a pencil mark.";
+    } else if (currentMode === "color") {
+      if (coloringSubMode === "cell") {
+        tip = isMobile
+          ? "Tip: Pick a color, then touch a cell to paint it."
+          : "Tip: Pick a color, then click a&nbsp;cell&nbsp;<span class='shortcut-highlight'>(or press 'C')</span> to paint it.";
+      } else {
+        // candidate sub-mode
+        tip = isMobile
+          ? "Tip: Pick a color, then touch a cell to select a candidate."
+          : "Tip: Pick a color, hover over a candidate to preview, and click to apply.";
+      }
+    }
+
+    showMessage(tip, "gray"); // <-- ALSO UNCOMMENT THIS LINE
+
+    // Update active classes for all buttons
+    modeToggleButton.classList.remove("active", "active-green");
+    colorButton.classList.remove("active", "active-green");
+
+    if (currentMode === "concrete") {
+      modeToggleButton.classList.add("active"); // Blue
+    } else if (currentMode === "pencil") {
+      modeToggleButton.classList.add("active-green"); // Green
+    } else if (currentMode === "color") {
+      if (coloringSubMode === "candidate") {
+        colorButton.classList.add("active-green"); // Green for Color: Cand
+      } else {
+        // cell mode
+        colorButton.classList.add("active"); // Blue for Color: Cell
+      }
+    }
+
+    // Update the number/color pad if the mode type changed
+    const wasColor = previousMode === "color";
+    const isColor = currentMode === "color";
+    if (isColor || wasColor) {
+      updateControls(); // Always rebuild the pad if the mode involves color
+
+      if (isColor) {
+        // If we are in ANY color mode (just entered or toggled sub-mode),
+        // reset the selection to the first color of the new palette.
+        const firstColorButton = numberPad.querySelector(".color-btn");
+        if (firstColorButton) {
+          selectedColor = firstColorButton.dataset.color;
+          firstColorButton.classList.add("selected");
+        }
+      } else {
+        // Otherwise, we must have just LEFT color mode
+        selectedColor = null;
+      }
+    }
+    renderBoard();
+    updateButtonLabels(); // <-- FIX: Update labels immediately after mode change
+  }
+
+  function handleNumberPadClick(e) {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    if (currentMode === "color") {
+      selectedColor = btn.dataset.color;
+      numberPad
+        .querySelectorAll(".color-btn")
+        .forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      return;
+    }
+
+    const num = parseInt(btn.dataset.number);
+
+    if (selectedCell.row !== null) {
+      const { row, col } = selectedCell;
+      const cellState = boardState[row][col];
+      if (cellState.isGiven) return;
+
+      let changeMade = false;
+      if (currentMode === "concrete") {
+        const oldValue = cellState.value;
+        const newValue = oldValue === num ? 0 : num;
+        if (oldValue !== newValue) {
+          cellState.value = newValue;
+          if (newValue !== 0) {
+            cellState.pencils.clear();
+            autoEliminatePencils(row, col, newValue);
+          }
+          changeMade = true;
+        }
+      } else {
+        // pencil mode
+        if (cellState.value === 0) {
+          if (cellState.pencils.has(num)) {
+            cellState.pencils.delete(num);
+          } else {
+            cellState.pencils.add(num);
+          }
+          changeMade = true;
+        }
+      }
+      if (changeMade) {
+        saveState();
+        renderBoard();
+        checkCompletion();
+      } else {
+        renderBoard();
+      }
+    }
+  }
+
+  function checkCompletion() {
+    // Check if any cell is empty
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (boardState[r][c].value === 0) {
+          return; // Not finished yet
+        }
+      }
+    }
+
+    // If no cells are empty, validate the board
+    if (validateBoard()) {
+      if (!isCustomPuzzle) {
+        // --- Share Logic for Daily Puzzles ---
+        messageArea.innerHTML = "";
+        messageArea.className =
+          "text-center text-sm font-semibold h-5 flex items-center justify-center gap-2";
+
+        const congratsText = document.createTextNode(
+          "Congratulations! You solved it! → "
+        );
+        const shareButton = document.createElement("button");
+        shareButton.textContent = "Share";
+        shareButton.className =
+          "px-2 py-1 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors";
+
+        shareButton.onclick = () => {
+          const shareText = generateDiscordShareText();
+          navigator.clipboard
+            .writeText(shareText)
+            .then(() => {
+              // Manually build the success message with a "Copy Again" button
+              messageArea.innerHTML = ""; // Clear "Congratulations..." text
+
+              // Set the success text color on the container
+              const colorClasses = [
+                "text-red-600",
+                "text-green-600",
+                "text-gray-600",
+                "text-orange-500", // Add orange
+              ];
+              messageArea.classList.remove(...colorClasses);
+              messageArea.classList.add("text-green-600");
+
+              // Create and append the success message
+              const successText = document.createTextNode(
+                "Copied Discord sharable text!"
+              );
+              messageArea.appendChild(successText);
+
+              // Create, style, and append the "Copy Again" button
+              const copyAgainButton = document.createElement("button");
+              copyAgainButton.textContent = "Copy Again";
+              // Reuse the same style as the "Share" button for consistency
+              copyAgainButton.className =
+                "px-2 py-1 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors";
+
+              // Make the "Copy Again" button trigger the same copy action
+              copyAgainButton.onclick = shareButton.onclick;
+
+              messageArea.appendChild(copyAgainButton);
+            })
+            .catch((err) => {
+              console.error("Failed to copy text: ", err);
+              showMessage("Error: Could not copy text!", "red");
+            });
+        };
+
+        messageArea.appendChild(congratsText);
+        messageArea.appendChild(shareButton);
+      } else {
+        // --- Default message for Custom Puzzles ---
+        showMessage("Congratulations! You solved it!", "green");
+      }
+
+      triggerSolveAnimation();
+      stopTimer();
+    }
+  }
+
+  function triggerSolveAnimation() {
+    gridContainer.classList.add("is-solved");
+    setTimeout(() => {
+      gridContainer.classList.remove("is-solved");
+    }, 2620); // Duration is roughly (80 * 20ms) + 1000ms
+  }
+
+  function showCandidatePopup(row, col) {
+    candidateGrid.innerHTML = "";
+    const cellState = boardState[row][col];
+    if (cellState.pencils.size === 0) return;
+
+    const orderA = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const orderB = [7, 8, 9, 4, 5, 6, 1, 2, 3];
+    const currentOrder = candidatePopupFormat === "A" ? orderA : orderB;
+
+    currentOrder.forEach((i) => {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      btn.className =
+        "p-3 border dark:border-gray-500 text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-slate-700 rounded-md";
+      if (cellState.pencils.has(i)) {
+        btn.classList.add("hover:bg-gray-200", "dark:hover:bg-slate-600");
+        if (cellState.pencilColors.has(i)) {
+          btn.style.backgroundColor = cellState.pencilColors.get(i);
+        }
+        btn.onclick = () => {
+          const currentColor = cellState.pencilColors.get(i);
+          if (currentColor === selectedColor) {
+            cellState.pencilColors.delete(i);
+          } else {
+            cellState.pencilColors.set(i, selectedColor);
+          }
+          saveState();
+          candidateModal.classList.add("hidden");
+          renderBoard();
+        };
+      } else {
+        btn.disabled = true;
+        btn.classList.add("opacity-25");
+      }
+      candidateGrid.appendChild(btn);
+    });
+    candidateModal.classList.remove("hidden");
+    candidateModal.classList.add("flex");
+  }
+
+  function clearAllColors() {
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        boardState[r][c].cellColor = null;
+        boardState[r][c].pencilColors.clear();
+      }
+    }
+    saveState();
+    renderBoard();
+    showMessage("All colors cleared.", "gray");
+  }
+
+  function autoEliminatePencils(row, col, num) {
+    // Eliminate from row
+    for (let c = 0; c < 9; c++) {
+      boardState[row][c].pencils.delete(num);
+    }
+    // Eliminate from column
+    for (let r = 0; r < 9; r++) {
+      boardState[r][col].pencils.delete(num);
+    }
+    // Eliminate from 3x3 box
+    const boxRowStart = Math.floor(row / 3) * 3;
+    const boxColStart = Math.floor(col / 3) * 3;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        boardState[boxRowStart + r][boxColStart + c].pencils.delete(num);
+      }
+    }
+  }
+
+  function autoPencil() {
+    // If used before and confirmation is NOT pending, show a warning first.
+    if (hasUsedAutoPencil && !isAutoPencilPending) {
+      showMessage(
+        "This will overwrite pencil marks. Click again to apply.",
+        "orange"
+      );
+      isAutoPencilPending = true; // Set confirmation pending state
+      return; // Stop execution
+    }
+
+    // Proceed with Auto-Pencil logic (for first-time use or after confirmation)
+    const board = boardState.map((row) => row.map((cell) => cell.value));
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cellState = boardState[r][c];
+        if (cellState.value === 0) {
+          cellState.pencils.clear();
+          for (let num = 1; num <= 9; num++) {
+            if (isValid(board, r, c, num)) {
+              cellState.pencils.add(num);
+            }
+          }
+        }
+      }
+    }
+
+    saveState();
+    renderBoard();
+    showMessage("Auto-Pencil complete!", "green");
+
+    // Update state flags
+    hasUsedAutoPencil = true;
+    isAutoPencilPending = false; // Reset pending state after execution
+  }
+
+  /**
+   * Checks if a puzzle board has a unique solution and returns the result.
+   * @param {number[][]} board - The initial puzzle board.
+   * @returns {{isValid: boolean, message: string}} An object with the validation result.
+   */
+  function checkPuzzleUniqueness(board) {
+    // Pre-check 1: Clue count
+    const clueCount = board.flat().filter((v) => v !== 0).length;
+    if (clueCount < 17) {
+      return {
+        isValid: false,
+        message:
+          "Error: Puzzle has fewer than 17 clues; solution is not unique.",
+      };
+    }
+
+    // Pre-check 2: Missing numbers
+    const presentNumbers = new Set(board.flat().filter((v) => v !== 0));
+    if (presentNumbers.size < 8) {
+      return {
+        isValid: false,
+        message:
+          "Error: More than one number is missing; solution is not unique.",
+      };
+    }
+    // Pre-Check 3
+    // Check for two empty rows in any horizontal band
+    for (let bandStartRow = 0; bandStartRow < 9; bandStartRow += 3) {
+      let emptyRowCount = 0;
+      for (let r_offset = 0; r_offset < 3; r_offset++) {
+        const r = bandStartRow + r_offset;
+        if (board[r].every((cell) => cell === 0)) {
+          emptyRowCount++;
+        }
+      }
+      if (emptyRowCount >= 2) {
+        return {
+          isValid: false,
+          message: "Error: Two empty rows in a band; solution is not unique.",
+        };
+      }
+    }
+
+    // Check for two empty columns in any vertical band
+    for (let bandStartCol = 0; bandStartCol < 9; bandStartCol += 3) {
+      let emptyColCount = 0;
+      for (let c_offset = 0; c_offset < 3; c_offset++) {
+        const c = bandStartCol + c_offset;
+        let isColEmpty = true;
+        for (let r = 0; r < 9; r++) {
+          if (board[r][c] !== 0) {
+            isColEmpty = false;
+            break;
+          }
+        }
+        if (isColEmpty) {
+          emptyColCount++;
+        }
+      }
+      if (emptyColCount >= 2) {
+        return {
+          isValid: false,
+          message:
+            "Error: Two empty columns in a band; solution is not unique.",
+        };
+      }
+    }
+
+    function isBoardValid(b) {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (b[r][c] !== 0) {
+            const num = b[r][c];
+            b[r][c] = 0;
+            const valid = isValid(b, r, c, num);
+            b[r][c] = num;
+            if (!valid) return false;
+          }
+        }
+      }
+      return true;
+    }
+    // Pre-check 3: Initial conflicts (on a copy to be safe)
+    if (!isBoardValid(board.map((row) => [...row]))) {
+      return {
+        isValid: false,
+        message: "Error: The initial puzzle state has conflicts.",
+      };
+    }
+
+    const boardCopy = board.map((row) => [...row]);
+    while (findAndPlaceOneHiddenSingle(boardCopy)) {
+      // This loop simplifies the board before counting.
+    }
+
+    // Final Check: Count solutions (on a copy to be safe)
+    const solutionCount = countSolutions(boardCopy);
+
+    if (solutionCount === 0) {
+      return {
+        isValid: false,
+        message: "Error: This puzzle has no solution.",
+      };
+    }
+    if (solutionCount > 1) {
+      return {
+        isValid: false,
+        message: "Error: This puzzle has more than one solution.",
+      };
+    }
+
+    return { isValid: true, message: "Puzzle has a unique solution." };
+  }
+
+  function loadPuzzle(puzzleString, puzzleData = null) {
+    if (autoPencilTipTimer) clearTimeout(autoPencilTipTimer);
+    isCustomPuzzle = puzzleData === null;
+    if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
+      showMessage("Error: Invalid puzzle string.", "red");
+      addSudokuCoachLink(null); // Also clear the link on error
+      return;
+    }
+    initialPuzzleString = puzzleString;
+    initBoardState();
+    const boardForValidation = Array(9)
+      .fill(null)
+      .map(() => Array(9).fill(0));
+
+    for (let i = 0; i < 81; i++) {
+      const row = Math.floor(i / 9);
+      const col = i % 9;
+      const char = puzzleString[i];
+      if (char !== "." && char !== "0") {
+        const num = parseInt(char);
+        // Populate the main board state for display
+        boardState[row][col].value = num;
+        boardState[row][col].isGiven = true;
+        // ALSO populate the separate board for validation
+        boardForValidation[row][col] = num;
+      }
+    }
+    if (isCustomPuzzle) {
+      const validity = checkPuzzleUniqueness(boardForValidation);
+      if (!validity.isValid) {
+        // Show the error message after a short delay
+        setTimeout(() => {
+          showMessage(validity.message, "red");
+        }, 750);
+      }
+    }
+    selectedCell = { row: null, col: null };
+    history = [];
+    historyIndex = -1;
+    isAutoPencilPending = false;
+    isSolvePending = false;
+
+    if (puzzleData) {
+      // Format the display text with both number and word
+      puzzleLevelEl.textContent = `Lv. ${puzzleData.level} (${
+        difficultyWords[puzzleData.level]
+      })`;
+      puzzleScoreEl.textContent = `Score: ${puzzleData.score}`;
+      puzzleInfoContainer.classList.remove("hidden");
+    } else {
+      puzzleLevelEl.textContent = "";
+      puzzleScoreEl.textContent = "";
+      puzzleInfoContainer.classList.add("hidden");
+    }
+    saveState();
+    renderBoard();
+    addSudokuCoachLink(puzzleString);
+    if (!puzzleData) showMessage("Custom puzzle loaded!", "green");
+    startTimer();
+
+    // Set a new timer to show the auto-pencil tip after 5 seconds
+    autoPencilTipTimer = setTimeout(() => {
+      if (!hasUsedAutoPencil) {
+        const isMobile = window.innerWidth <= 550;
+        const tip = isMobile
+          ? "Tip: Touch 'Auto-Pencil' below to fill in all possible candidates."
+          : "Tip: Click&nbsp;'Auto-Pencil'&nbsp;<span class='shortcut-highlight'>(or press 'A')</span> to fill in all possible candidates.";
+        showMessage(tip, "gray");
+      }
+    }, 5000); // 5000 milliseconds = 5 seconds
+  }
+
+  function clearUserBoard() {
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (!boardState[r][c].isGiven) {
+          boardState[r][c].value = 0;
+          boardState[r][c].pencils.clear();
+        }
+      }
+    }
+    isAutoPencilPending = false; // Reset pending state
+    isSolvePending = false;
+    saveState();
+    renderBoard();
+    showMessage("Board cleared.", "gray");
+    // startTimer();
+  }
+
+  function validateBoard() {
+    const board = boardState.map((row) => row.map((cell) => cell.value));
+    const cells = gridContainer.querySelectorAll(".sudoku-cell");
+    let allValid = true;
+
+    cells.forEach((cell) => cell.classList.remove("invalid"));
+
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const num = board[r][c];
+        if (num === 0 || boardState[r][c].isGiven) continue;
+
+        board[r][c] = 0; // Temporarily remove to check
+        if (!isValid(board, r, c, num)) {
+          cells[r * 9 + c].classList.add("invalid");
+          allValid = false;
+        }
+        board[r][c] = num; // Restore
+      }
+    }
+    return allValid;
+  }
+
+  /**
+   * Counts the number of solutions for a given board up to a specified limit.
+   * @param {number[][]} board - The Sudoku board to solve.
+   * @param {number} limit - The maximum number of solutions to find before stopping.
+   * @returns {number} The number of solutions found (up to the limit).
+   */
+  function countSolutions(board, limit = 2) {
+    let count = 0;
+
+    function search() {
+      // The hidden single loop has been removed from here.
+
+      const find = findEmpty(board);
+      if (!find) {
+        count++;
+        return count >= limit; // Stop if we've reached the limit
+      }
+
+      const [row, col] = find;
+      for (let num = 1; num <= 9; num++) {
+        if (isValid(board, row, col, num)) {
+          board[row][col] = num;
+          if (search()) {
+            return true; // Propagate the stop signal
+          }
+        }
+      }
+      board[row][col] = 0; // Backtrack
+      return false;
+    }
+
+    search();
+    return count;
+  }
+
+  function solve() {
+    // Add confirmation step
+    if (!isSolvePending) {
+      showMessage(
+        "This will reveal the solution. Click again to solve.",
+        "orange"
+      );
+      isSolvePending = true;
+      return;
+    }
+
+    if (!initialPuzzleString) {
+      showMessage("Error: No initial puzzle loaded.", "red");
+      isSolvePending = false; // Reset on error
+      return;
+    }
+
+    const startTime = performance.now(); // Start the timer
+
+    const initialBoard = Array(9)
+      .fill(null)
+      .map(() => Array(9).fill(0));
+    for (let i = 0; i < 81; i++) {
+      const char = initialPuzzleString[i];
+      if (char !== "." && char !== "0") {
+        initialBoard[Math.floor(i / 9)][i % 9] = parseInt(char);
+      }
+    }
+
+    const validity = checkPuzzleUniqueness(initialBoard);
+    if (!validity.isValid) {
+      const duration = (performance.now() - startTime).toFixed(2);
+      // Append the time to the existing error message from checkPuzzleUniqueness
+      showMessage(`${validity.message} (${duration} ms)`, "red");
+      return;
+    }
+
+    while (findAndPlaceOneHiddenSingle(initialBoard)) {
+      // This loop will repeatedly fill in hidden singles until none are left.
+    }
+
+    // If we get here, the solution is unique. Solve and display it.
+    solveSudoku(initialBoard);
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        boardState[r][c].value = initialBoard[r][c];
+        boardState[r][c].pencils.clear();
+      }
+    }
+
+    const duration = (performance.now() - startTime).toFixed(2); // Stop the timer
+
+    saveState();
+    renderBoard();
+    showMessage(`Puzzle Solved! (Unique; ${duration} ms)`, "green");
+    triggerSolveAnimation();
+    stopTimer();
+  }
+
+  function findEmpty(board) {
+    let bestCell = null;
+    let minRemainingValues = 10; // Start with a value higher than the max possible (9)
+
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (board[r][c] === 0) {
+          // This cell is empty, so count its legal moves
+          let remainingValues = 0;
+          for (let num = 1; num <= 9; num++) {
+            if (isValid(board, r, c, num)) {
+              remainingValues++;
+            }
+          }
+
+          // If this cell is more constrained than the best one we've found so far
+          if (remainingValues < minRemainingValues) {
+            minRemainingValues = remainingValues;
+            bestCell = [r, c];
+          }
+
+          // Optimization: If a cell has only 0 or 1 possible value, it's the best we can do.
+          if (minRemainingValues <= 1) {
+            return bestCell;
+          }
+        }
+      }
+    }
+    return bestCell; // This will be null if the board is full
+  }
+
+  /**
+   * Finds and places the first available "Hidden Single" on the board.
+   * This version is more robust and scans houses systematically.
+   * @param {number[][]} board - The Sudoku board.
+   * @returns {boolean} - True if a hidden single was found and placed, otherwise false.
+   */
+  function findAndPlaceOneHiddenSingle(board) {
+    // --- Scan by ROW ---
+    for (let r = 0; r < 9; r++) {
+      for (let num = 1; num <= 9; num++) {
+        // First, check if the number already exists in this row
+        let numExists = false;
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === num) {
+            numExists = true;
+            break;
+          }
+        }
+        if (numExists) continue; // If it exists, move to the next number
+
+        // If it doesn't exist, find where it could go
+        let possibleCells = [];
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0 && isValid(board, r, c, num)) {
+            possibleCells.push(c);
+          }
+        }
+        if (possibleCells.length === 1) {
+          board[r][possibleCells[0]] = num;
+          return true; // Found one, restart the whole process
+        }
+      }
+    }
+
+    // --- Scan by COLUMN ---
+    for (let c = 0; c < 9; c++) {
+      for (let num = 1; num <= 9; num++) {
+        let numExists = false;
+        for (let r = 0; r < 9; r++) {
+          if (board[r][c] === num) {
+            numExists = true;
+            break;
+          }
+        }
+        if (numExists) continue;
+
+        let possibleCells = [];
+        for (let r = 0; r < 9; r++) {
+          if (board[r][c] === 0 && isValid(board, r, c, num)) {
+            possibleCells.push(r);
+          }
+        }
+        if (possibleCells.length === 1) {
+          board[possibleCells[0]][c] = num;
+          return true;
+        }
+      }
+    }
+
+    // --- Scan by BOX ---
+    for (let boxStartRow = 0; boxStartRow < 9; boxStartRow += 3) {
+      for (let boxStartCol = 0; boxStartCol < 9; boxStartCol += 3) {
+        for (let num = 1; num <= 9; num++) {
+          let numExists = false;
+          for (let r_off = 0; r_off < 3; r_off++) {
+            for (let c_off = 0; c_off < 3; c_off++) {
+              if (board[boxStartRow + r_off][boxStartCol + c_off] === num) {
+                numExists = true;
+                break;
+              }
+            }
+            if (numExists) break;
+          }
+          if (numExists) continue;
+
+          let possibleCells = [];
+          for (let r_offset = 0; r_offset < 3; r_offset++) {
+            for (let c_offset = 0; c_offset < 3; c_offset++) {
+              let r = boxStartRow + r_offset;
+              let c = boxStartCol + c_offset;
+              if (board[r][c] === 0 && isValid(board, r, c, num)) {
+                possibleCells.push({ r, c });
+              }
+            }
+          }
+          if (possibleCells.length === 1) {
+            const { r, c } = possibleCells[0];
+            board[r][c] = num;
+            return true;
+          }
+        }
+      }
+    }
+
+    return false; // No hidden singles found in a full pass
+  }
+
+  function isValid(board, row, col, num) {
+    for (let c = 0; c < 9; c++) {
+      if (board[row][c] === num) return false;
+    }
+    for (let r = 0; r < 9; r++) {
+      if (board[r][col] === num) return false;
+    }
+    const boxRowStart = Math.floor(row / 3) * 3;
+    const boxColStart = Math.floor(col / 3) * 3;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        if (board[boxRowStart + r][boxColStart + c] === num) return false;
+      }
+    }
+    return true;
+  }
+
+  function solveSudoku(board) {
+    const find = findEmpty(board);
+    if (!find) return true;
+    const [row, col] = find;
+
+    for (let num = 1; num <= 9; num++) {
+      if (isValid(board, row, col, num)) {
+        board[row][col] = num;
+        if (solveSudoku(board)) return true;
+        board[row][col] = 0;
+      }
+    }
+    return false;
+  }
+
+  function showMessage(text, color) {
+    // First, clear any complex content like buttons
+    messageArea.innerHTML = "";
+    messageArea.innerHTML = text;
+
+    const colorClasses = [
+      "text-red-600",
+      "text-green-600",
+      "text-gray-600",
+      "text-orange-500",
+    ];
+
+    // Remove any previous color classes to avoid conflicts
+    messageArea.classList.remove(...colorClasses);
+
+    const colors = {
+      red: "text-red-600",
+      green: "text-green-600",
+      gray: "text-gray-600",
+      orange: "text-orange-500", // Add orange
+    };
+
+    // Add the specified color class, defaulting to gray for neutral messages
+    messageArea.classList.add(colors[color] || "text-gray-600");
+  }
+
+  function generateDiscordShareText() {
+    const title =
+      "[fsrs Daily Sudoku](https://fsrs.darksabun.club/sudoku.html)";
+
+    // 1. Get Date from the dropdown
+    const dateVal = dateSelect.value;
+    let puzzleDateStr = new Date().toISOString().slice(0, 10); // Fallback to today
+    if (dateVal && /^\d{8}$/.test(dateVal)) {
+      puzzleDateStr = `${dateVal.slice(0, 4)}-${dateVal.slice(
+        4,
+        6
+      )}-${dateVal.slice(6, 8)}`;
+    }
+
+    // 2. Get Level and Time
+    const level = levelSelect.value;
+    const levelWord = difficultyWords[level] || "Unknown";
+    const levelStr = `Level ${level} (${levelWord})`;
+    const timeStr = puzzleTimerEl.textContent;
+
+    const header = `${title} | ${puzzleDateStr}\n${levelStr} | Time ${timeStr}\n`;
+
+    // 3. Generate Emoji Grid
+    const digitMap = {
+      1: ":one:",
+      2: ":two:",
+      3: ":three:",
+      4: ":four:",
+      5: ":five:",
+      6: ":six:",
+      7: ":seven:",
+      8: ":eight:",
+      9: ":nine:",
+    };
+    const emptySquare = ":blue_square:";
+    let gridStr = "";
+
+    for (let r = 0; r < 9; r++) {
+      if (r > 0 && r % 3 === 0) {
+        gridStr += "\n"; // Extra newline between 3x3 blocks
+      }
+      for (let c = 0; c < 9; c++) {
+        if (c > 0 && c % 3 === 0) {
+          gridStr += " "; // Space between 3x3 blocks
+        }
+        const char = initialPuzzleString[r * 9 + c];
+        gridStr += digitMap[char] || emptySquare;
+      }
+      gridStr += "\n";
+    }
+
+    return header + "\n" + gridStr.trim();
+  }
+
+  // --- Timer Functions ---
+
+  function startTimer() {
+    stopTimer(); // Clear any existing timer before starting a new one
+    startTime = Date.now();
+    puzzleTimerEl.textContent = "00:00"; // Initial display
+    timerInterval = setInterval(updateTimer, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+  }
+
+  function updateTimer() {
+    const elapsedMs = Date.now() - startTime;
+    const totalSeconds = Math.floor(elapsedMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const formattedSeconds = String(seconds).padStart(2, "0");
+    const formattedMinutes = String(minutes).padStart(2, "0");
+
+    if (hours > 0) {
+      const formattedHours = String(hours).padStart(2, "0");
+      puzzleTimerEl.textContent = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    } else {
+      puzzleTimerEl.textContent = `${formattedMinutes}:${formattedSeconds}`;
+    }
+  }
+
+  // --- History Functions ---
+
+  function cloneBoardState(state) {
+    return state.map((row) =>
+      row.map((cell) => ({
+        value: cell.value,
+        isGiven: cell.isGiven,
+        pencils: new Set(cell.pencils),
+        cellColor: cell.cellColor,
+        pencilColors: new Map(cell.pencilColors),
+      }))
+    );
+  }
+
+  function saveState() {
+    history = history.slice(0, historyIndex + 1);
+    history.push(cloneBoardState(boardState));
+    historyIndex++;
+    updateUndoRedoButtons();
+  }
+
+  function undo() {
+    if (historyIndex > 0) {
+      historyIndex--;
+      boardState = cloneBoardState(history[historyIndex]);
+      renderBoard();
+      updateUndoRedoButtons();
+    }
+  }
+
+  function redo() {
+    if (historyIndex < history.length - 1) {
+      historyIndex++;
+      boardState = cloneBoardState(history[historyIndex]);
+      renderBoard();
+      updateUndoRedoButtons();
+    }
+  }
+
+  function updateUndoRedoButtons() {
+    undoBtn.disabled = historyIndex <= 0;
+    redoBtn.disabled = historyIndex >= history.length - 1;
+  }
+
+  initialize();
+});
