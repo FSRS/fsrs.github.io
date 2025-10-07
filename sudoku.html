@@ -226,6 +226,19 @@
       .mobile-title {
         display: none;
       }
+
+      @media (max-width: 550px) {
+        body.p-4 {
+          /* Reduces the outermost horizontal space */
+          padding-left: 0.25rem;
+          padding-right: 0.25rem;
+        }
+        .bg-white.p-4 {
+          /* Reduces the inner horizontal space inside the white container */
+          padding-left: 0.25rem;
+          padding-right: 0.25rem;
+        }
+      }
       /* --- End of Themed Style Block --- */
     </style>
   </head>
