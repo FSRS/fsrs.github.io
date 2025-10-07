@@ -278,7 +278,7 @@
 
       <div
         id="message-area"
-        class="flex items-center justify-center text-center mb-2 text-xs font-semibold h-10"
+        class="flex items-center justify-center text-center mb-2 text-xs font-semibold min-h-10"
       ></div>
 
       <div
@@ -929,7 +929,7 @@
                   }
 
                   // Enable direct coloring for PC, or for Mobile when Experimental Mode is ON
-                  if (!isMobile || (isMobile && isExperimentalMobileMode)) {
+                  if (!isMobile || (isMobile && isExperimentalMode)) {
                     mark.addEventListener("mouseover", () => {
                       if (
                         currentMode === "color" &&
@@ -1489,7 +1489,7 @@
               }
             } else {
               // candidate mode
-              if (isMobile && !isExperimentalMobileMode) {
+              if (isMobile && !isExperimentalMode) {
                 showCandidatePopup(selectedCell.row, selectedCell.col);
               }
               // On desktop, this is handled by direct clicks on pencil marks
