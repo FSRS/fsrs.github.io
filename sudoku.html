@@ -467,7 +467,7 @@
         const puzzleTimerEl = document.getElementById("puzzle-timer");
         const modeToggleButton = document.getElementById("mode-toggle-btn");
         const colorButton = modeSelector.querySelector('[data-mode="color"]');
-        let isExperimentalMobileMode = false;
+        let isExperimentalMode = false;
 
         const difficultyWords = [
           "ROOKIE",
@@ -564,6 +564,8 @@
         let initialPuzzleString = "";
         let isCustomPuzzle = false;
         let hasUsedAutoPencil = false;
+        let isAutoPencilPending = false;
+        let isSolvePending = false;
         let autoPencilTipTimer = null;
 
         function updateButtonLabels() {
@@ -601,23 +603,17 @@
             colorButton.textContent = isMobile ? "Color" : "Color (X)";
           }
 
-          // 3. Update Display/Expt Button based on screen size
-          if (isMobile) {
-            formatToggleBtn.style.display = "none";
-            exptModeBtn.style.display = "inline-flex";
-            exptModeBtn.textContent = isExperimentalMobileMode
-              ? "Expt. ON"
-              : "Expt. OFF";
-            // Highlight if ON
-            if (isExperimentalMobileMode) {
-              exptModeBtn.classList.add("active-green");
-            } else {
-              exptModeBtn.classList.remove("active-green");
-            }
+          // 3. Unify Display/Expt button for all platforms
+          formatToggleBtn.style.display = "none"; // Always hide the A/B button
+          exptModeBtn.style.display = "inline-flex"; // Always show the Expt button
+          const exptShortcut = isMobile ? "" : " (E)";
+          exptModeBtn.textContent =
+            (isExperimentalMode ? "Expt. ON" : "Expt. OFF") + exptShortcut;
+          // Highlight if ON
+          if (isExperimentalMode) {
+            exptModeBtn.classList.add("active-green");
           } else {
-            formatToggleBtn.style.display = "inline-flex";
-            exptModeBtn.style.display = "none";
-            formatToggleBtn.textContent = `Display ${candidatePopupFormat} (D)`;
+            exptModeBtn.classList.remove("active-green");
           }
         }
 
@@ -643,7 +639,7 @@
           const isMobile = window.innerWidth <= 550;
           link.textContent = isMobile
             ? "Export to SC Solver"
-            : "Export to Sudoku Coach Solver (E)";
+            : "Export to Sudoku Coach Solver (Ctrl+E)";
 
           // Apply the new button styling
           link.className =
@@ -950,12 +946,13 @@
                     });
 
                     mark.addEventListener("click", (e) => {
+                      // Handle coloring in color mode
                       if (
                         currentMode === "color" &&
                         coloringSubMode === "candidate" &&
                         selectedColor
                       ) {
-                        e.stopPropagation(); // Prevent cell click from firing ONLY in candidate mode
+                        e.stopPropagation();
                         const cellState = boardState[row][col];
                         const currentColor = cellState.pencilColors.get(i);
                         if (currentColor === selectedColor) {
@@ -964,7 +961,33 @@
                           cellState.pencilColors.set(i, selectedColor);
                         }
                         saveState();
-                        renderBoard(); // Re-render to show permanent change
+                        renderBoard();
+                      }
+                      // In Pencil mode + Expt ON, click a candidate to REMOVE it
+                      else if (isExperimentalMode && currentMode === "pencil") {
+                        e.stopPropagation();
+                        const cellState = boardState[row][col];
+                        if (cellState.pencils.has(i)) {
+                          cellState.pencils.delete(i);
+                          saveState();
+                          renderBoard();
+                        }
+                      }
+                      // In Number mode + Expt ON, click a candidate to SET it as the value
+                      else if (
+                        isExperimentalMode &&
+                        currentMode === "concrete"
+                      ) {
+                        e.stopPropagation();
+                        const cellState = boardState[row][col];
+                        if (cellState.isGiven) return;
+
+                        cellState.value = i;
+                        cellState.pencils.clear();
+                        autoEliminatePencils(row, col, i);
+                        saveState();
+                        renderBoard();
+                        checkCompletion();
                       }
                     });
                   }
@@ -1211,13 +1234,22 @@
 
           // Add listener for the experimental mode button
           exptModeBtn.addEventListener("click", (e) => {
-            // Add "e" for event
-            e.stopPropagation(); // Stop the event from bubbling up to the parent
-            isExperimentalMobileMode = !isExperimentalMobileMode;
+            e.stopPropagation();
+            isExperimentalMode = !isExperimentalMode;
             updateButtonLabels();
-            const tip = isExperimentalMobileMode
-              ? "Direct candidate coloring enabled."
-              : "Direct candidate coloring disabled.";
+
+            // Generate platform-specific tip messages
+            const isMobile = window.innerWidth <= 550;
+            let tip = "";
+            if (isExperimentalMode) {
+              tip = isMobile
+                ? "Expt. ON: Direct coloring, plus click candidates to remove (Pencil) or set (Number)."
+                : "Expt. ON: Click candidates to remove (Pencil mode) or set as value (Number mode).";
+            } else {
+              tip = isMobile
+                ? "Expt. OFF: Popup coloring enabled."
+                : "Expt. OFF: Click-to-set/remove candidates disabled.";
+            }
             showMessage(tip, "gray");
           });
         }
@@ -1238,6 +1270,19 @@
             e.preventDefault();
             redo();
             return; // Exit the function
+          }
+          if (isCtrlOrCmd && key_lower === "e") {
+            e.preventDefault(); // Prevent browser default for Ctrl+E
+            // Find the solver button (which is an <a> tag) inside its container
+            const solverButton = document.querySelector(
+              "#solver-link-container a"
+            );
+
+            // If the button exists, click it
+            if (solverButton) {
+              solverButton.click();
+            }
+            return;
           }
           // --- End of New Logic ---
 
@@ -1391,16 +1436,8 @@
             solveBtn.click();
             return;
           }
-          if (key_lower === "e") {
-            // Find the solver button (which is an <a> tag) inside its container
-            const solverButton = document.querySelector(
-              "#solver-link-container a"
-            );
-
-            // If the button exists, click it
-            if (solverButton) {
-              solverButton.click();
-            }
+          if (key_lower === "e" && !isCtrlOrCmd) {
+            exptModeBtn.click();
             return;
           }
           if (key_lower === "q") {
@@ -1549,9 +1586,19 @@
           const wasColor = previousMode === "color";
           const isColor = currentMode === "color";
           if (isColor || wasColor) {
-            updateControls();
-            if (!isColor) {
-              selectedColor = null; // Clear selected color when leaving color mode
+            updateControls(); // Always rebuild the pad if the mode involves color
+
+            if (isColor) {
+              // If we are in ANY color mode (just entered or toggled sub-mode),
+              // reset the selection to the first color of the new palette.
+              const firstColorButton = numberPad.querySelector(".color-btn");
+              if (firstColorButton) {
+                selectedColor = firstColorButton.dataset.color;
+                firstColorButton.classList.add("selected");
+              }
+            } else {
+              // Otherwise, we must have just LEFT color mode
+              selectedColor = null;
             }
           }
           renderBoard();
@@ -1650,6 +1697,7 @@
                       "text-red-600",
                       "text-green-600",
                       "text-gray-600",
+                      "text-orange-500", // Add orange
                     ];
                     messageArea.classList.remove(...colorClasses);
                     messageArea.classList.add("text-green-600");
@@ -1769,7 +1817,17 @@
         }
 
         function autoPencil() {
-          hasUsedAutoPencil = true;
+          // If used before and confirmation is NOT pending, show a warning first.
+          if (hasUsedAutoPencil && !isAutoPencilPending) {
+            showMessage(
+              "This will overwrite pencil marks. Click again to apply.",
+              "orange"
+            );
+            isAutoPencilPending = true; // Set confirmation pending state
+            return; // Stop execution
+          }
+
+          // Proceed with Auto-Pencil logic (for first-time use or after confirmation)
           const board = boardState.map((row) => row.map((cell) => cell.value));
           for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
@@ -1784,9 +1842,14 @@
               }
             }
           }
+
           saveState();
           renderBoard();
           showMessage("Auto-Pencil complete!", "green");
+
+          // Update state flags
+          hasUsedAutoPencil = true;
+          isAutoPencilPending = false; // Reset pending state after execution
         }
 
         /**
@@ -1943,6 +2006,8 @@
           selectedCell = { row: null, col: null };
           history = [];
           historyIndex = -1;
+          isAutoPencilPending = false;
+          isSolvePending = false;
 
           if (puzzleData) {
             // Format the display text with both number and word
@@ -1983,6 +2048,8 @@
               }
             }
           }
+          isAutoPencilPending = false; // Reset pending state
+          isSolvePending = false;
           saveState();
           renderBoard();
           showMessage("Board cleared.", "gray");
@@ -2048,8 +2115,19 @@
         }
 
         function solve() {
+          // Add confirmation step
+          if (!isSolvePending) {
+            showMessage(
+              "This will reveal the solution. Click again to solve.",
+              "orange"
+            );
+            isSolvePending = true;
+            return;
+          }
+
           if (!initialPuzzleString) {
             showMessage("Error: No initial puzzle loaded.", "red");
+            isSolvePending = false; // Reset on error
             return;
           }
 
@@ -2266,6 +2344,7 @@
             "text-red-600",
             "text-green-600",
             "text-gray-600",
+            "text-orange-500",
           ];
 
           // Remove any previous color classes to avoid conflicts
@@ -2275,6 +2354,7 @@
             red: "text-red-600",
             green: "text-green-600",
             gray: "text-gray-600",
+            orange: "text-orange-500", // Add orange
           };
 
           // Add the specified color class, defaulting to gray for neutral messages

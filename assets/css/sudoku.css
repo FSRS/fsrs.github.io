@@ -569,6 +569,9 @@
   .text-nowrap {
     text-wrap: nowrap;
   }
+  .text-orange-500 {
+    color: var(--color-orange-500);
+  }
   .text-gray-500 {
     color: var(--color-gray-500);
   }
@@ -1008,6 +1011,11 @@
   }
   .shortcut-highlight {
     color: var(--color-orange-500); /* A brighter orange for dark mode */
+  }
+  .text-orange-500 {
+    color: var(
+      --color-orange-500
+    ) !important; /* Keeps the orange bright for dark mode */
   }
 }
 
