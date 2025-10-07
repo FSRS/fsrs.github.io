@@ -1,4 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // --- START: ADDED DEBUG FLAG ---
+  // Set this to 'true' to see detailed solver logs in the console.
+  // Set this to 'false' for release to hide them.
+  const IS_DEBUG_MODE = false;
+  // --- END: ADDED DEBUG FLAG ---
+
   const gridContainer = document.getElementById("sudoku-grid");
   const puzzleStringInput = document.getElementById("puzzle-string");
   const loadBtn = document.getElementById("load-btn");
@@ -576,6 +582,47 @@ document.addEventListener("DOMContentLoaded", () => {
     validateBoard();
   }
 
+  // --- START: NEW DEBUG HELPER FUNCTION ---
+  function logBoardState(board, pencils) {
+    let output = "\n";
+    const topBorder =
+      ".----------------------.---------------------.-------------------.\n";
+    const midBorder =
+      ":----------------------+---------------------+-------------------:\n";
+    const botBorder =
+      "'----------------------'---------------------'-------------------'\n";
+
+    output += topBorder;
+
+    for (let r = 0; r < 9; r++) {
+      let rowStr = "|";
+      for (let c = 0; c < 9; c++) {
+        let cellContent = "";
+        if (board[r][c] !== 0) {
+          // It's a solved cell
+          cellContent = `  ${board[r][c]}  `;
+        } else {
+          // It's an unsolved cell with candidates
+          cellContent = [...pencils[r][c]].sort().join("");
+        }
+        // Pad the string to 5 characters and add a space
+        rowStr += ` ${cellContent.padEnd(5, " ")}`;
+        if (c === 2 || c === 5) {
+          rowStr += "|";
+        }
+      }
+      rowStr += " |\n";
+      output += rowStr;
+
+      if (r === 2 || r === 5) {
+        output += midBorder;
+      }
+    }
+    output += botBorder;
+    console.log(output);
+  }
+  // --- END: NEW DEBUG HELPER FUNCTION ---
+
   function isValidDate(yyyymmdd) {
     if (!/^\d{8}$/.test(yyyymmdd)) return false;
 
@@ -815,15 +862,12 @@ document.addEventListener("DOMContentLoaded", () => {
       isExperimentalMode = !isExperimentalMode;
       updateButtonLabels();
 
-      // Toggle lamp visibility
-      difficultyLamp.classList.toggle("hidden", !isExperimentalMode);
-
-      // Run evaluation when turned on, otherwise clear it
+      // The lamp is now always visible, so no need to toggle it.
+      // We can still trigger an immediate evaluation when the mode is turned on.
       if (isExperimentalMode) {
         evaluateBoardDifficulty();
-      } else {
-        updateLamp("gray"); // Reset to neutral when hidden
       }
+
       // Generate platform-specific tip messages
       const isMobile = window.innerWidth <= 550;
       let tip = "";
@@ -2061,7 +2105,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (lampEvaluationTimeout) clearTimeout(lampEvaluationTimeout);
     lampEvaluationTimeout = setTimeout(() => {
       evaluateBoardDifficulty();
-    }, 100); // small delay avoids blocking UI
+    }, 500); // small delay avoids blocking UI
   }
 
   function undo() {
@@ -2471,6 +2515,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         for (const wingCombo of techniques.combinations(wings, 2)) {
           const [wing1, wing2] = wingCombo;
+
+          // --- START: BUG FIX ---
+          // A true XYZ-Wing requires the two wing cells to not see each other.
+          // If they do, they form a Naked Triple with the pivot cell.
+          if (techniques._sees([wing1.r, wing1.c], [wing2.r, wing2.c])) {
+            continue;
+          }
+          // --- END: BUG FIX ---
+
           const intersection = new Set(
             [...wing1.cands].filter((c) => wing2.cands.has(c))
           );
@@ -2479,6 +2532,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const removals = [];
             for (let r = 0; r < 9; r++) {
               for (let c = 0; c < 9; c++) {
+                if (
+                  (r === pivot.r && c === pivot.c) ||
+                  (r === wing1.r && c === wing1.c) ||
+                  (r === wing2.r && c === wing2.c)
+                ) {
+                  continue;
+                }
+
                 if (
                   pencils[r][c].has(z) &&
                   techniques._sees([r, c], [pivot.r, pivot.c]) &&
@@ -2784,6 +2845,408 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       return { change: false };
     },
+
+    bugPlusOne: (board, pencils) => {
+      const unsolvedCells = [];
+      const bivalueCells = [];
+      const trivalueCells = [];
+
+      // Step 1 & 2: Categorize all unsolved cells
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0) {
+            unsolvedCells.push({ r, c });
+            const count = pencils[r][c].size;
+            if (count === 2) bivalueCells.push({ r, c });
+            else if (count === 3) trivalueCells.push({ r, c });
+          }
+        }
+      }
+
+      // Step 3: Check if the board is in a BUG+1 state
+      if (
+        trivalueCells.length === 1 &&
+        bivalueCells.length === unsolvedCells.length - 1
+      ) {
+        const { r: r_plus1, c: c_plus1 } = trivalueCells[0];
+        const cands = [...pencils[r_plus1][c_plus1]];
+
+        // Step 4: Test each of the 3 candidates in the "+1" cell
+        for (const num of cands) {
+          // Count occurrences of candidate 'num' in the cell's units
+          let rowCount = 0;
+          for (let c = 0; c < 9; c++) {
+            if (board[r_plus1][c] === 0 && pencils[r_plus1][c].has(num))
+              rowCount++;
+          }
+
+          let colCount = 0;
+          for (let r = 0; r < 9; r++) {
+            if (board[r][c_plus1] === 0 && pencils[r][c_plus1].has(num))
+              colCount++;
+          }
+
+          let boxCount = 0;
+          const boxRowStart = Math.floor(r_plus1 / 3) * 3;
+          const boxColStart = Math.floor(c_plus1 / 3) * 3;
+          for (let ro = 0; ro < 3; ro++) {
+            for (let co = 0; co < 3; co++) {
+              const r = boxRowStart + ro;
+              const c = boxColStart + co;
+              if (board[r][c] === 0 && pencils[r][c].has(num)) boxCount++;
+            }
+          }
+
+          // Step 5: If 'num' appears an odd number of times in all three units, it must be the solution
+          if (rowCount % 2 !== 0 && colCount % 2 !== 0 && boxCount % 2 !== 0) {
+            // Reduce the cell to a naked single
+            return { change: true, type: "place", r: r_plus1, c: c_plus1, num };
+          }
+        }
+      }
+
+      return { change: false };
+    },
+    // ----------------- ADD / UPDATE: Unique Rectangle (Types 1-6) and helpers -----------------
+    // Insert these inside the `techniques` object. Place _findUniqueRectangles and
+    // _findCommonPeers BEFORE uniqueRectangle so uniqueRectangle can call them.
+
+    _findUniqueRectangles: (board, pencils) => {
+      // Returns list of rectangles: { cells: [[r1,c1],[r1,c2],[r2,c1],[r2,c2]], digits: [d1,d2] }
+      const rects = [];
+      for (let d1 = 1; d1 <= 8; d1++) {
+        for (let d2 = d1 + 1; d2 <= 9; d2++) {
+          for (let r1 = 0; r1 < 9; r1++) {
+            for (let r2 = r1 + 1; r2 < 9; r2++) {
+              const cols = [];
+              for (let c = 0; c < 9; c++) {
+                // both rows must have both digits in this column (as candidates)
+                if (
+                  pencils[r1][c].has(d1) &&
+                  pencils[r1][c].has(d2) &&
+                  pencils[r2][c].has(d1) &&
+                  pencils[r2][c].has(d2)
+                ) {
+                  cols.push(c);
+                }
+              }
+              if (cols.length < 2) continue;
+              for (let i = 0; i < cols.length; i++) {
+                for (let j = i + 1; j < cols.length; j++) {
+                  const c1 = cols[i],
+                    c2 = cols[j];
+                  // must span exactly two boxes
+                  const spanBoxes =
+                    (Math.floor(r1 / 3) === Math.floor(r2 / 3)) !==
+                    (Math.floor(c1 / 3) === Math.floor(c2 / 3));
+                  if (!spanBoxes) continue;
+                  const cells = [
+                    [r1, c1],
+                    [r1, c2],
+                    [r2, c1],
+                    [r2, c2],
+                  ];
+
+                  // At least one of the four must be exactly the bivalue pair (UR floor)
+                  let hasBivalueFloor = false;
+                  for (const [r, c] of cells) {
+                    if (
+                      pencils[r][c].size === 2 &&
+                      pencils[r][c].has(d1) &&
+                      pencils[r][c].has(d2)
+                    ) {
+                      hasBivalueFloor = true;
+                      break;
+                    }
+                  }
+                  if (!hasBivalueFloor) continue;
+
+                  rects.push({ cells, digits: [d1, d2] });
+                }
+              }
+            }
+          }
+        }
+      }
+      return rects;
+    },
+
+    _findCommonPeers: (cells, rectCells, board, pencils) => {
+      // returns array of [r,c] that see every cell in `cells`
+      // exclude any cells that are inside rectCells (or equal to any in cells),
+      // and only include unsolved cells (board[r][c] === 0)
+      const isSame = (a, b) => a[0] === b[0] && a[1] === b[1];
+      const inRect = (r, c) =>
+        rectCells.some((rc) => rc[0] === r && rc[1] === c) ||
+        cells.some((rc) => rc[0] === r && rc[1] === c);
+      const peers = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] !== 0) continue; // only unsolved
+          if (inRect(r, c)) continue;
+          let seesAll = true;
+          for (const cell of cells) {
+            if (!techniques._sees([r, c], cell)) {
+              seesAll = false;
+              break;
+            }
+          }
+          if (seesAll) peers.push([r, c]);
+        }
+      }
+      return peers;
+    },
+
+    uniqueRectangle: (board, pencils) => {
+      const rects = techniques._findUniqueRectangles(board, pencils);
+      if (!rects || rects.length === 0) return { change: false };
+
+      const isExactPair = (r, c, d1, d2) =>
+        pencils[r][c].size === 2 &&
+        pencils[r][c].has(d1) &&
+        pencils[r][c].has(d2);
+
+      const uniqueRemovals = (arr) => {
+        return Array.from(new Set(arr.map(JSON.stringify))).map(JSON.parse);
+      };
+
+      for (const rect of rects) {
+        const { cells, digits } = rect;
+        const [d1, d2] = digits;
+
+        const extraCells = cells.filter(([r, c]) => !isExactPair(r, c, d1, d2));
+
+        // --- Type 1: One extra cell ---
+        if (extraCells.length === 1) {
+          const [r, c] = extraCells[0];
+          const removals = [];
+          if (pencils[r][c].has(d1)) removals.push({ r, c, num: d1 });
+          if (pencils[r][c].has(d2)) removals.push({ r, c, num: d2 });
+          if (removals.length > 0)
+            return {
+              change: true,
+              type: "remove",
+              cells: uniqueRemovals(removals),
+              details: {
+                subtype: "Type 1",
+                rectangleCells: cells,
+                digits: digits,
+              },
+            };
+        }
+
+        // --- Types 2 & 5: Two or three extra cells with a common extra digit ---
+        if (extraCells.length === 2 || extraCells.length === 3) {
+          const extrasMasks = extraCells.map(([r, c]) =>
+            Array.from(pencils[r][c]).filter((x) => x !== d1 && x !== d2)
+          );
+          let allHaveOneExtra = extrasMasks.every((arr) => arr.length === 1);
+          if (allHaveOneExtra && extrasMasks.length > 0) {
+            const commonExtraDigit = extrasMasks[0][0];
+            let allAreSame = extrasMasks.every(
+              (arr) => arr[0] === commonExtraDigit
+            );
+            if (allAreSame) {
+              const peers = techniques._findCommonPeers(
+                extraCells,
+                cells,
+                board,
+                pencils
+              );
+              const removals = [];
+              for (const [r, c] of peers) {
+                if (pencils[r][c].has(commonExtraDigit)) {
+                  removals.push({ r, c, num: commonExtraDigit });
+                }
+              }
+              if (removals.length > 0)
+                return {
+                  change: true,
+                  type: "remove",
+                  cells: uniqueRemovals(removals),
+                  details: {
+                    subtype: `Type ${extraCells.length === 2 ? 2 : 5}`,
+                    rectangleCells: cells,
+                    digits: digits,
+                  },
+                };
+            }
+          }
+        }
+
+        // --- Types 3, 4, 6: Require exactly two extra cells ---
+        if (extraCells.length === 2) {
+          const [e1, e2] = extraCells;
+          const [e1r, e1c] = e1;
+          const [e2r, e2c] = e2;
+
+          // --- Type 3: Virtual Naked Subset ---
+          const virtualSet = new Set();
+          for (const d of pencils[e1r][e1c])
+            if (d !== d1 && d !== d2) virtualSet.add(d);
+          for (const d of pencils[e2r][e2c])
+            if (d !== d1 && d !== d2) virtualSet.add(d);
+
+          if (virtualSet.size > 0) {
+            const processUnit = (unitCellsRaw) => {
+              const unitCells = unitCellsRaw.filter(
+                ([r, c]) =>
+                  !cells.some((rc) => rc[0] === r && rc[1] === c) &&
+                  board[r][c] === 0
+              );
+              if (unitCells.length < 1) return null;
+              // Note: The loop for k can stop earlier, as k + 1 cannot be larger than the number of available 'other' cells
+              for (let k = 1; k < unitCells.length; k++) {
+                for (const chosen of techniques.combinations(unitCells, k)) {
+                  const union = new Set(virtualSet);
+                  chosen.forEach(([r, c]) =>
+                    pencils[r][c].forEach((p) => union.add(p))
+                  );
+                  // --- FIX IS HERE ---
+                  // The number of candidates must equal k real cells + 1 virtual cell.
+                  if (union.size === k + 1) {
+                    const chosenSet = new Set(chosen.map(JSON.stringify));
+                    const removals = [];
+                    for (const [r, c] of unitCells) {
+                      if (chosenSet.has(JSON.stringify([r, c]))) continue;
+                      for (const d of union) {
+                        if (pencils[r][c].has(d))
+                          removals.push({ r, c, num: d });
+                      }
+                    }
+                    if (removals.length > 0) return uniqueRemovals(removals);
+                  }
+                }
+              }
+              return null;
+            };
+
+            const sharedUnits = [];
+            if (e1r === e2r)
+              sharedUnits.push(techniques._getUnitCells("row", e1r));
+            if (e1c === e2c)
+              sharedUnits.push(techniques._getUnitCells("col", e1c));
+            if (
+              techniques._getBoxIndex(e1r, e1c) ===
+              techniques._getBoxIndex(e2r, e2c)
+            ) {
+              sharedUnits.push(
+                techniques._getUnitCells(
+                  "box",
+                  techniques._getBoxIndex(e1r, e1c)
+                )
+              );
+            }
+
+            for (const unit of sharedUnits) {
+              const res = processUnit(unit);
+              if (res)
+                return {
+                  change: true,
+                  type: "remove",
+                  cells: res,
+                  details: {
+                    subtype: "Type 3 (Virtual Naked Subset)",
+                    rectangleCells: cells,
+                    digits: digits,
+                  },
+                };
+            }
+          }
+
+          // --- Type 4: Aligned extra cells with a restricted digit ---
+          if (e1r === e2r || e1c === e2c) {
+            for (const u of [d1, d2]) {
+              const v = u === d1 ? d2 : d1;
+              let isRestricted = false;
+              if (e1r === e2r) {
+                let u_found_elsewhere = false;
+                for (let c = 0; c < 9; ++c) {
+                  if (
+                    !cells.some((rc) => rc[0] === e1r && rc[1] === c) &&
+                    pencils[e1r][c].has(u)
+                  ) {
+                    u_found_elsewhere = true;
+                    break;
+                  }
+                }
+                if (!u_found_elsewhere) isRestricted = true;
+              } else {
+                let u_found_elsewhere = false;
+                for (let r = 0; r < 9; ++r) {
+                  if (
+                    !cells.some((rc) => rc[0] === r && rc[1] === e1c) &&
+                    pencils[r][e1c].has(u)
+                  ) {
+                    u_found_elsewhere = true;
+                    break;
+                  }
+                }
+                if (!u_found_elsewhere) isRestricted = true;
+              }
+
+              if (isRestricted) {
+                const removals = [];
+                if (pencils[e1r][e1c].has(v))
+                  removals.push({ r: e1r, c: e1c, num: v });
+                if (pencils[e2r][e2c].has(v))
+                  removals.push({ r: e2r, c: e2c, num: v });
+                if (removals.length > 0)
+                  return {
+                    change: true,
+                    type: "remove",
+                    cells: uniqueRemovals(removals),
+                    details: {
+                      subtype: "Type 4 (Aligned Pair)",
+                      rectangleCells: cells,
+                      digits: digits,
+                    },
+                  };
+              }
+            }
+          }
+
+          // --- Type 6: Diagonal extra cells with restricted rows ---
+          if (e1r !== e2r && e1c !== e2c) {
+            for (const u of [d1, d2]) {
+              let u_found_in_rows = false;
+              for (const row of [cells[0][0], cells[2][0]]) {
+                for (let c = 0; c < 9; ++c) {
+                  if (
+                    !cells.some((rc) => rc[0] === row && rc[1] === c) &&
+                    pencils[row][c].has(u)
+                  ) {
+                    u_found_in_rows = true;
+                    break;
+                  }
+                }
+                if (u_found_in_rows) break;
+              }
+
+              if (!u_found_in_rows) {
+                const removals = [];
+                if (pencils[e1r][e1c].has(u))
+                  removals.push({ r: e1r, c: e1c, num: u });
+                if (pencils[e2r][e2c].has(u))
+                  removals.push({ r: e2r, c: e2c, num: u });
+                if (removals.length > 0)
+                  return {
+                    change: true,
+                    type: "remove",
+                    cells: uniqueRemovals(removals),
+                    details: {
+                      subtype: "Type 6 (Diagonal Pair)",
+                      rectangleCells: cells,
+                      digits: digits,
+                    },
+                  };
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
     // --- End of newly added techniques ---
   };
 
@@ -2842,7 +3305,7 @@ document.addEventListener("DOMContentLoaded", () => {
           virtualBoard[r][c] !== 0 &&
           virtualBoard[r][c] !== solutionBoard[r][c]
         ) {
-          updateLamp("red");
+          updateLamp("gray");
           return;
         }
         if (
@@ -2850,7 +3313,7 @@ document.addEventListener("DOMContentLoaded", () => {
           startingPencils[r][c].size > 0 && // Only check if pencils exist
           !startingPencils[r][c].has(solutionBoard[r][c])
         ) {
-          updateLamp("red");
+          updateLamp("gray");
           return;
         }
       }
@@ -2865,24 +3328,73 @@ document.addEventListener("DOMContentLoaded", () => {
     // 5. Iterative solving
     let maxDifficulty = 0;
     const techniqueOrder = [
-      { func: techniques.nakedSingle, level: 0 },
-      { func: techniques.hiddenSingle, level: 0 },
-      { func: (b, p) => techniques.intersection(b, p), level: 1 },
-      { func: (b, p) => techniques.nakedSubset(b, p, 2), level: 1 },
-      { func: (b, p) => techniques.hiddenSubset(b, p, 2), level: 1 },
-      { func: (b, p) => techniques.nakedSubset(b, p, 3), level: 1 },
-      { func: (b, p) => techniques.hiddenSubset(b, p, 3), level: 1 },
-      { func: (b, p) => techniques.nakedSubset(b, p, 4), level: 1 },
-      { func: (b, p) => techniques.hiddenSubset(b, p, 4), level: 1 },
-      { func: (b, p) => techniques.fish(b, p, 2), level: 2 }, // X-Wing
-      { func: (b, p) => techniques.xyWing(b, p), level: 2 },
-      { func: (b, p) => techniques.remotePair(b, p), level: 2 },
-      { func: (b, p) => techniques.chuteRemotePair(b, p), level: 2 },
-      { func: (b, p) => techniques.xyzWing(b, p), level: 2 },
-      { func: (b, p) => techniques.wWing(b, p), level: 2 },
-      { func: (b, p) => techniques.fish(b, p, 3), level: 2 }, // Swordfish
-      { func: (b, p) => techniques.fish(b, p, 4), level: 2 }, // Jellyfish
+      { name: "Naked Single", func: techniques.nakedSingle, level: 0 },
+      { name: "Hidden Single", func: techniques.hiddenSingle, level: 0 },
+      {
+        name: "Intersection",
+        func: (b, p) => techniques.intersection(b, p),
+        level: 1,
+      },
+      {
+        name: "Naked Pair",
+        func: (b, p) => techniques.nakedSubset(b, p, 2),
+        level: 1,
+      },
+      {
+        name: "Hidden Pair",
+        func: (b, p) => techniques.hiddenSubset(b, p, 2),
+        level: 1,
+      },
+      {
+        name: "Naked Triple",
+        func: (b, p) => techniques.nakedSubset(b, p, 3),
+        level: 1,
+      },
+      {
+        name: "Hidden Triple",
+        func: (b, p) => techniques.hiddenSubset(b, p, 3),
+        level: 1,
+      },
+      {
+        name: "Naked Quad",
+        func: (b, p) => techniques.nakedSubset(b, p, 4),
+        level: 2,
+      },
+      {
+        name: "Hidden Quad",
+        func: (b, p) => techniques.hiddenSubset(b, p, 4),
+        level: 2,
+      },
+      {
+        name: "Remote Pair",
+        func: (b, p) => techniques.remotePair(b, p),
+        level: 2,
+      },
+      { name: "X-Wing", func: (b, p) => techniques.fish(b, p, 2), level: 2 },
+      { name: "XY-Wing", func: (b, p) => techniques.xyWing(b, p), level: 2 },
+      { name: "BUG+1", func: (b, p) => techniques.bugPlusOne(b, p), level: 2 },
+      {
+        name: "Chute Remote Pair",
+        func: (b, p) => techniques.chuteRemotePair(b, p),
+        level: 2,
+      },
+      {
+        name: "Unique Rectangle",
+        func: (b, p) => techniques.uniqueRectangle(b, p),
+        level: 2,
+      },
+      { name: "XYZ-Wing", func: (b, p) => techniques.xyzWing(b, p), level: 2 },
+      { name: "W-Wing", func: (b, p) => techniques.wWing(b, p), level: 2 },
+      { name: "Swordfish", func: (b, p) => techniques.fish(b, p, 3), level: 2 },
+      { name: "Jellyfish", func: (b, p) => techniques.fish(b, p, 4), level: 2 },
     ];
+
+    if (IS_DEBUG_MODE) {
+      console.clear();
+      console.log("--- Starting New Difficulty Evaluation ---");
+      console.log("Initial Board State (0 = empty):");
+      console.table(virtualBoard);
+    }
 
     let progressMade = true;
     while (progressMade) {
@@ -2890,11 +3402,36 @@ document.addEventListener("DOMContentLoaded", () => {
       for (const tech of techniqueOrder) {
         const result = tech.func(virtualBoard, startingPencils);
         if (result.change) {
+          if (IS_DEBUG_MODE) {
+            console.groupCollapsed(`Found: ${tech.name} (Level ${tech.level})`);
+            if (tech.name === "Unique Rectangle" && result.details) {
+              const { subtype, rectangleCells, digits } = result.details;
+              const cellStr = rectangleCells
+                .map(([r, c]) => `(${r},${c})`)
+                .join(", ");
+              console.log(
+                `%cUR Info: ${subtype} on cells [${cellStr}] with digits [${digits.join(
+                  ","
+                )}]`,
+                "color: #0284c7"
+              );
+            }
+            if (result.type === "place") {
+              console.log(
+                `Action: Place ${result.num} at (${result.r}, ${result.c})`
+              );
+            } else if (result.type === "remove") {
+              console.log(`Action: Remove candidates:`);
+              result.cells.forEach(({ r, c, num }) => {
+                console.log(`  - Remove ${num} from (${r}, ${c})`);
+              });
+            }
+          }
+
           maxDifficulty = Math.max(maxDifficulty, tech.level);
           if (result.type === "place") {
             virtualBoard[result.r][result.c] = result.num;
             startingPencils[result.r][result.c].clear();
-            // Basic auto-elimination after placing a number
             for (let i = 0; i < 9; i++) {
               startingPencils[result.r][i].delete(result.num);
               startingPencils[i][result.c].delete(result.num);
@@ -2909,6 +3446,12 @@ document.addEventListener("DOMContentLoaded", () => {
               startingPencils[r][c].delete(num)
             );
           }
+
+          if (IS_DEBUG_MODE) {
+            logBoardState(virtualBoard, startingPencils);
+            console.groupEnd();
+          }
+
           progressMade = true;
           break; // Restart scan
         }
