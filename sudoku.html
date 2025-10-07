@@ -239,6 +239,15 @@
           padding-right: 0.25rem;
         }
       }
+      #message-area {
+        min-height: 2rem; /* enough for 2 lines */
+        max-height: 3rem; /* optional: limit if message is long */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        overflow-y: auto; /* allows scrolling if longer than 3 lines */
+      }
       /* --- End of Themed Style Block --- */
     </style>
   </head>
