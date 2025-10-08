@@ -669,8 +669,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const tooltips = {
       white: "Easy: Level 0.",
       green: "Medium: Level 1 - 2.",
-      yellow: "Hard: Level 3 - 5 (UH and ER not implemented).",
-      orange: "Unfair: Level 6 (Not implemented, Displays if beyond yellow).",
+      yellow: "Hard: Level 3 - 5.",
+      orange: "Unfair: Level 6+.",
       red: "Extreme: Level 7+ (Not implemented).",
       black: "Error: An incorrect progress has been made.",
       gray: "Invalid: This puzzle does not have a unique solution.",
@@ -2421,6 +2421,8 @@ document.addEventListener("DOMContentLoaded", () => {
         units.push(techniques._getUnitCells("box", i));
       }
       for (const unit of units) {
+        const emptyCells = unit.filter(([r, c]) => board[r][c] === 0);
+        if (emptyCells.length < 2 * size) continue;
         const potentialCells = unit.filter(
           ([r, c]) =>
             board[r][c] === 0 &&
@@ -2462,7 +2464,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       for (const unit of units) {
         const emptyCells = unit.filter(([r, c]) => board[r][c] === 0);
-        if (emptyCells.length <= 2 * size + 1) continue;
+        if (emptyCells.length < 2 * size + 1) continue;
         const unitCandidates = new Set();
         emptyCells.forEach(([r, c]) =>
           pencils[r][c].forEach((p) => unitCandidates.add(p))
@@ -3828,7 +3830,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return {
                   change: true,
                   type: "remove",
-                  cells: uniqueRemovals(removals),
+                  cells: res,
                 };
             }
           }
@@ -4316,6 +4318,854 @@ document.addEventListener("DOMContentLoaded", () => {
         candidateLocs.includes(loc2)
       );
     },
+
+    _checkAndAddER: (cells, d1, d2, d3, pencils, er_list, is_3x2) => {
+      const core_digits = new Set([d1, d2, d3]);
+
+      let extra_count = 0;
+      const masked_cands = [];
+
+      for (const [r, c] of cells) {
+        const cands = pencils[r][c];
+        if (!cands) return; // Skip if cell is solved
+        const core_cands_in_cell = new Set();
+        let has_extra = false;
+
+        for (const cand of cands) {
+          if (core_digits.has(cand)) {
+            core_cands_in_cell.add(cand);
+          } else {
+            has_extra = true;
+          }
+        }
+
+        if (core_cands_in_cell.size === 0) return; // Cell must have at least one core digit
+        if (has_extra) extra_count++;
+
+        masked_cands.push({ r, c, cands: core_cands_in_cell });
+      }
+
+      if (extra_count > 4) return;
+
+      const check_unit = (unit_cells) => {
+        const union = new Set();
+        unit_cells.forEach((cell) =>
+          cell.cands.forEach((cand) => union.add(cand))
+        );
+        return union.size === 3;
+      };
+
+      if (is_3x2) {
+        const cA = cells[0][1];
+        const col1_cands = masked_cands.filter((mc) => mc.c === cA);
+        const col2_cands = masked_cands.filter((mc) => mc.c !== cA);
+        if (check_unit(col1_cands) && check_unit(col2_cands)) {
+          er_list.push({ cells, digits: [d1, d2, d3], is_3x2: true });
+        }
+      } else {
+        // 2x3
+        const rA = cells[0][0];
+        const row1_cands = masked_cands.filter((mc) => mc.r === rA);
+        const row2_cands = masked_cands.filter((mc) => mc.r !== rA);
+        if (check_unit(row1_cands) && check_unit(row2_cands)) {
+          er_list.push({ cells, digits: [d1, d2, d3], is_3x2: false });
+        }
+      }
+    },
+
+    _findExtendedRectangles: function (pencils) {
+      const rectangles = [];
+
+      for (let d1 = 1; d1 <= 7; d1++) {
+        for (let d2 = d1 + 1; d2 <= 8; d2++) {
+          for (let d3 = d2 + 1; d3 <= 9; d3++) {
+            // --- 3x2 ERs (3 rows in different bands, 2 cols in same stack) ---
+            for (let r1 = 0; r1 < 3; r1++) {
+              for (let r2 = 3; r2 < 6; r2++) {
+                for (let r3 = 6; r3 < 9; r3++) {
+                  for (let stack = 0; stack < 3; stack++) {
+                    const cols_in_stack = [
+                      stack * 3,
+                      stack * 3 + 1,
+                      stack * 3 + 2,
+                    ];
+                    for (const col_pair of techniques.combinations(
+                      cols_in_stack,
+                      2
+                    )) {
+                      const [c1, c2] = col_pair;
+                      const cells = [
+                        [r1, c1],
+                        [r2, c1],
+                        [r3, c1],
+                        [r1, c2],
+                        [r2, c2],
+                        [r3, c2],
+                      ];
+                      techniques._checkAndAddER(
+                        cells,
+                        d1,
+                        d2,
+                        d3,
+                        pencils,
+                        rectangles,
+                        true
+                      );
+                    }
+                  }
+                }
+              }
+            }
+
+            // --- 2x3 ERs (2 rows in same band, 3 cols in different stacks) ---
+            for (let band = 0; band < 3; band++) {
+              const rows_in_band = [band * 3, band * 3 + 1, band * 3 + 2];
+              for (const row_pair of techniques.combinations(rows_in_band, 2)) {
+                const [r1, r2] = row_pair;
+                for (let c1 = 0; c1 < 3; c1++) {
+                  for (let c2 = 3; c2 < 6; c2++) {
+                    for (let c3 = 6; c3 < 9; c3++) {
+                      const cells = [
+                        [r1, c1],
+                        [r1, c2],
+                        [r1, c3],
+                        [r2, c1],
+                        [r2, c2],
+                        [r2, c3],
+                      ];
+                      techniques._checkAndAddER(
+                        cells,
+                        d1,
+                        d2,
+                        d3,
+                        pencils,
+                        rectangles,
+                        false
+                      );
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return rectangles;
+    },
+
+    extendedRectangle: (board, pencils) => {
+      const ers = techniques._findExtendedRectangles(pencils);
+      if (ers.length === 0) return { change: false };
+
+      const uniqueRemovals = (arr) => {
+        return Array.from(new Set(arr.map(JSON.stringify))).map(JSON.parse);
+      };
+
+      for (const er of ers) {
+        const { cells, digits, is_3x2 } = er;
+        const core_digits = new Set(digits);
+        const removals = [];
+
+        const extra_cells = cells.filter(([r, c]) =>
+          [...pencils[r][c]].some((cand) => !core_digits.has(cand))
+        );
+
+        // --- Type 1 ---
+        if (extra_cells.length === 1) {
+          const [r, c] = extra_cells[0];
+          digits.forEach((d) => {
+            if (pencils[r][c].has(d)) removals.push({ r, c, num: d });
+          });
+          if (removals.length > 0) {
+            return {
+              change: true,
+              type: "remove",
+              cells: uniqueRemovals(removals),
+            };
+          }
+        }
+
+        // --- Type 2 ---
+        if (extra_cells.length >= 2) {
+          let common_extra_cand = -1;
+          let is_type2 = true;
+          for (const [r, c] of extra_cells) {
+            const extras = [...pencils[r][c]].filter(
+              (cand) => !core_digits.has(cand)
+            );
+            if (extras.length !== 1) {
+              is_type2 = false;
+              break;
+            }
+            if (common_extra_cand === -1) common_extra_cand = extras[0];
+            else if (common_extra_cand !== extras[0]) {
+              is_type2 = false;
+              break;
+            }
+          }
+          if (is_type2) {
+            const peers = techniques._findCommonPeers(
+              extra_cells,
+              cells,
+              board,
+              pencils
+            );
+            for (const [r, c] of peers) {
+              if (pencils[r][c].has(common_extra_cand)) {
+                removals.push({ r, c, num: common_extra_cand });
+              }
+            }
+            if (removals.length > 0) {
+              return {
+                change: true,
+                type: "remove",
+                cells: uniqueRemovals(removals),
+              };
+            }
+          }
+        }
+
+        // --- Type 3 (ER + Naked Subset) ---
+        if (extra_cells.length === 2 || extra_cells.length === 3) {
+          const sharedUnits = [];
+          const r_set = new Set(extra_cells.map((c) => c[0]));
+          const c_set = new Set(extra_cells.map((c) => c[1]));
+          const b_set = new Set(
+            extra_cells.map(([r, c]) => techniques._getBoxIndex(r, c))
+          );
+
+          if (r_set.size === 1)
+            sharedUnits.push(
+              techniques._getUnitCells("row", r_set.values().next().value)
+            );
+          if (c_set.size === 1)
+            sharedUnits.push(
+              techniques._getUnitCells("col", c_set.values().next().value)
+            );
+          if (b_set.size === 1)
+            sharedUnits.push(
+              techniques._getUnitCells("box", b_set.values().next().value)
+            );
+
+          if (sharedUnits.length > 0) {
+            const virtual_cands = new Set();
+            extra_cells.forEach(([r, c]) => {
+              pencils[r][c].forEach((cand) => {
+                if (!core_digits.has(cand)) virtual_cands.add(cand);
+              });
+            });
+
+            const processUnit = (unitCellsRaw) => {
+              const erCellsSet = new Set(cells.map(JSON.stringify));
+              const unitCells = unitCellsRaw.filter(
+                ([r, c]) =>
+                  !erCellsSet.has(JSON.stringify([r, c])) && board[r][c] === 0
+              );
+              if (unitCells.length < 1) return null;
+
+              for (let k = 1; k <= unitCells.length; k++) {
+                for (const chosen of techniques.combinations(unitCells, k)) {
+                  const union = new Set(virtual_cands);
+                  chosen.forEach(([r, c]) =>
+                    pencils[r][c].forEach((p) => union.add(p))
+                  );
+
+                  if (union.size === k + 1) {
+                    // k real cells + 1 virtual ER cell
+                    const local_removals = [];
+                    const chosenSet = new Set(chosen.map(JSON.stringify));
+                    for (const [r, c] of unitCells) {
+                      if (chosenSet.has(JSON.stringify([r, c]))) continue;
+                      for (const d of union) {
+                        if (pencils[r][c].has(d))
+                          local_removals.push({ r, c, num: d });
+                      }
+                    }
+                    if (local_removals.length > 0) return local_removals;
+                  }
+                }
+              }
+              return null;
+            };
+
+            for (const unit of sharedUnits) {
+              const res = processUnit(unit);
+              if (res)
+                return {
+                  change: true,
+                  type: "remove",
+                  cells: uniqueRemovals(res),
+                };
+            }
+          }
+        }
+
+        // --- Types 4 & 6 ---
+        if (extra_cells.length === 2) {
+          const [e1r, e1c] = extra_cells[0];
+          const [e2r, e2c] = extra_cells[1];
+
+          // Type 4: Extras see each other
+          if (techniques._sees([e1r, e1c], [e2r, e2c])) {
+            let unitType, unitIndex, loc1, loc2;
+            if (e1r === e2r) {
+              unitType = "row";
+              unitIndex = e1r;
+              loc1 = e1c;
+              loc2 = e2c;
+            } else if (e1c === e2c) {
+              unitType = "col";
+              unitIndex = e1c;
+              loc1 = e1r;
+              loc2 = e2r;
+            } else {
+              unitType = "box";
+              unitIndex = techniques._getBoxIndex(e1r, e1c);
+            }
+
+            for (const d of digits) {
+              if (!pencils[e1r][e1c].has(d) || !pencils[e2r][e2c].has(d))
+                continue;
+
+              let is_strong_link = false;
+              if (unitType !== "box") {
+                is_strong_link = techniques._isStrongLink(
+                  pencils,
+                  d,
+                  unitType,
+                  unitIndex,
+                  loc1,
+                  loc2
+                );
+              } else {
+                const boxCells = techniques._getUnitCells("box", unitIndex);
+                const candLocs = boxCells.filter(([r, c]) =>
+                  pencils[r][c].has(d)
+                );
+                if (
+                  candLocs.length === 2 &&
+                  candLocs.some(([r, c]) => r === e1r && c === e1c) &&
+                  candLocs.some(([r, c]) => r === e2r && c === e2c)
+                ) {
+                  is_strong_link = true;
+                }
+              }
+
+              if (is_strong_link) {
+                const v_cands = digits.filter((cand) => cand !== d);
+                v_cands.forEach((v) => {
+                  if (pencils[e1r][e1c].has(v))
+                    removals.push({ r: e1r, c: e1c, num: v });
+                  if (pencils[e2r][e2c].has(v))
+                    removals.push({ r: e2r, c: e2c, num: v });
+                });
+                if (removals.length > 0) {
+                  return {
+                    change: true,
+                    type: "remove",
+                    cells: uniqueRemovals(removals),
+                  };
+                }
+              }
+            }
+          }
+          // Type 6: Extras do not see each other
+          else {
+            for (const d of digits) {
+              if (!pencils[e1r][e1c].has(d) || !pencils[e2r][e2c].has(d))
+                continue;
+
+              let is_restricted = false;
+              if (!is_3x2) {
+                // 2x3 ER, check rows for X-Wing
+                const r1_locs = techniques
+                  ._getUnitCells("row", e1r)
+                  .filter(([_r, _c]) => pencils[_r][_c].has(d));
+                const r2_locs = techniques
+                  ._getUnitCells("row", e2r)
+                  .filter(([_r, _c]) => pencils[_r][_c].has(d));
+                if (
+                  r1_locs.length === 2 &&
+                  r2_locs.length === 2 &&
+                  r1_locs.some(([_, c]) => c === e1c) &&
+                  r1_locs.some(([_, c]) => c === e2c) &&
+                  r2_locs.some(([_, c]) => c === e1c) &&
+                  r2_locs.some(([_, c]) => c === e2c)
+                ) {
+                  is_restricted = true;
+                }
+              } else {
+                // 3x2 ER, check cols for X-Wing
+                const c1_locs = techniques
+                  ._getUnitCells("col", e1c)
+                  .filter(([_r, _c]) => pencils[_r][_c].has(d));
+                const c2_locs = techniques
+                  ._getUnitCells("col", e2c)
+                  .filter(([_r, _c]) => pencils[_r][_c].has(d));
+                if (
+                  c1_locs.length === 2 &&
+                  c2_locs.length === 2 &&
+                  c1_locs.some(([r, _]) => r === e1r) &&
+                  c1_locs.some(([r, _]) => r === e2r) &&
+                  c2_locs.some(([r, _]) => r === e1r) &&
+                  c2_locs.some(([r, _]) => r === e2r)
+                ) {
+                  is_restricted = true;
+                }
+              }
+
+              if (is_restricted) {
+                if (pencils[e1r][e1c].has(d))
+                  removals.push({ r: e1r, c: e1c, num: d });
+                if (pencils[e2r][e2c].has(d))
+                  removals.push({ r: e2r, c: e2c, num: d });
+                if (removals.length > 0) {
+                  return {
+                    change: true,
+                    type: "remove",
+                    cells: uniqueRemovals(removals),
+                  };
+                }
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+    // Add this constant and helper function inside the 'techniques' object.
+
+    // Pre-translated from the C++ offsets relative to a 3x3 selection of rows/cols
+    // The inner arrays represent [row_index, col_index] into the selected 3 rows and 3 columns.
+    HEX_PATTERNS: [
+      [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 2],
+        [2, 1],
+        [2, 2],
+      ],
+      [
+        [0, 1],
+        [0, 2],
+        [1, 0],
+        [1, 1],
+        [2, 0],
+        [2, 2],
+      ],
+      [
+        [0, 0],
+        [0, 2],
+        [1, 1],
+        [1, 2],
+        [2, 0],
+        [2, 1],
+      ],
+      [
+        [0, 0],
+        [0, 1],
+        [1, 1],
+        [1, 2],
+        [2, 0],
+        [2, 2],
+      ],
+      [
+        [0, 1],
+        [0, 2],
+        [1, 0],
+        [1, 2],
+        [2, 0],
+        [2, 1],
+      ],
+      [
+        [0, 0],
+        [0, 2],
+        [1, 0],
+        [1, 1],
+        [2, 1],
+        [2, 2],
+      ],
+    ],
+
+    _findUniqueHexagons: function (pencils) {
+      const cells_by_pair = new Map();
+      const bivalue_cells_by_pair = new Map();
+
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size < 2) continue;
+          const cands = [...pencils[r][c]];
+          const id = r * 9 + c;
+
+          for (const pair of techniques.combinations(cands, 2)) {
+            const [d1, d2] = pair.sort((a, b) => a - b);
+            const pair_key = `${d1},${d2}`;
+
+            if (!cells_by_pair.has(pair_key)) cells_by_pair.set(pair_key, []);
+            cells_by_pair.get(pair_key).push(id);
+
+            if (pencils[r][c].size === 2) {
+              if (!bivalue_cells_by_pair.has(pair_key))
+                bivalue_cells_by_pair.set(pair_key, new Set());
+              bivalue_cells_by_pair.get(pair_key).add(id);
+            }
+          }
+        }
+      }
+
+      const hexagons = [];
+      const found = new Set();
+
+      for (const [pair_key, cell_list] of cells_by_pair.entries()) {
+        if (cell_list.length < 6) continue;
+        if (
+          !bivalue_cells_by_pair.has(pair_key) ||
+          bivalue_cells_by_pair.get(pair_key).size < 2
+        )
+          continue;
+
+        const cellset = new Set(cell_list);
+        const row_cnt = Array(9).fill(0),
+          col_cnt = Array(9).fill(0);
+        cell_list.forEach((id) => {
+          row_cnt[Math.floor(id / 9)]++;
+          col_cnt[id % 9]++;
+        });
+
+        const rows = [],
+          cols = [];
+        for (let i = 0; i < 9; ++i) {
+          if (row_cnt[i] >= 2) rows.push(i);
+          if (col_cnt[i] >= 2) cols.push(i);
+        }
+
+        if (rows.length < 3 || cols.length < 3) continue;
+
+        for (const rr of techniques.combinations(rows, 3)) {
+          for (const cc of techniques.combinations(cols, 3)) {
+            for (const pattern of techniques.HEX_PATTERNS) {
+              const hex_cells = [];
+              let isValid = true;
+              for (const [r_idx, c_idx] of pattern) {
+                const r = rr[r_idx],
+                  c = cc[c_idx];
+                if (!cellset.has(r * 9 + c)) {
+                  isValid = false;
+                  break;
+                }
+                hex_cells.push([r, c]);
+              }
+              if (!isValid) continue;
+
+              const sorted_ids = hex_cells
+                .map(([r, c]) => r * 9 + c)
+                .sort((a, b) => a - b);
+              const hex_key = sorted_ids.join(",");
+              if (found.has(hex_key)) continue;
+
+              const bivalue_set_for_pair = bivalue_cells_by_pair.get(pair_key);
+              const biv_count = hex_cells.filter(([r, c]) =>
+                bivalue_set_for_pair.has(r * 9 + c)
+              ).length;
+              if (biv_count < 2) continue;
+
+              const blocks = new Set(
+                hex_cells.map(([r, c]) => techniques._getBoxIndex(r, c))
+              );
+              if (blocks.size !== 3) continue;
+
+              hexagons.push({
+                cells: hex_cells,
+                digits: pair_key.split(",").map(Number),
+              });
+              found.add(hex_key);
+            }
+          }
+        }
+      }
+      return hexagons;
+    },
+    // Add this main technique function inside the 'techniques' object.
+    uniqueHexagon: (board, pencils) => {
+      const hexagons = techniques._findUniqueHexagons(pencils);
+      if (hexagons.length === 0) return { change: false };
+
+      const uniqueRemovals = (arr) => {
+        return Array.from(new Set(arr.map(JSON.stringify))).map(JSON.parse);
+      };
+
+      for (const hex of hexagons) {
+        const { cells, digits } = hex;
+        const [d1, d2] = digits;
+        const d_set = new Set(digits);
+        let removals = [];
+
+        const extra_cells = cells.filter(
+          ([r, c]) =>
+            pencils[r][c].size !== 2 ||
+            ![...pencils[r][c]].every((d) => d_set.has(d))
+        );
+
+        // --- Type 1 ---
+        if (extra_cells.length === 1) {
+          const [r, c] = extra_cells[0];
+          if (pencils[r][c].has(d1)) removals.push({ r, c, num: d1 });
+          if (pencils[r][c].has(d2)) removals.push({ r, c, num: d2 });
+          if (removals.length > 0) {
+            return {
+              change: true,
+              type: "remove",
+              cells: uniqueRemovals(removals),
+            };
+          }
+        }
+
+        // --- Type 2 ---
+        if (extra_cells.length >= 2 && extra_cells.length <= 4) {
+          let common_extra_cand = -1;
+          let is_type2 = true;
+          for (const [r, c] of extra_cells) {
+            const extras = [...pencils[r][c]].filter(
+              (cand) => !d_set.has(cand)
+            );
+            if (extras.length !== 1) {
+              is_type2 = false;
+              break;
+            }
+            if (common_extra_cand === -1) common_extra_cand = extras[0];
+            else if (common_extra_cand !== extras[0]) {
+              is_type2 = false;
+              break;
+            }
+          }
+          if (is_type2) {
+            const peers = techniques._findCommonPeers(
+              extra_cells,
+              cells,
+              board,
+              pencils
+            );
+            for (const [r, c] of peers) {
+              if (pencils[r][c].has(common_extra_cand)) {
+                removals.push({ r, c, num: common_extra_cand });
+              }
+            }
+            if (removals.length > 0) {
+              return {
+                change: true,
+                type: "remove",
+                cells: uniqueRemovals(removals),
+              };
+            }
+          }
+        }
+
+        // --- Types 3 & 4 ---
+        if (extra_cells.length === 2) {
+          const [e1r, e1c] = extra_cells[0];
+          const [e2r, e2c] = extra_cells[1];
+
+          // --- Type 3 (Hexagon + Naked Subset) ---
+          const sharedUnits = [];
+          if (e1r === e2r)
+            sharedUnits.push(techniques._getUnitCells("row", e1r));
+          if (e1c === e2c)
+            sharedUnits.push(techniques._getUnitCells("col", e1c));
+          if (
+            techniques._getBoxIndex(e1r, e1c) ===
+            techniques._getBoxIndex(e2r, e2c)
+          ) {
+            sharedUnits.push(
+              techniques._getUnitCells("box", techniques._getBoxIndex(e1r, e1c))
+            );
+          }
+
+          if (sharedUnits.length > 0) {
+            const virtual_cands = new Set();
+            [...pencils[e1r][e1c], ...pencils[e2r][e2c]].forEach((cand) => {
+              if (!d_set.has(cand)) virtual_cands.add(cand);
+            });
+
+            const processUnit = (unitCellsRaw) => {
+              const hexCellsSet = new Set(cells.map(JSON.stringify));
+              const unitCells = unitCellsRaw.filter(
+                ([r, c]) =>
+                  !hexCellsSet.has(JSON.stringify([r, c])) && board[r][c] === 0
+              );
+              if (unitCells.length < 1) return null;
+
+              for (let k = 1; k < unitCells.length; k++) {
+                for (const chosen of techniques.combinations(unitCells, k)) {
+                  const union = new Set(virtual_cands);
+                  chosen.forEach(([r, c]) =>
+                    pencils[r][c].forEach((p) => union.add(p))
+                  );
+
+                  if (union.size === k + 1) {
+                    // k real cells + 1 virtual cell
+                    const local_removals = [];
+                    const chosenSet = new Set(chosen.map(JSON.stringify));
+                    for (const [r, c] of unitCells) {
+                      if (chosenSet.has(JSON.stringify([r, c]))) continue;
+                      for (const d of union) {
+                        if (pencils[r][c].has(d))
+                          local_removals.push({ r, c, num: d });
+                      }
+                    }
+                    if (local_removals.length > 0) return local_removals;
+                  }
+                }
+              }
+              return null;
+            };
+            for (const unit of sharedUnits) {
+              const res = processUnit(unit);
+              if (res)
+                return {
+                  change: true,
+                  type: "remove",
+                  cells: uniqueRemovals(res),
+                };
+            }
+          }
+
+          // --- Type 4 ---
+          if (techniques._sees([e1r, e1c], [e2r, e2c])) {
+            let unitType, unitIndex, loc1, loc2;
+            if (e1r === e2r) {
+              unitType = "row";
+              unitIndex = e1r;
+              loc1 = e1c;
+              loc2 = e2c;
+            } else if (e1c === e2c) {
+              unitType = "col";
+              unitIndex = e1c;
+              loc1 = e1r;
+              loc2 = e2r;
+            } else {
+              unitType = "box";
+              unitIndex = techniques._getBoxIndex(e1r, e1c);
+            }
+
+            for (const d of digits) {
+              const other_d = d === d1 ? d2 : d1;
+              let is_strong_link = false;
+              if (unitType !== "box") {
+                is_strong_link = techniques._isStrongLink(
+                  pencils,
+                  d,
+                  unitType,
+                  unitIndex,
+                  loc1,
+                  loc2
+                );
+              } else {
+                const boxCells = techniques._getUnitCells("box", unitIndex);
+                const candLocs = boxCells.filter(([r, c]) =>
+                  pencils[r][c].has(d)
+                );
+                if (
+                  candLocs.length === 2 &&
+                  candLocs.some(([r, c]) => r === e1r && c === e1c) &&
+                  candLocs.some(([r, c]) => r === e2r && c === e2c)
+                ) {
+                  is_strong_link = true;
+                }
+              }
+              if (is_strong_link) {
+                if (pencils[e1r][e1c].has(other_d))
+                  removals.push({ r: e1r, c: e1c, num: other_d });
+                if (pencils[e2r][e2c].has(other_d))
+                  removals.push({ r: e2r, c: e2c, num: other_d });
+                if (removals.length > 0) {
+                  return {
+                    change: true,
+                    type: "remove",
+                    cells: uniqueRemovals(removals),
+                  };
+                }
+              }
+            }
+          }
+        }
+
+        // --- Type 6 ---
+        if (extra_cells.length === 2 || extra_cells.length === 3) {
+          let seeing_pair_exists = false;
+          for (let i = 0; i < extra_cells.length; ++i) {
+            for (let j = i + 1; j < extra_cells.length; ++j) {
+              if (techniques._sees(extra_cells[i], extra_cells[j])) {
+                seeing_pair_exists = true;
+                break;
+              }
+            }
+            if (seeing_pair_exists) break;
+          }
+
+          if (!seeing_pair_exists) {
+            let common_peer_in_hex_exists = false;
+            if (extra_cells.length === 2) {
+              for (const hex_cell of cells) {
+                const is_extra = extra_cells.some(
+                  (ec) => ec[0] === hex_cell[0] && ec[1] === hex_cell[1]
+                );
+                if (is_extra) continue;
+                if (
+                  techniques._sees(hex_cell, extra_cells[0]) &&
+                  techniques._sees(hex_cell, extra_cells[1])
+                ) {
+                  common_peer_in_hex_exists = true;
+                  break;
+                }
+              }
+            } else {
+              // Size 3 and no seeing pairs is geometrically rare/impossible, but follow cpp
+              common_peer_in_hex_exists = true;
+            }
+
+            if (common_peer_in_hex_exists) {
+              const rows = [...new Set(cells.map((c) => c[0]))];
+              for (const u of digits) {
+                let u_is_bilocated_in_all_rows = true;
+                for (const r of rows) {
+                  const req_locs = cells
+                    .filter((cell) => cell[0] === r)
+                    .map((cell) => cell[1]);
+                  if (
+                    req_locs.length !== 2 ||
+                    !techniques._isStrongLink(
+                      pencils,
+                      u,
+                      "row",
+                      r,
+                      req_locs[0],
+                      req_locs[1]
+                    )
+                  ) {
+                    u_is_bilocated_in_all_rows = false;
+                    break;
+                  }
+                }
+                if (u_is_bilocated_in_all_rows) {
+                  extra_cells.forEach(([r, c]) => {
+                    if (pencils[r][c].has(u)) removals.push({ r, c, num: u });
+                  });
+                  if (removals.length > 0) {
+                    return {
+                      change: true,
+                      type: "remove",
+                      cells: uniqueRemovals(removals),
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
     // --- End of newly added techniques ---
   };
 
@@ -4460,7 +5310,17 @@ document.addEventListener("DOMContentLoaded", () => {
       { name: "W-Wing", func: (b, p) => techniques.wWing(b, p), level: 2 },
       { name: "Swordfish", func: (b, p) => techniques.fish(b, p, 3), level: 2 },
       { name: "Jellyfish", func: (b, p) => techniques.fish(b, p, 4), level: 2 },
-      // Level 5 (To add: UH, ER)
+      // Level 5
+      {
+        name: "Unique Hexagon",
+        func: techniques.uniqueHexagon,
+        level: 2, // Placing at a high level due to extreme complexity
+      },
+      {
+        name: "Extended Rectangle",
+        func: techniques.extendedRectangle,
+        level: 2,
+      },
       { name: "Grouped W-Wing", func: techniques.groupedWWing, level: 2 },
       { name: "Skyscraper", func: techniques.skyscraper, level: 2 },
       { name: "2-String Kite", func: techniques.twoStringKite, level: 2 },
