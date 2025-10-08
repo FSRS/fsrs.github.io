@@ -1479,6 +1479,18 @@ async function evaluateBoardDifficulty() {
     updateLamp("white");
     return;
   }
+  // --- Detect invalid starting state (wrong progress) ---
+  let initialHasEmptyNoCand = false;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      // if using virtual pencils as initial state
+      if (virtualBoard[r][c] === 0 && startingPencils[r][c].size === 0) {
+        initialHasEmptyNoCand = true;
+        break;
+      }
+    }
+    if (initialHasEmptyNoCand) break;
+  }
   let maxDifficulty = 0;
   const techniqueOrder = [
     { name: "Naked Single", func: techniques.nakedSingle, level: 0 },
@@ -1620,22 +1632,32 @@ async function evaluateBoardDifficulty() {
     }
   }
   const isSolved = virtualBoard.flat().every((v) => v !== 0);
+
   if (isSolved) {
     if (maxDifficulty === 0) updateLamp("white");
     else if (maxDifficulty === 1) updateLamp("green");
     else if (maxDifficulty === 2) updateLamp("yellow");
     else if (maxDifficulty === 3) updateLamp("orange");
+  } else if (initialHasEmptyNoCand) {
+    // Wrong progress made before evaluation started
+    updateLamp("black");
   } else {
     // === Final bug detection ===
-    // Check if any cell is unsolved (0) and has no candidates left
+    let foundBug = false;
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         if (virtualBoard[r][c] === 0 && startingPencils[r][c].size === 0) {
-          updateLamp("bug");
-          return;
+          foundBug = true;
+          break;
         }
       }
+      if (foundBug) break;
     }
-    updateLamp("red");
+
+    if (foundBug) {
+      updateLamp("bug");
+    } else {
+      updateLamp("red");
+    }
   }
 }
