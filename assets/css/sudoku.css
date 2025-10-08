@@ -1201,6 +1201,12 @@ button:disabled:hover {
     background-color: #1f2937; /* gray-800 */
     position: relative;
   }
+
+  /* FIX: This new rule ensures the vertical 3x3 box borders use the theme color. */
+  .sudoku-grid .grid-row .sudoku-cell:nth-child(3),
+  .sudoku-grid .grid-row .sudoku-cell:nth-child(6) {
+    border-right-color: var(--nc-tx-1) !important;
+  }
   .sudoku-cell .given-value {
     color: #e5e7eb !important; /* gray-200 */
   }
