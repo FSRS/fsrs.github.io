@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Set this to 'true' to see detailed solver logs in the console.
   // Set this to 'false' for release to hide them.
   const IS_DEBUG_MODE = false;
+  const LOG_CANDIDATE_GRID = false;
   // --- END: ADDED DEBUG FLAG ---
 
   const gridContainer = document.getElementById("sudoku-grid");
@@ -144,8 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let isAutoPencilPending = false;
   let isSolvePending = false;
   let autoPencilTipTimer = null;
-  let lampWorker = null;
   let lampEvaluationTimeout = null;
+  let currentLampColor = "gray";
 
   function updateButtonLabels() {
     const isMobile = window.innerWidth <= 550; // Breakpoint for mobile view
@@ -303,6 +304,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function findAndLoadSelectedPuzzle() {
+    // If the date is 'custom' (from a previous manual puzzle load),
+    // reset it to the default (today) when the level is changed.
+    if (dateSelect.value === "custom") {
+      // The first option is always the most recent date (Today)
+      dateSelect.value = dateSelect.options[0].value;
+    }
     const selectedDate = parseInt(dateSelect.value, 10);
     const selectedLevel = parseInt(levelSelect.value, 10);
 
@@ -531,7 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     cellState.pencilColors.set(i, selectedColor);
                   }
                   saveState();
-                  onBoardUpdated();
+                  renderBoard(); // Just re-render
                 }
                 // In Pencil mode + Expt ON, click a candidate to REMOVE it
                 else if (isExperimentalMode && currentMode === "pencil") {
@@ -646,16 +653,26 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Difficulty Lamp Functions ---
   function updateLamp(color) {
     if (!difficultyLamp) return;
-    const colors = ["white", "green", "yellow", "orange", "red", "gray"];
+    currentLampColor = color; // Track the current color
+    const colors = [
+      "white",
+      "green",
+      "yellow",
+      "orange",
+      "red",
+      "gray",
+      "black",
+    ];
     difficultyLamp.classList.remove(...colors.map((c) => `lamp-${c}`));
     difficultyLamp.classList.add(`lamp-${color}`);
 
     const tooltips = {
-      white: "Easy: Solvable with singles.",
-      green: "Medium: Requires pairs, triples, or intersections.",
-      yellow: "Hard: Requires advanced techniques like X-Wing.",
-      orange: "Unfair: Requires techniques beyond this solver's scope.",
-      red: "Error: Current state conflicts with the solution.",
+      white: "Easy: Level 0.",
+      green: "Medium: Level 1 - 2.",
+      yellow: "Hard: Level 3 - 5 (UH and ER not implemented).",
+      orange: "Unfair: Level 6 (Not implemented, Displays if beyond yellow).",
+      red: "Extreme: Level 7+ (Not implemented).",
+      black: "Error: An incorrect progress has been made.",
       gray: "Invalid: This puzzle does not have a unique solution.",
     };
     difficultyLamp.title = tooltips[color] || "Difficulty Indicator";
@@ -683,7 +700,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
       updateButtonLabels();
-      onBoardUpdated(); // Re-render the main board to update pencil marks
+      renderBoard(); // Re-render the main board to update pencil marks
 
       // Add the concise tip message
       const tip = `Candidate display set to ${
@@ -861,12 +878,6 @@ document.addEventListener("DOMContentLoaded", () => {
       e.stopPropagation();
       isExperimentalMode = !isExperimentalMode;
       updateButtonLabels();
-
-      // The lamp is now always visible, so no need to toggle it.
-      // We can still trigger an immediate evaluation when the mode is turned on.
-      if (isExperimentalMode) {
-        evaluateBoardDifficulty();
-      }
 
       // Generate platform-specific tip messages
       const isMobile = window.innerWidth <= 550;
@@ -1102,23 +1113,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const cellState = boardState[selectedCell.row][selectedCell.col];
     const isMobile = window.innerWidth <= 550;
 
+    let needsRenderOnly = false; // Flag to check if we only need to redraw
+
     if (currentMode === "color") {
-      if (coloringSubMode === "cell") {
+      if (coloringSubMode === "cell" && selectedColor) {
         const oldColor = cellState.cellColor;
         const newColor = oldColor === selectedColor ? null : selectedColor;
         if (oldColor !== newColor) {
           cellState.cellColor = newColor;
-          saveState();
+          saveState(); // Save state but don't re-evaluate lamp yet
         }
-      } else {
-        // candidate mode
+        needsRenderOnly = true;
+      } else if (coloringSubMode === "candidate") {
         if (isMobile && !isExperimentalMode) {
           showCandidatePopup(selectedCell.row, selectedCell.col);
         }
-        // On desktop, this is handled by direct clicks on pencil marks
+        needsRenderOnly = true;
       }
     } else {
-      // --- Revised Highlight Logic ---
+      // Highlighting logic
       if (highlightState === 0 && cellState.pencils.size === 2) {
         highlightedDigit = null;
         highlightState = 2;
@@ -1131,9 +1144,14 @@ document.addEventListener("DOMContentLoaded", () => {
           highlightState = 0;
         }
       }
+      needsRenderOnly = true;
     }
-    onBoardUpdated();
-    return;
+
+    // If only cosmetic changes were made, just re-render the board.
+    // Otherwise, onBoardUpdated() will be called by the function that placed/removed a number.
+    if (needsRenderOnly) {
+      renderBoard();
+    }
   }
 
   function handleModeChange(e) {
@@ -1223,7 +1241,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedColor = null;
       }
     }
-    onBoardUpdated();
+    renderBoard(); // Only re-render the board, don't re-evaluate
     updateButtonLabels(); // <-- FIX: Update labels immediately after mode change
   }
 
@@ -1274,11 +1292,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // If a change was made, save it and check for puzzle completion.
       if (changeMade) {
         saveState();
+        // Force evaluation if a concrete number was changed.
+        onBoardUpdated(currentMode === "concrete");
         checkCompletion();
+      } else {
+        renderBoard(); // If no change, just render to handle selection visuals
       }
-
-      // ALWAYS re-render the board after any interaction.
-      onBoardUpdated();
     }
   }
 
@@ -1438,10 +1457,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     saveState();
-    onBoardUpdated();
+    renderBoard(); // Just re-render, don't re-evaluate
     showMessage("All colors cleared.", "gray");
   }
-
   function calculateAllPencils(board) {
     const newPencils = Array(9)
       .fill(null)
@@ -1474,6 +1492,21 @@ document.addEventListener("DOMContentLoaded", () => {
       isAutoPencilPending = true;
       return;
     }
+    let emptyWithNoPencils = 0;
+    if (!hasUsedAutoPencil) {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (
+            boardState[r][c].value === 0 &&
+            boardState[r][c].pencils.size === 0
+          ) {
+            emptyWithNoPencils++;
+          }
+        }
+      }
+    }
+
+    const shouldSkipEval = !hasUsedAutoPencil && emptyWithNoPencils >= 4;
     const board = boardState.map((row) => row.map((cell) => cell.value));
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
@@ -1489,7 +1522,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     saveState();
-    onBoardUpdated();
+    if (shouldSkipEval) {
+      renderBoard(); // Rule #2: Skip evaluation on first use in this state
+    } else {
+      onBoardUpdated(true); // Force re-evaluation on subsequent uses
+    }
     showMessage("Auto-Pencil complete!", "green");
     hasUsedAutoPencil = true;
     isAutoPencilPending = false;
@@ -1609,7 +1646,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return { isValid: true, message: "Puzzle has a unique solution." };
   }
 
-  function loadPuzzle(puzzleString, puzzleData = null) {
+  async function loadPuzzle(puzzleString, puzzleData = null) {
     if (autoPencilTipTimer) clearTimeout(autoPencilTipTimer);
     isCustomPuzzle = puzzleData === null;
     if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
@@ -1652,7 +1689,11 @@ document.addEventListener("DOMContentLoaded", () => {
     hasUsedAutoPencil = false;
     isAutoPencilPending = false;
     isSolvePending = false;
-    puzzleInfoContainer.classList.toggle("hidden", !puzzleData);
+
+    // Show Level/Score container ONLY for daily JSON puzzles.
+    puzzleInfoContainer.classList.remove("hidden");
+    // Always show the timer.
+    puzzleTimerEl.classList.remove("hidden");
 
     if (puzzleData) {
       puzzleLevelEl.textContent = `Lv. ${puzzleData.level} (${
@@ -1662,10 +1703,17 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       puzzleLevelEl.textContent = "";
       puzzleScoreEl.textContent = "";
+      // FIX: Set the date dropdown to 'custom' to reflect the state
+      dateSelect.value = "custom";
     }
 
-    saveState(); // This will trigger the first lamp evaluation
-    onBoardUpdated();
+    // First, render the board so it's visible.
+    renderBoard();
+    // Then, directly evaluate the difficulty. This will update the lamp.
+    await evaluateBoardDifficulty();
+    // NOW, save the initial state with the correct lamp color.
+    saveState();
+
     addSudokuCoachLink(puzzleString);
     if (!puzzleData) showMessage("Custom puzzle loaded!", "green");
     startTimer();
@@ -1693,7 +1741,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isAutoPencilPending = false; // Reset pending state
     isSolvePending = false;
     saveState();
-    onBoardUpdated();
+    onBoardUpdated(true);
     showMessage("Board cleared.", "gray");
     // startTimer();
   }
@@ -2091,28 +2139,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function saveState() {
     history = history.slice(0, historyIndex + 1);
-    history.push(cloneBoardState(boardState));
+    history.push({
+      boardState: cloneBoardState(boardState),
+      lampColor: currentLampColor,
+    });
     historyIndex++;
     updateUndoRedoButtons();
   }
 
-  function onBoardUpdated() {
+  function onBoardUpdated(forceEvaluation = false) {
     renderBoard(); // Always draw the board first
-    queueLampEvaluation(); // Then schedule lamp update
-  }
 
-  function queueLampEvaluation() {
+    if (!forceEvaluation) {
+      // Optimization Rule #3: Skip evaluation if the user is only changing
+      // pencil marks and the board has >= 4 empty cells without pencils.
+      // The solver would generate virtual pencils anyway in this state.
+      let emptyWithNoPencils = 0;
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (
+            boardState[r][c].value === 0 &&
+            boardState[r][c].pencils.size === 0
+          ) {
+            emptyWithNoPencils++;
+          }
+        }
+      }
+      if (emptyWithNoPencils >= 4) {
+        return; // Skip evaluation
+      }
+    }
+
+    // If we get here, either evaluation is forced or the optimization doesn't apply.
     if (lampEvaluationTimeout) clearTimeout(lampEvaluationTimeout);
     lampEvaluationTimeout = setTimeout(() => {
       evaluateBoardDifficulty();
-    }, 500); // small delay avoids blocking UI
+    }, 100);
   }
 
   function undo() {
     if (historyIndex > 0) {
       historyIndex--;
-      boardState = cloneBoardState(history[historyIndex]);
-      onBoardUpdated();
+      const historyEntry = history[historyIndex];
+      boardState = cloneBoardState(historyEntry.boardState);
+
+      // Restore lamp state directly instead of re-evaluating
+      updateLamp(historyEntry.lampColor);
+      renderBoard();
+
       updateUndoRedoButtons();
     }
   }
@@ -2120,12 +2194,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function redo() {
     if (historyIndex < history.length - 1) {
       historyIndex++;
-      boardState = cloneBoardState(history[historyIndex]);
-      onBoardUpdated();
+      const historyEntry = history[historyIndex];
+      boardState = cloneBoardState(historyEntry.boardState);
+
+      // Restore lamp state directly instead of re-evaluating
+      updateLamp(historyEntry.lampColor);
+      renderBoard();
+
       updateUndoRedoButtons();
     }
   }
-
   function updateUndoRedoButtons() {
     undoBtn.disabled = historyIndex <= 0;
     redoBtn.disabled = historyIndex >= history.length - 1;
@@ -2140,7 +2218,8 @@ document.addEventListener("DOMContentLoaded", () => {
     _sees: (cell1, cell2) => {
       const [r1, c1] = cell1;
       const [r2, c2] = cell2;
-      if (r1 === r2 || c1 === c2) return true;
+      if (r1 == r2 && c1 == c2) return false;
+      else if (r1 === r2 || c1 === c2) return true;
       return (
         techniques._getBoxIndex(r1, c1) === techniques._getBoxIndex(r2, c2)
       );
@@ -2233,78 +2312,104 @@ document.addEventListener("DOMContentLoaded", () => {
     },
 
     intersection: (board, pencils) => {
-      // Pointing (Row/Col to Box)
+      // --- 1. Pointing (Line -> Box) ---
       for (let i = 0; i < 9; i++) {
+        // i is row or column index
         for (let num = 1; num <= 9; num++) {
+          // Check for pointing pairs/triples in rows
           const rowColsWithNum = [];
-          for (let c = 0; c < 9; c++)
+          for (let c = 0; c < 9; c++) {
             if (pencils[i][c].has(num)) rowColsWithNum.push(c);
+          }
           if (
             rowColsWithNum.length > 1 &&
             new Set(rowColsWithNum.map((c) => Math.floor(c / 3))).size === 1
           ) {
+            const removals = [];
             const boxIdx =
               Math.floor(i / 3) * 3 + Math.floor(rowColsWithNum[0] / 3);
             const boxCells = techniques._getUnitCells("box", boxIdx);
             for (const [r, c] of boxCells) {
-              if (r !== i && pencils[r][c].has(num))
-                return { change: true, type: "remove", cells: [{ r, c, num }] };
+              if (r !== i && pencils[r][c].has(num)) {
+                removals.push({ r, c, num });
+              }
+            }
+            if (removals.length > 0) {
+              return { change: true, type: "remove", cells: removals };
             }
           }
+
+          // Check for pointing pairs/triples in columns
           const colRowsWithNum = [];
-          for (let r = 0; r < 9; r++)
+          for (let r = 0; r < 9; r++) {
             if (pencils[r][i].has(num)) colRowsWithNum.push(r);
+          }
           if (
             colRowsWithNum.length > 1 &&
             new Set(colRowsWithNum.map((r) => Math.floor(r / 3))).size === 1
           ) {
+            const removals = [];
             const boxIdx =
               Math.floor(colRowsWithNum[0] / 3) * 3 + Math.floor(i / 3);
             const boxCells = techniques._getUnitCells("box", boxIdx);
             for (const [r, c] of boxCells) {
-              if (c !== i && pencils[r][c].has(num))
-                return { change: true, type: "remove", cells: [{ r, c, num }] };
+              if (c !== i && pencils[r][c].has(num)) {
+                removals.push({ r, c, num });
+              }
+            }
+            if (removals.length > 0) {
+              return { change: true, type: "remove", cells: removals };
             }
           }
         }
       }
-      // Claiming (Box to Row/Col)
+
+      // --- 2. Claiming (Box -> Line) ---
       for (let boxIdx = 0; boxIdx < 9; boxIdx++) {
         for (let num = 1; num <= 9; num++) {
           const boxCellsWithNum = [];
           const boxCells = techniques._getUnitCells("box", boxIdx);
-          for (const [r, c] of boxCells)
+          for (const [r, c] of boxCells) {
             if (pencils[r][c].has(num)) boxCellsWithNum.push([r, c]);
+          }
+
           if (boxCellsWithNum.length > 1) {
+            // Check for claiming in a row
             if (new Set(boxCellsWithNum.map(([r, c]) => r)).size === 1) {
+              const removals = [];
               const row = boxCellsWithNum[0][0];
-              for (let c = 0; c < 9; c++)
+              for (let c = 0; c < 9; c++) {
                 if (
-                  Math.floor(c / 3) !== Math.floor(boxCellsWithNum[0][1] / 3) &&
+                  Math.floor(c / 3) !== boxIdx % 3 &&
                   pencils[row][c].has(num)
-                )
-                  return {
-                    change: true,
-                    type: "remove",
-                    cells: [{ r: row, c, num }],
-                  };
+                ) {
+                  removals.push({ r: row, c, num });
+                }
+              }
+              if (removals.length > 0) {
+                return { change: true, type: "remove", cells: removals };
+              }
             }
+            // Check for claiming in a column
             if (new Set(boxCellsWithNum.map(([r, c]) => c)).size === 1) {
+              const removals = [];
               const col = boxCellsWithNum[0][1];
-              for (let r = 0; r < 9; r++)
+              for (let r = 0; r < 9; r++) {
                 if (
-                  Math.floor(r / 3) !== Math.floor(boxCellsWithNum[0][0] / 3) &&
+                  Math.floor(r / 3) !== Math.floor(boxIdx / 3) &&
                   pencils[r][col].has(num)
-                )
-                  return {
-                    change: true,
-                    type: "remove",
-                    cells: [{ r, c: col, num }],
-                  };
+                ) {
+                  removals.push({ r, c: col, num });
+                }
+              }
+              if (removals.length > 0) {
+                return { change: true, type: "remove", cells: removals };
+              }
             }
           }
         }
       }
+
       return { change: false };
     },
 
@@ -2357,12 +2462,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       for (const unit of units) {
         const emptyCells = unit.filter(([r, c]) => board[r][c] === 0);
-        if (emptyCells.length <= size) continue;
+        if (emptyCells.length <= 2 * size + 1) continue;
         const unitCandidates = new Set();
         emptyCells.forEach(([r, c]) =>
           pencils[r][c].forEach((p) => unitCandidates.add(p))
         );
-        if (unitCandidates.size < size) continue;
+        // if (unitCandidates.size < size) continue;
 
         for (const numGroup of techniques.combinations(
           [...unitCandidates],
@@ -2429,7 +2534,134 @@ document.addEventListener("DOMContentLoaded", () => {
       return { change: false };
     },
 
-    // --- Start of newly added techniques ---
+    finnedXWing: (board, pencils) => {
+      let result = techniques._findFinnedFish(board, pencils, 2, true); // Row-based
+      if (result.change) return result;
+      result = techniques._findFinnedFish(board, pencils, 2, false); // Column-based
+      return result;
+    },
+
+    finnedSwordfish: (board, pencils) => {
+      let result = techniques._findFinnedFish(board, pencils, 3, true);
+      if (result.change) return result;
+      result = techniques._findFinnedFish(board, pencils, 3, false);
+      return result;
+    },
+
+    finnedJellyfish: (board, pencils) => {
+      let result = techniques._findFinnedFish(board, pencils, 4, true);
+      if (result.change) return result;
+      result = techniques._findFinnedFish(board, pencils, 4, false);
+      return result;
+    },
+
+    _findFinnedFish: (board, pencils, fishSize, isRowBased) => {
+      for (let num = 1; num <= 9; num++) {
+        // Step 1: Find all lines that could be part of the pattern
+        const potentialLines = [];
+        for (let i = 0; i < 9; i++) {
+          const candidateLocs = [];
+          for (let j = 0; j < 9; j++) {
+            const r = isRowBased ? i : j;
+            const c = isRowBased ? j : i;
+            if (pencils[r][c].has(num)) {
+              candidateLocs.push(j);
+            }
+          }
+          // A finned fish pattern requires lines with more than 1 candidate
+          // We allow up to fishSize + 1/2 fins for this initial search
+          if (
+            candidateLocs.length >= 2 &&
+            candidateLocs.length <= fishSize + 2
+          ) {
+            potentialLines.push({ line: i, locs: candidateLocs });
+          }
+        }
+
+        if (potentialLines.length < fishSize) continue;
+
+        // Step 2: Generate combinations of 'fishSize' base lines
+        for (const baseLines of techniques.combinations(
+          potentialLines,
+          fishSize
+        )) {
+          const allCoverIndicesSet = new Set();
+          baseLines.forEach((line) =>
+            line.locs.forEach((loc) => allCoverIndicesSet.add(loc))
+          );
+
+          // Finned fish have fishSize + 1 or +2 cover locations (with fins in the same box)
+          if (
+            allCoverIndicesSet.size < fishSize + 1 ||
+            allCoverIndicesSet.size > fishSize + 2
+          ) {
+            continue;
+          }
+
+          const allCoverIndices = [...allCoverIndicesSet];
+
+          // Step 3: Iterate through all possible sets of 'fishSize' cover lines to be the "base"
+          for (const coverBaseIndices of techniques.combinations(
+            allCoverIndices,
+            fishSize
+          )) {
+            const coverBaseSet = new Set(coverBaseIndices);
+
+            // Step 4: Identify fins (candidates in base lines but not in cover lines)
+            const fins = [];
+            for (const line of baseLines) {
+              for (const loc of line.locs) {
+                if (!coverBaseSet.has(loc)) {
+                  const r = isRowBased ? line.line : loc;
+                  const c = isRowBased ? loc : line.line;
+                  fins.push([r, c]);
+                }
+              }
+            }
+
+            if (fins.empty) continue;
+
+            // Step 5: Check if all fins are in the same box
+            const finBoxes = new Set(
+              fins.map(([r, c]) => techniques._getBoxIndex(r, c))
+            );
+            if (finBoxes.size !== 1) continue;
+
+            // Step 6: Apply eliminations
+            const finBoxIndex = finBoxes.values().next().value;
+            const boxCells = techniques._getUnitCells("box", finBoxIndex);
+            const removals = [];
+            const baseLineIndices = new Set(baseLines.map((line) => line.line));
+            const finSet = new Set(fins.map(JSON.stringify));
+
+            for (const [r_target, c_target] of boxCells) {
+              const base_idx = isRowBased ? r_target : c_target;
+              const cover_idx = isRowBased ? c_target : r_target;
+
+              // Elimination conditions:
+              // 1. Must be in a cover line.
+              // 2. Must NOT be in a base line.
+              // 3. Must NOT be a fin itself.
+              if (
+                coverBaseSet.has(cover_idx) &&
+                !baseLineIndices.has(base_idx) &&
+                !finSet.has(JSON.stringify([r_target, c_target]))
+              ) {
+                if (pencils[r_target][c_target].has(num)) {
+                  removals.push({ r: r_target, c: c_target, num });
+                }
+              }
+            }
+
+            if (removals.length > 0) {
+              return { change: true, type: "remove", cells: removals };
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
     xyWing: (board, pencils) => {
       const bivalueCells = [];
       for (let r = 0; r < 9; r++) {
@@ -2643,6 +2875,88 @@ document.addEventListener("DOMContentLoaded", () => {
       return { change: false };
     },
 
+    groupedWWing: (board, pencils) => {
+      const bivalueCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size === 2) {
+            bivalueCells.push({ r, c, cands: pencils[r][c] });
+          }
+        }
+      }
+      if (bivalueCells.length < 2) return { change: false };
+
+      for (const pair of techniques.combinations(bivalueCells, 2)) {
+        const [cell1, cell2] = pair;
+
+        const cands1Str = [...cell1.cands].sort().join("");
+        const cands2Str = [...cell2.cands].sort().join("");
+        if (cands1Str !== cands2Str) continue;
+
+        // Base cells must not be in the same band or stack
+        if (
+          Math.floor(cell1.r / 3) === Math.floor(cell2.r / 3) ||
+          Math.floor(cell1.c / 3) === Math.floor(cell2.c / 3)
+        ) {
+          continue;
+        }
+
+        const [x, y] = [...cell1.cands];
+
+        for (const linkDigit of [x, y]) {
+          const elimDigit = linkDigit === x ? y : x;
+
+          // Check all 27 units for a grouped strong link
+          for (let u = 0; u < 27; u++) {
+            let unit;
+            if (u < 9) unit = techniques._getUnitCells("row", u);
+            else if (u < 18) unit = techniques._getUnitCells("col", u - 9);
+            else unit = techniques._getUnitCells("box", u - 18);
+
+            // The linking unit must not contain either of the base cells
+            if (
+              unit.some(
+                ([r, c]) =>
+                  (r === cell1.r && c === cell1.c) ||
+                  (r === cell2.r && c === cell2.c)
+              )
+            ) {
+              continue;
+            }
+
+            const x_cells_in_unit = unit.filter(([r, c]) =>
+              pencils[r][c].has(linkDigit)
+            );
+            if (x_cells_in_unit.length === 0) continue;
+
+            // Check if every linking cell sees exactly one of the two base cells
+            const isGroupedLink = x_cells_in_unit.every(([r, c]) => {
+              const sees1 = techniques._sees([r, c], [cell1.r, cell1.c]);
+              const sees2 = techniques._sees([r, c], [cell2.r, cell2.c]);
+              return sees1 !== sees2; // XOR: must see one, but not both
+            });
+
+            if (isGroupedLink) {
+              const removals = [];
+              const commonPeers = techniques._commonVisibleCells(
+                [cell1.r, cell1.c],
+                [cell2.r, cell2.c]
+              );
+              for (const [r, c] of commonPeers) {
+                if (pencils[r][c].has(elimDigit)) {
+                  removals.push({ r, c, num: elimDigit });
+                }
+              }
+              if (removals.length > 0) {
+                return { change: true, type: "remove", cells: removals };
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
     remotePair: (board, pencils) => {
       const bivalueCells = [];
       for (let r = 0; r < 9; r++) {
@@ -2717,6 +3031,389 @@ document.addEventListener("DOMContentLoaded", () => {
                   queue.push([neighbor, newPath]);
                   visitedPaths.add(newPathStr);
                 }
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    skyscraper: (board, pencils) => {
+      const skyscraperLogic = (isRowBased) => {
+        for (let num = 1; num <= 9; num++) {
+          const strongLinks = [];
+          for (let i = 0; i < 9; i++) {
+            const candidateLocs = [];
+            for (let j = 0; j < 9; j++) {
+              const r = isRowBased ? i : j;
+              const c = isRowBased ? j : i;
+              if (pencils[r][c].has(num)) candidateLocs.push(j);
+            }
+            if (candidateLocs.length === 2) {
+              if (
+                Math.floor(candidateLocs[0] / 3) !==
+                Math.floor(candidateLocs[1] / 3)
+              ) {
+                strongLinks.push({ line: i, locs: candidateLocs });
+              }
+            }
+          }
+          if (strongLinks.length < 2) continue;
+
+          for (const linkPair of techniques.combinations(strongLinks, 2)) {
+            const [link1, link2] = linkPair;
+            let p1_coords, p2_coords, baseLoc;
+
+            if (link1.locs[0] === link2.locs[0]) {
+              baseLoc = link1.locs[0];
+              p1_coords = { line: link1.line, loc: link1.locs[1] };
+              p2_coords = { line: link2.line, loc: link2.locs[1] };
+            } else if (link1.locs[1] === link2.locs[1]) {
+              baseLoc = link1.locs[1];
+              p1_coords = { line: link1.line, loc: link1.locs[0] };
+              p2_coords = { line: link2.line, loc: link2.locs[0] };
+            } else if (link1.locs[0] === link2.locs[1]) {
+              baseLoc = link1.locs[0];
+              p1_coords = { line: link1.line, loc: link1.locs[1] };
+              p2_coords = { line: link2.line, loc: link2.locs[0] };
+            } else if (link1.locs[1] === link2.locs[0]) {
+              baseLoc = link1.locs[1];
+              p1_coords = { line: link1.line, loc: link1.locs[0] };
+              p2_coords = { line: link2.line, loc: link2.locs[1] };
+            } else {
+              continue;
+            }
+
+            const p1 = isRowBased
+              ? [p1_coords.line, p1_coords.loc]
+              : [p1_coords.loc, p1_coords.line];
+            const p2 = isRowBased
+              ? [p2_coords.line, p2_coords.loc]
+              : [p2_coords.loc, p2_coords.line];
+
+            const removals = [];
+            for (const [r, c] of techniques._commonVisibleCells(p1, p2)) {
+              if (pencils[r][c].has(num)) {
+                removals.push({ r, c, num });
+              }
+            }
+            if (removals.length > 0) {
+              // --- ADDED: Define pattern cells for logging ---
+              const base1 = isRowBased
+                ? [link1.line, baseLoc]
+                : [baseLoc, link1.line];
+              const base2 = isRowBased
+                ? [link2.line, baseLoc]
+                : [baseLoc, link2.line];
+              const patternCells = [p1, p2, base1, base2];
+              return {
+                change: true,
+                type: "remove",
+                cells: removals,
+              };
+            }
+          }
+        }
+        return { change: false };
+      };
+
+      let result = skyscraperLogic(true);
+      if (result.change) return result;
+      result = skyscraperLogic(false);
+      return result;
+    },
+
+    twoStringKite: (board, pencils) => {
+      for (let num = 1; num <= 9; num++) {
+        const rowLinks = [];
+        for (let r = 0; r < 9; r++) {
+          const locs = [];
+          for (let c = 0; c < 9; c++) if (pencils[r][c].has(num)) locs.push(c);
+          if (locs.length === 2) rowLinks.push({ r, locs });
+        }
+        const colLinks = [];
+        for (let c = 0; c < 9; c++) {
+          const locs = [];
+          for (let r = 0; r < 9; r++) if (pencils[r][c].has(num)) locs.push(r);
+          if (locs.length === 2) colLinks.push({ c, locs });
+        }
+        if (rowLinks.length === 0 || colLinks.length === 0) continue;
+
+        for (const rLink of rowLinks) {
+          for (const cLink of colLinks) {
+            // --- START: BUG FIX ---
+            // Add stricter check to ensure the four cells are distinct and don't overlap.
+            const r_base = rLink.r;
+            const [c1, c2] = rLink.locs;
+            const c_base = cLink.c;
+            const [rA, rB] = cLink.locs;
+
+            if (
+              r_base === rA ||
+              r_base === rB ||
+              c_base === c1 ||
+              c_base === c2
+            ) {
+              continue;
+            }
+            // --- END: BUG FIX ---
+
+            const rowLinkCells = [
+              [rLink.r, rLink.locs[0]],
+              [rLink.r, rLink.locs[1]],
+            ];
+            const colLinkCells = [
+              [cLink.locs[0], cLink.c],
+              [cLink.locs[1], cLink.c],
+            ];
+
+            for (let i = 0; i < 2; i++) {
+              for (let j = 0; j < 2; j++) {
+                if (
+                  techniques._getBoxIndex(
+                    rowLinkCells[i][0],
+                    rowLinkCells[i][1]
+                  ) ===
+                  techniques._getBoxIndex(
+                    colLinkCells[j][0],
+                    colLinkCells[j][1]
+                  )
+                ) {
+                  const p1 = rowLinkCells[1 - i];
+                  const p2 = colLinkCells[1 - j];
+
+                  if (p1[0] === p2[0] && p1[1] === p2[1]) continue;
+
+                  const removals = [];
+                  for (const [r, c] of techniques._commonVisibleCells(p1, p2)) {
+                    if (pencils[r][c].has(num)) {
+                      removals.push({ r, c, num });
+                    }
+                  }
+                  if (removals.length > 0) {
+                    return {
+                      change: true,
+                      type: "remove",
+                      cells: removals,
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return { change: false };
+    },
+
+    // Replace the existing turbotFish function
+    turbotFish: (board, pencils) => {
+      const turbotLogic = (isRowBased) => {
+        for (let num = 1; num <= 9; num++) {
+          for (let b = 0; b < 9; b++) {
+            const boxCells = techniques._getUnitCells("box", b);
+            const boxLocs = boxCells.filter(([r, c]) => pencils[r][c].has(num));
+
+            if (boxLocs.length === 2) {
+              const [pA_init, pB_init] = boxLocs;
+              if (pA_init[0] === pB_init[0] || pA_init[1] === pB_init[1])
+                continue;
+
+              for (const startNode of [pA_init, pB_init]) {
+                const pA = startNode === pA_init ? pB_init : pA_init;
+                const pB = startNode;
+
+                const weakLinkLine = isRowBased
+                  ? techniques._getUnitCells("col", pB[1])
+                  : techniques._getUnitCells("row", pB[0]);
+                for (const pC of weakLinkLine) {
+                  if (
+                    !pencils[pC[0]][pC[1]].has(num) ||
+                    techniques._getBoxIndex(pC[0], pC[1]) === b
+                  )
+                    continue;
+
+                  const strongLinkLine = isRowBased
+                    ? techniques._getUnitCells("row", pC[0])
+                    : techniques._getUnitCells("col", pC[1]);
+                  const strongLinkLocs = strongLinkLine.filter(([r, c]) =>
+                    pencils[r][c].has(num)
+                  );
+
+                  if (strongLinkLocs.length === 2) {
+                    const pD = strongLinkLocs.find(
+                      (cell) => cell[0] !== pC[0] || cell[1] !== pC[1]
+                    );
+                    if (!pD) continue;
+
+                    const removals = [];
+                    for (const [r, c] of techniques._commonVisibleCells(
+                      pA,
+                      pD
+                    )) {
+                      if (
+                        pencils[r][c].has(num) &&
+                        !(r === pA[0] && c === pA[1]) &&
+                        !(r === pD[0] && c === pD[1])
+                      ) {
+                        removals.push({ r, c, num });
+                      }
+                    }
+                    if (removals.length > 0) {
+                      // --- ADDED: Define pattern cells for logging ---
+                      const patternCells = [pA, pB, pC, pD];
+                      return {
+                        change: true,
+                        type: "remove",
+                        cells: removals,
+                      };
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        return { change: false };
+      };
+
+      let result = turbotLogic(true);
+      if (result.change) return result;
+      result = turbotLogic(false);
+      return result;
+    },
+
+    rectangleElimination: (board, pencils) => {
+      let result = techniques.groupedTurbotFish(board, pencils);
+      if (result.change) return result;
+      result = techniques.groupedKite(board, pencils);
+      return result;
+    },
+
+    groupedTurbotFish: (board, pencils) => {
+      const logic = (isRowVersion) => {
+        for (let num = 1; num <= 9; num++) {
+          for (let b = 0; b < 9; b++) {
+            const boxCells = techniques._getUnitCells("box", b);
+            const box_n_cells = boxCells.filter(([r, c]) =>
+              pencils[r][c].has(num)
+            );
+            if (box_n_cells.length < 2) continue;
+
+            const rows = new Set(box_n_cells.map((c) => c[0]));
+            const cols = new Set(box_n_cells.map((c) => c[1]));
+
+            if (rows.size === 1 || cols.size === 1) continue;
+
+            for (const r1 of rows) {
+              for (const c1 of cols) {
+                const coversAll = box_n_cells.every(
+                  ([r, c]) => r === r1 || c === c1
+                );
+                if (!coversAll) continue;
+
+                if (isRowVersion) {
+                  for (let r2 = 0; r2 < 9; r2++) {
+                    if (Math.floor(r2 / 3) === Math.floor(r1 / 3)) continue;
+                    if (!pencils[r2][c1].has(num)) continue;
+
+                    const r2_locs = [];
+                    for (let c = 0; c < 9; c++)
+                      if (pencils[r2][c].has(num)) r2_locs.push(c);
+
+                    if (r2_locs.length === 2 && r2_locs.includes(c1)) {
+                      const c2 = r2_locs.find((c) => c !== c1);
+                      if (Math.floor(c1 / 3) === Math.floor(c2 / 3)) continue;
+                      if (pencils[r1][c2].has(num)) {
+                        return {
+                          change: true,
+                          type: "remove",
+                          cells: [{ r: r1, c: c2, num }],
+                        };
+                      }
+                    }
+                  }
+                } else {
+                  // Column version
+                  for (let c2 = 0; c2 < 9; c2++) {
+                    if (Math.floor(c2 / 3) === Math.floor(c1 / 3)) continue;
+                    if (!pencils[r1][c2].has(num)) continue;
+
+                    const c2_locs = [];
+                    for (let r = 0; r < 9; r++)
+                      if (pencils[r][c2].has(num)) c2_locs.push(r);
+
+                    if (c2_locs.length === 2 && c2_locs.includes(r1)) {
+                      const r2 = c2_locs.find((r) => r !== r1);
+                      if (Math.floor(r1 / 3) === Math.floor(r2 / 3)) continue;
+                      if (pencils[r2][c1].has(num)) {
+                        return {
+                          change: true,
+                          type: "remove",
+                          cells: [{ r: r2, c: c1, num }],
+                        };
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        return { change: false };
+      };
+      let result = logic(true);
+      if (result.change) return result;
+      result = logic(false);
+      return result;
+    },
+
+    groupedKite: (board, pencils) => {
+      for (let num = 1; num <= 9; num++) {
+        for (let b = 0; b < 9; b++) {
+          const boxCells = techniques._getUnitCells("box", b);
+          const box_n_cells = boxCells.filter(([r, c]) =>
+            pencils[r][c].has(num)
+          );
+          const box_rows = new Set(box_n_cells.map((c) => c[0]));
+          const box_cols = new Set(box_n_cells.map((c) => c[1]));
+
+          for (const r1 of box_rows) {
+            const r1_outside_locs = [];
+            for (let c = 0; c < 9; c++) {
+              if (Math.floor(c / 3) !== b % 3 && pencils[r1][c].has(num))
+                r1_outside_locs.push(c);
+            }
+            if (r1_outside_locs.length !== 1) continue;
+            const c2 = r1_outside_locs[0];
+
+            for (const c1 of box_cols) {
+              if (pencils[r1][c1].has(num)) continue;
+
+              const c1_outside_locs = [];
+              for (let r = 0; r < 9; r++) {
+                if (
+                  Math.floor(r / 3) !== Math.floor(b / 3) &&
+                  pencils[r][c1].has(num)
+                )
+                  c1_outside_locs.push(r);
+              }
+              if (c1_outside_locs.length !== 1) continue;
+              const r2 = c1_outside_locs[0];
+
+              // Check group condition
+              const group = box_n_cells.filter(
+                ([r, c]) => r === r1 || c === c1
+              );
+              if (group.length < 3) continue;
+
+              if (pencils[r2][c2].has(num)) {
+                return {
+                  change: true,
+                  type: "remove",
+                  cells: [{ r: r2, c: c2, num }],
+                };
               }
             }
           }
@@ -2907,9 +3604,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       return { change: false };
     },
-    // ----------------- ADD / UPDATE: Unique Rectangle (Types 1-6) and helpers -----------------
-    // Insert these inside the `techniques` object. Place _findUniqueRectangles and
-    // _findCommonPeers BEFORE uniqueRectangle so uniqueRectangle can call them.
 
     _findUniqueRectangles: (board, pencils) => {
       // Returns list of rectangles: { cells: [[r1,c1],[r1,c2],[r2,c1],[r2,c2]], digits: [d1,d2] }
@@ -3027,11 +3721,6 @@ document.addEventListener("DOMContentLoaded", () => {
               change: true,
               type: "remove",
               cells: uniqueRemovals(removals),
-              details: {
-                subtype: "Type 1",
-                rectangleCells: cells,
-                digits: digits,
-              },
             };
         }
 
@@ -3064,11 +3753,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   change: true,
                   type: "remove",
                   cells: uniqueRemovals(removals),
-                  details: {
-                    subtype: `Type ${extraCells.length === 2 ? 2 : 5}`,
-                    rectangleCells: cells,
-                    digits: digits,
-                  },
                 };
             }
           }
@@ -3144,12 +3828,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return {
                   change: true,
                   type: "remove",
-                  cells: res,
-                  details: {
-                    subtype: "Type 3 (Virtual Naked Subset)",
-                    rectangleCells: cells,
-                    digits: digits,
-                  },
+                  cells: uniqueRemovals(removals),
                 };
             }
           }
@@ -3196,11 +3875,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     change: true,
                     type: "remove",
                     cells: uniqueRemovals(removals),
-                    details: {
-                      subtype: "Type 4 (Aligned Pair)",
-                      rectangleCells: cells,
-                      digits: digits,
-                    },
                   };
               }
             }
@@ -3234,11 +3908,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     change: true,
                     type: "remove",
                     cells: uniqueRemovals(removals),
-                    details: {
-                      subtype: "Type 6 (Diagonal Pair)",
-                      rectangleCells: cells,
-                      digits: digits,
-                    },
                   };
               }
             }
@@ -3246,6 +3915,406 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
       return { change: false };
+    },
+
+    hiddenRectangle: (board, pencils) => {
+      const rectangles = techniques._findHiddenRectangles(pencils);
+      if (rectangles.length === 0) return { change: false };
+
+      for (const rect of rectangles) {
+        const { cells, digits } = rect;
+        const [d1, d2] = digits;
+
+        const extraCells = [];
+        const bivalueCells = [];
+        for (const [r, c] of cells) {
+          const cands = pencils[r][c];
+          const hasExtra = [...cands].some(
+            (cand) => cand !== d1 && cand !== d2
+          );
+          if (hasExtra) extraCells.push([r, c]);
+          else bivalueCells.push([r, c]);
+        }
+
+        let removals = [];
+        let caseInfo = "";
+        const addRemoval = (r, c, num) => {
+          if (pencils[r][c] && pencils[r][c].has(num)) {
+            removals.push({ r, c, num });
+          }
+        };
+
+        if (extraCells.length === 1) {
+          caseInfo = "Case 1: 1 Extra Cell";
+          const [r, c] = extraCells[0];
+          addRemoval(r, c, d1);
+          addRemoval(r, c, d2);
+        } else if (extraCells.length === 2) {
+          const [e1r, e1c] = extraCells[0];
+          const [e2r, e2c] = extraCells[1];
+          const [f1r, f1c] = bivalueCells[0];
+          const [f2r, f2c] = bivalueCells[1];
+          const row_aligned = e1r === e2r;
+          const col_aligned = e1c === e2c;
+
+          if (row_aligned) {
+            caseInfo = "Case 2: Row-Aligned";
+            if (techniques._isStrongLink(pencils, d1, "row", e1r, e1c, e2c)) {
+              addRemoval(e1r, e1c, d2);
+              addRemoval(e2r, e2c, d2);
+            } else if (
+              techniques._isStrongLink(pencils, d2, "row", e1r, e1c, e2c)
+            ) {
+              addRemoval(e1r, e1c, d1);
+              addRemoval(e2r, e2c, d1);
+            }
+            if (techniques._isStrongLink(pencils, d1, "col", f1c, f1r, e1r))
+              addRemoval(e2r, f2c, d2);
+            if (techniques._isStrongLink(pencils, d2, "col", f1c, f1r, e1r))
+              addRemoval(e2r, f2c, d1);
+            if (techniques._isStrongLink(pencils, d1, "col", f2c, f2r, e2r))
+              addRemoval(e2r, f1c, d2);
+            if (techniques._isStrongLink(pencils, d2, "col", f2c, f2r, e2r))
+              addRemoval(e2r, f1c, d1);
+          } else if (col_aligned) {
+            caseInfo = "Case 2: Col-Aligned";
+            if (techniques._isStrongLink(pencils, d1, "col", e1c, e1r, e2r)) {
+              addRemoval(e1r, e1c, d2);
+              addRemoval(e2r, e2c, d2);
+            } else if (
+              techniques._isStrongLink(pencils, d2, "col", e1c, e1r, e2r)
+            ) {
+              addRemoval(e1r, e1c, d1);
+              addRemoval(e2r, e2c, d1);
+            }
+            if (techniques._isStrongLink(pencils, d1, "row", f1r, f1c, e1c))
+              addRemoval(f2r, e1c, d2);
+            if (techniques._isStrongLink(pencils, d2, "row", f1r, f1c, e1c))
+              addRemoval(f2r, e1c, d1);
+            if (techniques._isStrongLink(pencils, d1, "row", f2r, f2c, e2c))
+              addRemoval(f1r, e1c, d2);
+            if (techniques._isStrongLink(pencils, d2, "row", f2r, f2c, e2c))
+              addRemoval(f1r, e1c, d1);
+          } else {
+            // Diagonal
+            // --- START: REVISED DIAGONAL LOGIC ---
+            caseInfo = "Case 2: Diagonal";
+            const floor1 = [e1r, e2c],
+              floor2 = [e2r, e1c];
+
+            const r_f1_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "row",
+              floor1[0],
+              floor1[1],
+              e1c
+            );
+            const c_f1_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "col",
+              floor1[1],
+              floor1[0],
+              e2r
+            );
+            const r_f2_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "row",
+              floor2[0],
+              floor2[1],
+              e2c
+            );
+            const c_f2_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "col",
+              floor2[1],
+              floor2[0],
+              e1r
+            );
+            const r_f1_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "row",
+              floor1[0],
+              floor1[1],
+              e1c
+            );
+            const c_f1_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "col",
+              floor1[1],
+              floor1[0],
+              e2r
+            );
+            const r_f2_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "row",
+              floor2[0],
+              floor2[1],
+              e2c
+            );
+            const c_f2_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "col",
+              floor2[1],
+              floor2[0],
+              e1r
+            );
+
+            let isType6 = false;
+            if (r_f1_bi_d1 && r_f2_bi_d1) {
+              caseInfo += " (Type 6)";
+              isType6 = true;
+              addRemoval(e1r, e1c, d1);
+              addRemoval(e2r, e2c, d1);
+            } else if (r_f1_bi_d2 && r_f2_bi_d2) {
+              caseInfo += " (Type 6)";
+              isType6 = true;
+              addRemoval(e1r, e1c, d2);
+              addRemoval(e2r, e2c, d2);
+            }
+
+            if (!isType6) {
+              if (r_f1_bi_d1 || c_f2_bi_d1)
+                addRemoval(floor2[0], floor1[1], d1);
+              if (r_f1_bi_d2 || c_f2_bi_d2)
+                addRemoval(floor2[0], floor1[1], d2);
+              if (r_f2_bi_d1 || c_f1_bi_d1)
+                addRemoval(floor1[0], floor2[1], d1);
+              if (r_f2_bi_d2 || c_f1_bi_d2)
+                addRemoval(floor1[0], floor2[1], d2);
+
+              // Added new rules
+              if (r_f1_bi_d2 && c_f1_bi_d2)
+                addRemoval(floor1[0], floor1[1], d1);
+              if (r_f1_bi_d1 && c_f1_bi_d1)
+                addRemoval(floor1[0], floor1[1], d2);
+              if (r_f2_bi_d2 && c_f2_bi_d2)
+                addRemoval(floor2[0], floor2[1], d1);
+              if (r_f2_bi_d1 && c_f2_bi_d1)
+                addRemoval(floor2[0], floor2[1], d2);
+            }
+            // --- END: REVISED DIAGONAL LOGIC ---
+          }
+        } else if (extraCells.length === 3) {
+          caseInfo = "Case 3: 3 Extra Cells";
+          const [fr, fc] = bivalueCells[0];
+          const diagCell = extraCells.find(([r, c]) => r !== fr && c !== fc);
+          if (diagCell) {
+            const [other_r, other_c] = diagCell;
+            const r_floor_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "row",
+              fr,
+              fc,
+              other_c
+            );
+            const c_floor_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "col",
+              fc,
+              fr,
+              other_r
+            );
+            const r_other_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "row",
+              other_r,
+              fc,
+              other_c
+            );
+            const c_other_bi_d1 = techniques._isStrongLink(
+              pencils,
+              d1,
+              "col",
+              other_c,
+              fr,
+              other_r
+            );
+            const r_floor_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "row",
+              fr,
+              fc,
+              other_c
+            );
+            const c_floor_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "col",
+              fc,
+              fr,
+              other_r
+            );
+            const r_other_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "row",
+              other_r,
+              fc,
+              other_c
+            );
+            const c_other_bi_d2 = techniques._isStrongLink(
+              pencils,
+              d2,
+              "col",
+              other_c,
+              fr,
+              other_r
+            );
+            if (r_other_bi_d1 && (r_floor_bi_d1 || c_other_bi_d1))
+              addRemoval(other_r, other_c, d2);
+            if (r_other_bi_d2 && (r_floor_bi_d2 || c_other_bi_d2))
+              addRemoval(other_r, other_c, d1);
+            if (r_other_bi_d1 && c_other_bi_d2) {
+              addRemoval(other_r, fc, d2);
+              addRemoval(fr, other_c, d1);
+            }
+            if (r_other_bi_d2 && c_other_bi_d1) {
+              addRemoval(other_r, fc, d1);
+              addRemoval(fr, other_c, d2);
+            }
+            if (
+              (r_floor_bi_d1 && r_other_bi_d2) ||
+              (r_floor_bi_d1 && c_other_bi_d2)
+            )
+              addRemoval(other_r, fc, d1);
+            if (
+              (r_floor_bi_d2 && r_other_bi_d1) ||
+              (r_floor_bi_d2 && c_other_bi_d1)
+            )
+              addRemoval(other_r, fc, d2);
+            if (
+              (c_floor_bi_d1 && c_other_bi_d2) ||
+              (r_other_bi_d2 && c_floor_bi_d1)
+            )
+              addRemoval(fr, other_c, d1);
+            if (
+              (c_floor_bi_d2 && c_other_bi_d1) ||
+              (r_other_bi_d1 && c_floor_bi_d2)
+            )
+              addRemoval(fr, other_c, d2);
+          }
+        }
+
+        if (removals.length > 0) {
+          const uniqueRemovals = Array.from(
+            new Set(removals.map(JSON.stringify))
+          ).map(JSON.parse);
+          if (uniqueRemovals.length > 0) {
+            return {
+              change: true,
+              type: "remove",
+              cells: removals,
+            };
+          }
+        }
+      }
+      return { change: false };
+    },
+    _findHiddenRectangles: (pencils) => {
+      const rects = [];
+      for (let d1 = 1; d1 <= 8; d1++) {
+        for (let d2 = d1 + 1; d2 <= 9; d2++) {
+          for (let r1 = 0; r1 < 8; r1++) {
+            for (let r2 = r1 + 1; r2 < 9; r2++) {
+              const cols = [];
+              for (let c = 0; c < 9; c++) {
+                const r1_has = pencils[r1][c].has(d1) || pencils[r1][c].has(d2);
+                const r2_has = pencils[r2][c].has(d1) || pencils[r2][c].has(d2);
+                if (r1_has && r2_has) {
+                  cols.push(c);
+                }
+              }
+              if (cols.length < 2) continue;
+
+              for (const colPair of techniques.combinations(cols, 2)) {
+                const [c1, c2] = colPair;
+                if (
+                  !(
+                    (Math.floor(r1 / 3) === Math.floor(r2 / 3)) !==
+                    (Math.floor(c1 / 3) === Math.floor(c2 / 3))
+                  )
+                )
+                  continue;
+
+                // --- START: REVISED RESTRICTION (PER USER FEEDBACK) ---
+                // Check that d1 & d2 are present across the HR cells in each of the four houses.
+                const r1_cands = new Set([
+                  ...pencils[r1][c1],
+                  ...pencils[r1][c2],
+                ]);
+                if (!r1_cands.has(d1) || !r1_cands.has(d2)) continue;
+
+                const r2_cands = new Set([
+                  ...pencils[r2][c1],
+                  ...pencils[r2][c2],
+                ]);
+                if (!r2_cands.has(d1) || !r2_cands.has(d2)) continue;
+
+                const c1_cands = new Set([
+                  ...pencils[r1][c1],
+                  ...pencils[r2][c1],
+                ]);
+                if (!c1_cands.has(d1) || !c1_cands.has(d2)) continue;
+
+                const c2_cands = new Set([
+                  ...pencils[r1][c2],
+                  ...pencils[r2][c2],
+                ]);
+                if (!c2_cands.has(d1) || !c2_cands.has(d2)) continue;
+                // --- END: REVISED RESTRICTION ---
+
+                const currentCells = [
+                  [r1, c1],
+                  [r1, c2],
+                  [r2, c1],
+                  [r2, c2],
+                ];
+
+                const hasBivalueFloor = currentCells.some(([r, c]) => {
+                  const cands = pencils[r][c];
+                  return cands.size === 2 && cands.has(d1) && cands.has(d2);
+                });
+                if (!hasBivalueFloor) {
+                  continue;
+                }
+
+                rects.push({
+                  cells: currentCells,
+                  digits: [d1, d2],
+                });
+              }
+            }
+          }
+        }
+      }
+      return rects;
+    },
+
+    _isStrongLink: (pencils, num, unitType, unitIndex, loc1, loc2) => {
+      const unitCells = techniques._getUnitCells(unitType, unitIndex);
+      const candidateLocs = [];
+      for (const [r, c] of unitCells) {
+        if (pencils[r][c].has(num)) {
+          candidateLocs.push(unitType === "row" ? c : r);
+        }
+      }
+      return (
+        candidateLocs.length === 2 &&
+        candidateLocs.includes(loc1) &&
+        candidateLocs.includes(loc2)
+      );
     },
     // --- End of newly added techniques ---
   };
@@ -3305,7 +4374,7 @@ document.addEventListener("DOMContentLoaded", () => {
           virtualBoard[r][c] !== 0 &&
           virtualBoard[r][c] !== solutionBoard[r][c]
         ) {
-          updateLamp("gray");
+          updateLamp("black");
           return;
         }
         if (
@@ -3313,7 +4382,7 @@ document.addEventListener("DOMContentLoaded", () => {
           startingPencils[r][c].size > 0 && // Only check if pencils exist
           !startingPencils[r][c].has(solutionBoard[r][c])
         ) {
-          updateLamp("gray");
+          updateLamp("black");
           return;
         }
       }
@@ -3328,8 +4397,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // 5. Iterative solving
     let maxDifficulty = 0;
     const techniqueOrder = [
+      // Level 0
       { name: "Naked Single", func: techniques.nakedSingle, level: 0 },
       { name: "Hidden Single", func: techniques.hiddenSingle, level: 0 },
+      // Level 1 and 2
       {
         name: "Intersection",
         func: (b, p) => techniques.intersection(b, p),
@@ -3355,6 +4426,7 @@ document.addEventListener("DOMContentLoaded", () => {
         func: (b, p) => techniques.hiddenSubset(b, p, 3),
         level: 1,
       },
+      // Level 3
       {
         name: "Naked Quad",
         func: (b, p) => techniques.nakedSubset(b, p, 4),
@@ -3372,6 +4444,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       { name: "X-Wing", func: (b, p) => techniques.fish(b, p, 2), level: 2 },
       { name: "XY-Wing", func: (b, p) => techniques.xyWing(b, p), level: 2 },
+      // Level 4
       { name: "BUG+1", func: (b, p) => techniques.bugPlusOne(b, p), level: 2 },
       {
         name: "Chute Remote Pair",
@@ -3387,6 +4460,21 @@ document.addEventListener("DOMContentLoaded", () => {
       { name: "W-Wing", func: (b, p) => techniques.wWing(b, p), level: 2 },
       { name: "Swordfish", func: (b, p) => techniques.fish(b, p, 3), level: 2 },
       { name: "Jellyfish", func: (b, p) => techniques.fish(b, p, 4), level: 2 },
+      // Level 5 (To add: UH, ER)
+      { name: "Grouped W-Wing", func: techniques.groupedWWing, level: 2 },
+      { name: "Skyscraper", func: techniques.skyscraper, level: 2 },
+      { name: "2-String Kite", func: techniques.twoStringKite, level: 2 },
+      { name: "Turbot Fish", func: techniques.turbotFish, level: 2 },
+      { name: "Hidden Rectangle", func: techniques.hiddenRectangle, level: 2 },
+      {
+        name: "Rectangle Elimination",
+        func: techniques.rectangleElimination,
+        level: 2,
+      },
+      { name: "Finned X-Wing", func: techniques.finnedXWing, level: 2 },
+      // Level 6 (To add: X-Chain, XY-Chain, FireWorks, WXYZ-Wing, Sue-de-Coq)
+      // { name: "Finned Swordfish", func: techniques.finnedSwordfish, level: 3 },
+      // { name: "Finned Jellyfish", func: techniques.finnedJellyfish, level: 3 },
     ];
 
     if (IS_DEBUG_MODE) {
@@ -3403,19 +4491,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const result = tech.func(virtualBoard, startingPencils);
         if (result.change) {
           if (IS_DEBUG_MODE) {
-            console.groupCollapsed(`Found: ${tech.name} (Level ${tech.level})`);
-            if (tech.name === "Unique Rectangle" && result.details) {
-              const { subtype, rectangleCells, digits } = result.details;
-              const cellStr = rectangleCells
-                .map(([r, c]) => `(${r},${c})`)
-                .join(", ");
-              console.log(
-                `%cUR Info: ${subtype} on cells [${cellStr}] with digits [${digits.join(
-                  ","
-                )}]`,
-                "color: #0284c7"
-              );
-            }
+            console.groupCollapsed(`Found: ${tech.name} (Lamp ${tech.level})`);
             if (result.type === "place") {
               console.log(
                 `Action: Place ${result.num} at (${result.r}, ${result.c})`
@@ -3448,7 +4524,9 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           if (IS_DEBUG_MODE) {
-            logBoardState(virtualBoard, startingPencils);
+            if (LOG_CANDIDATE_GRID) {
+              logBoardState(virtualBoard, startingPencils);
+            }
             console.groupEnd();
           }
 
@@ -3464,7 +4542,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (maxDifficulty === 0) updateLamp("white");
       else if (maxDifficulty === 1) updateLamp("green");
       else if (maxDifficulty === 2) updateLamp("yellow");
+      // else if (maxDifficulty === 3) updateLamp("orange");
     } else {
+      // updateLamp("red");
       updateLamp("orange");
     }
   }

@@ -912,7 +912,9 @@ button:disabled:hover {
 .lamp-gray {
   background-color: #9ca3af;
 }
-
+.lamp-black {
+  background-color: #111827;
+}
 /* --- Component: Sudoku Grid & Cells --- */
 .sudoku-cell {
   width: 11.11%;
