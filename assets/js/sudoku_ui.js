@@ -312,17 +312,27 @@ function renderBoard() {
 function updateLamp(color) {
   if (!difficultyLamp) return;
   currentLampColor = color;
-  const colors = ["white", "green", "yellow", "orange", "red", "gray", "black"];
+  const colors = [
+    "white",
+    "green",
+    "yellow",
+    "orange",
+    "red",
+    "gray",
+    "black",
+    "bug",
+  ];
   difficultyLamp.classList.remove(...colors.map((c) => `lamp-${c}`));
   difficultyLamp.classList.add(`lamp-${color}`);
   const tooltips = {
     white: "Easy: Level 0.",
     green: "Medium: Level 1 - 2.",
     yellow: "Hard: Level 3 - 5.",
-    orange: "Unfair: Level 6+.",
-    red: "Extreme: Level 7+ (Not implemented).",
+    orange: "Unfair: Level 6.",
+    red: "Extreme: Level 7+.",
     black: "Error: An incorrect progress has been made.",
     gray: "Invalid: This puzzle does not have a unique solution.",
+    bug: "Bug: Report it to fsrs please!",
   };
   difficultyLamp.title = tooltips[color] || "Difficulty Indicator";
 }
@@ -1547,6 +1557,13 @@ async function evaluateBoardDifficulty() {
       level: 2,
     },
     { name: "Finned X-Wing", func: techniques.finnedXWing, level: 2 },
+    { name: "Finned Swordfish", func: techniques.finnedSwordfish, level: 3 },
+    { name: "Finned Jellyfish", func: techniques.finnedJellyfish, level: 3 },
+    { name: "X-Chain", func: techniques.xChain, level: 3 },
+    { name: "XY-Chain", func: techniques.xyChain, level: 3 },
+    { name: "Firework", func: techniques.firework, level: 3 },
+    { name: "WXYZ-Wing", func: techniques.wxyzWing, level: 3 },
+    { name: "Sue de Coq", func: techniques.sueDeCoq, level: 3 },
   ];
   if (IS_DEBUG_MODE) {
     console.clear();
@@ -1607,7 +1624,18 @@ async function evaluateBoardDifficulty() {
     if (maxDifficulty === 0) updateLamp("white");
     else if (maxDifficulty === 1) updateLamp("green");
     else if (maxDifficulty === 2) updateLamp("yellow");
+    else if (maxDifficulty === 3) updateLamp("orange");
   } else {
-    updateLamp("orange");
+    // === Final bug detection ===
+    // Check if any cell is unsolved (0) and has no candidates left
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (virtualBoard[r][c] === 0 && startingPencils[r][c].size === 0) {
+          updateLamp("bug");
+          return;
+        }
+      }
+    }
+    updateLamp("red");
   }
 }

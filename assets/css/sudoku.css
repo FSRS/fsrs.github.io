@@ -915,6 +915,9 @@ button:disabled:hover {
 .lamp-black {
   background-color: #111827;
 }
+.lamp-bug {
+  background-color: #a21caf; /* violet-700 for 'bug' indication */
+}
 /* --- Component: Sudoku Grid & Cells --- */
 .sudoku-cell {
   width: 11.11%;

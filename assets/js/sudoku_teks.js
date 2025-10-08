@@ -2919,5 +2919,951 @@ const techniques = {
     }
     return { change: false };
   },
+  xChain: (board, pencils, maxLength = 10) => {
+    const _inSameUnit = (a, b) =>
+      a[0] === b[0] ||
+      a[1] === b[1] ||
+      (Math.floor(a[0] / 3) === Math.floor(b[0] / 3) &&
+        Math.floor(a[1] / 3) === Math.floor(b[1] / 3));
+
+    const _isValidStrongLink = (a, b, d) => {
+      if (!_inSameUnit(a, b)) return false;
+
+      // Row
+      if (a[0] === b[0]) {
+        const r = a[0];
+        const cells = [];
+        for (let c = 0; c < 9; c++) if (pencils[r][c].has(d)) cells.push(c);
+        if (cells.length === 2 && cells.includes(a[1]) && cells.includes(b[1]))
+          return true;
+      }
+
+      // Column
+      if (a[1] === b[1]) {
+        const c = a[1];
+        const cells = [];
+        for (let r = 0; r < 9; r++) if (pencils[r][c].has(d)) cells.push(r);
+        if (cells.length === 2 && cells.includes(a[0]) && cells.includes(b[0]))
+          return true;
+      }
+
+      // Box
+      const boxR = Math.floor(a[0] / 3),
+        boxC = Math.floor(a[1] / 3);
+      if (boxR === Math.floor(b[0] / 3) && boxC === Math.floor(b[1] / 3)) {
+        const unit = [];
+        for (let r = boxR * 3; r < boxR * 3 + 3; r++)
+          for (let c = boxC * 3; c < boxC * 3 + 3; c++)
+            if (pencils[r][c].has(d)) unit.push([r, c]);
+        if (
+          unit.length === 2 &&
+          unit.some(([r, c]) => r === a[0] && c === a[1]) &&
+          unit.some(([r, c]) => r === b[0] && c === b[1])
+        )
+          return true;
+      }
+      return false;
+    };
+
+    const _buildStrongLinkGraph = (d) => {
+      const graph = new Map();
+      const cells = [];
+      for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++)
+          if (pencils[r][c].has(d)) cells.push([r, c]);
+      for (let i = 0; i < cells.length; i++) {
+        for (let j = i + 1; j < cells.length; j++) {
+          const a = cells[i],
+            b = cells[j];
+          if (_isValidStrongLink(a, b, d)) {
+            const aKey = JSON.stringify(a),
+              bKey = JSON.stringify(b);
+            if (!graph.has(aKey)) graph.set(aKey, []);
+            if (!graph.has(bKey)) graph.set(bKey, []);
+            graph.get(aKey).push(b);
+            graph.get(bKey).push(a);
+          }
+        }
+      }
+      return graph;
+    };
+
+    const _sees = techniques._sees;
+    let changed = false;
+    const eliminations = [];
+
+    const _eliminate = (d, chain) => {
+      const start = chain[0],
+        end = chain[chain.length - 1];
+      const chainSet = new Set(chain.map(JSON.stringify));
+      const seesBoth = (r, c, a, b) => _sees([r, c], a) && _sees([r, c], b);
+
+      const isCycle = _sees(start, end);
+
+      if (isCycle) {
+        const weakLinks = [];
+        for (let i = 1; i < chain.length - 1; i += 2)
+          weakLinks.push([chain[i], chain[i + 1]]);
+        weakLinks.push([start, end]);
+
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const cellKey = JSON.stringify([r, c]);
+            if (!chainSet.has(cellKey) && pencils[r][c].has(d)) {
+              for (const [n1, n2] of weakLinks) {
+                if (seesBoth(r, c, n1, n2)) {
+                  eliminations.push({ r, c, num: d });
+                  changed = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      } else {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const cellKey = JSON.stringify([r, c]);
+            if (!chainSet.has(cellKey) && pencils[r][c].has(d)) {
+              if (seesBoth(r, c, start, end)) {
+                eliminations.push({ r, c, num: d });
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    const _dfs = (d, graph, chain, visited) => {
+      if (changed || chain.length > maxLength) return;
+      if (chain.length >= 6 && chain.length % 2 === 0) {
+        _eliminate(d, chain);
+        if (changed) return;
+      }
+      const current = chain[chain.length - 1];
+      const currentKey = JSON.stringify(current);
+      const isStrong = (chain.length - 1) % 2 === 0;
+      if (isStrong) {
+        for (const neighbor of graph.get(currentKey) || []) {
+          const key = JSON.stringify(neighbor);
+          if (!visited.has(key))
+            _dfs(d, graph, [...chain, neighbor], new Set([...visited, key]));
+          if (changed) return;
+        }
+      } else {
+        for (const [nodeKey] of graph) {
+          const node = JSON.parse(nodeKey);
+          if (!visited.has(nodeKey) && _sees(current, node))
+            _dfs(d, graph, [...chain, node], new Set([...visited, nodeKey]));
+          if (changed) return;
+        }
+      }
+    };
+
+    for (let d = 1; d <= 9; d++) {
+      const graph = _buildStrongLinkGraph(d);
+      if (graph.size === 0) continue;
+      for (const [nodeKey] of graph) {
+        const node = JSON.parse(nodeKey);
+        _dfs(d, graph, [node], new Set([nodeKey]));
+        if (changed)
+          return { change: true, type: "remove", cells: eliminations };
+      }
+    }
+
+    return { change: false, cells: [] };
+  },
+
+  xyChain: (board, pencils, maxLength = 12) => {
+    const sees = techniques._sees;
+    const commonVisibleCells = techniques._commonVisibleCells;
+
+    let changed = false;
+    const eliminations = [];
+
+    // Build list of bivalue cells
+    const bivalueCells = [];
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (pencils[r][c].size === 2) {
+          bivalueCells.push({ r, c, pair: [...pencils[r][c]].sort() });
+        }
+      }
+    }
+    if (bivalueCells.length === 0)
+      return { change: false, type: null, cells: [] };
+
+    // --- Recursive DFS to explore possible chains ---
+    const dfs = (chain, lastCandidate, linkedCandidates, startCandidate) => {
+      if (changed) return;
+
+      const last = chain[chain.length - 1];
+      const lastPair = [...pencils[last.r][last.c]].sort();
+      const nextCandidate =
+        chain.length === 1
+          ? lastPair.find((x) => x !== lastCandidate)
+          : lastCandidate;
+
+      const newLinked = [...linkedCandidates, nextCandidate];
+
+      for (const cell of bivalueCells) {
+        const { r, c, pair } = cell;
+        if (chain.some((x) => x.r === r && x.c === c)) continue;
+        if (!pair.includes(nextCandidate)) continue;
+        if (!sees([r, c], [last.r, last.c])) continue;
+
+        const newChain = [...chain, { r, c }];
+        const endCandidate = pair.find((x) => x !== nextCandidate);
+
+        // --- Check for valid chain or cycle ---
+        if (
+          newChain.length > 3 &&
+          (r !== chain[0].r || c !== chain[0].c) &&
+          startCandidate === endCandidate
+        ) {
+          const start = chain[0];
+          const isCycle = sees([start.r, start.c], [r, c]);
+
+          // --- Case 1: XY-Cycle ---
+          if (isCycle) {
+            for (let i = 0; i < chain.length - 1; i++) {
+              const cellA = chain[i];
+              const cellB = chain[i + 1];
+              const cvc = commonVisibleCells(
+                [cellA.r, cellA.c],
+                [cellB.r, cellB.c]
+              );
+              const d = newLinked[i];
+              for (const [rr, cc] of cvc) {
+                const isLinkCell =
+                  (rr === cellA.r && cc === cellA.c) ||
+                  (rr === cellB.r && cc === cellB.c);
+                if (isLinkCell) continue;
+                if (pencils[rr][cc].has(d)) {
+                  eliminations.push({ r: rr, c: cc, num: d });
+                  changed = true;
+                }
+              }
+            }
+          }
+
+          // --- Case 2: XY-Chain (non-cycle) ---
+          const cvc = commonVisibleCells([start.r, start.c], [r, c]);
+          for (const [rr, cc] of cvc) {
+            const isInChain = newChain.some((p) => p.r === rr && p.c === cc);
+            if (isInChain) continue;
+            if (pencils[rr][cc].has(startCandidate)) {
+              eliminations.push({ r: rr, c: cc, num: startCandidate });
+              changed = true;
+            }
+          }
+
+          if (changed)
+            return { change: true, type: "remove", cells: eliminations };
+        }
+
+        if (newChain.length < maxLength)
+          dfs(newChain, endCandidate, newLinked, startCandidate);
+      }
+    };
+
+    // --- Main search loop ---
+    for (const startCell of bivalueCells) {
+      const { r, c, pair } = startCell;
+      for (const startCandidate of pair) {
+        dfs([{ r, c }], startCandidate, [], startCandidate);
+        if (changed)
+          return { change: true, type: "remove", cells: eliminations };
+      }
+    }
+
+    return { change: false, type: null, cells: [] };
+  },
+
+  sueDeCoq: (board, pencils) => {
+    const bitFor = (d) => 1 << (d - 1);
+    const maskFromSet = (s) => {
+      let m = 0;
+      for (const v of s) m |= bitFor(v);
+      return m;
+    };
+    const bitCount = (m) => {
+      let cnt = 0;
+      while (m) {
+        m &= m - 1;
+        cnt++;
+      }
+      return cnt;
+    };
+
+    const combinations = (arr, k) => {
+      const res = [];
+      const comb = Array(k);
+      const dfs = (start, depth) => {
+        if (depth === k) {
+          res.push(comb.slice());
+          return;
+        }
+        for (let i = start; i <= arr.length - (k - depth); i++) {
+          comb[depth] = arr[i];
+          dfs(i + 1, depth + 1);
+        }
+      };
+      if (k <= arr.length) dfs(0, 0);
+      return res;
+    };
+
+    const findAlses = (cells, minSize = 1, maxSize = 8, extraCandSize = 1) => {
+      const alses = [];
+      if (!cells || !cells.length) return alses;
+      for (let size = minSize; size <= cells.length; size++) {
+        if (size > maxSize) continue;
+        for (const combo of combinations(cells, size)) {
+          let unionMask = 0;
+          for (const [r, c] of combo) unionMask |= maskFromSet(pencils[r][c]);
+          if (bitCount(unionMask) === size + extraCandSize) {
+            const posSet = new Set(combo.map(([r, c]) => `${r},${c}`));
+            alses.push({ positions: posSet, mask: unionMask });
+          }
+        }
+      }
+      return alses;
+    };
+
+    const eliminations = [];
+    const recordRemovalsFromMask = (cellList, positionsSet, mask) => {
+      for (const [r, c] of cellList) {
+        if (positionsSet.has(`${r},${c}`)) continue; // skip ALS cells
+        for (let d = 1; d <= 9; d++) {
+          const bit = bitFor(d);
+          if ((mask & bit) !== 0 && pencils[r][c].has(d)) {
+            eliminations.push({ r, c, num: d });
+          }
+        }
+      }
+    };
+
+    // ---------- Main loop ----------
+    for (let b = 0; b < 9; b++) {
+      const br = Math.floor(b / 3) * 3;
+      const bc = (b % 3) * 3;
+
+      for (let i = 0; i < 3; i++) {
+        // ---- Row-based intersection ----
+        {
+          const rowIdx = br + i;
+          const C_full = [];
+          for (let j = 0; j < 3; j++) {
+            const rr = rowIdx,
+              cc = bc + j;
+            if (board[rr][cc] === 0) C_full.push([rr, cc]);
+          }
+          if (C_full.length < 2) continue;
+
+          // All empty cells in row and box
+          const allRowCells = [];
+          for (let cc = 0; cc < 9; cc++)
+            if (board[rowIdx][cc] === 0) allRowCells.push([rowIdx, cc]);
+          const allBoxCells = [];
+          for (let rr = br; rr < br + 3; rr++)
+            for (let cc = bc; cc < bc + 3; cc++)
+              if (board[rr][cc] === 0) allBoxCells.push([rr, cc]);
+
+          // --- Try all 2+ cell combinations of intersection C ---
+          for (let k = 2; k <= C_full.length; k++) {
+            for (const C of combinations(C_full, k)) {
+              const usedC = new Set(C.map(([r, c]) => `${r},${c}`));
+              const unusedC = C_full.filter(
+                ([r, c]) => !usedC.has(`${r},${c}`)
+              );
+
+              // Build pools excluding used C, including unused intersection cells
+              const line_pool = allRowCells.filter(
+                ([r, c]) => !usedC.has(`${r},${c}`)
+              );
+              const box_pool = allBoxCells.filter(
+                ([r, c]) => !usedC.has(`${r},${c}`)
+              );
+
+              // --- Process this intersection subset ---
+              let V_mask = 0;
+              for (const [r, c] of C) V_mask |= maskFromSet(pencils[r][c]);
+              if (bitCount(V_mask) < C.length + 2) continue;
+
+              const line_alses = findAlses(line_pool, 1, 8, 1);
+              const box_alses = findAlses(box_pool, 1, 8, 1);
+              if (!line_alses.length || !box_alses.length) continue;
+
+              for (const A of line_alses) {
+                for (const B of box_alses) {
+                  // Disjointness check
+                  let overlap = false;
+                  for (const p of A.positions)
+                    if (B.positions.has(p)) {
+                      overlap = true;
+                      break;
+                    }
+                  if (overlap) continue;
+
+                  const D_mask = A.mask;
+                  const E_mask = B.mask;
+                  const remaining_V = V_mask & ~(D_mask | E_mask);
+
+                  if (bitCount(remaining_V) === C.length - 2) {
+                    recordRemovalsFromMask(line_pool, A.positions, D_mask);
+                    recordRemovalsFromMask(box_pool, B.positions, E_mask);
+                    if (remaining_V > 0) {
+                      recordRemovalsFromMask(
+                        line_pool,
+                        A.positions,
+                        remaining_V
+                      );
+                      recordRemovalsFromMask(
+                        box_pool,
+                        B.positions,
+                        remaining_V
+                      );
+                    }
+                    if (eliminations.length > 0)
+                      return {
+                        change: true,
+                        type: "remove",
+                        cells: eliminations,
+                      };
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // ---- Column-based intersection ----
+        {
+          const colIdx = bc + i;
+          const C_full = [];
+          for (let j = 0; j < 3; j++) {
+            const rr = br + j,
+              cc = colIdx;
+            if (board[rr][cc] === 0) C_full.push([rr, cc]);
+          }
+          if (C_full.length < 2) continue;
+
+          const allColCells = [];
+          for (let rr = 0; rr < 9; rr++)
+            if (board[rr][colIdx] === 0) allColCells.push([rr, colIdx]);
+          const allBoxCells = [];
+          for (let rr = br; rr < br + 3; rr++)
+            for (let cc = bc; cc < bc + 3; cc++)
+              if (board[rr][cc] === 0) allBoxCells.push([rr, cc]);
+
+          for (let k = 2; k <= C_full.length; k++) {
+            for (const C of combinations(C_full, k)) {
+              const usedC = new Set(C.map(([r, c]) => `${r},${c}`));
+              const unusedC = C_full.filter(
+                ([r, c]) => !usedC.has(`${r},${c}`)
+              );
+
+              const line_pool = allColCells.filter(
+                ([r, c]) => !usedC.has(`${r},${c}`)
+              );
+              const box_pool = allBoxCells.filter(
+                ([r, c]) => !usedC.has(`${r},${c}`)
+              );
+
+              let V_mask = 0;
+              for (const [r, c] of C) V_mask |= maskFromSet(pencils[r][c]);
+              if (bitCount(V_mask) < C.length + 2) continue;
+
+              const line_alses = findAlses(line_pool, 1, 8, 1);
+              const box_alses = findAlses(box_pool, 1, 8, 1);
+              if (!line_alses.length || !box_alses.length) continue;
+
+              for (const A of line_alses) {
+                for (const B of box_alses) {
+                  let overlap = false;
+                  for (const p of A.positions)
+                    if (B.positions.has(p)) {
+                      overlap = true;
+                      break;
+                    }
+                  if (overlap) continue;
+
+                  const D_mask = A.mask;
+                  const E_mask = B.mask;
+                  const remaining_V = V_mask & ~(D_mask | E_mask);
+
+                  if (bitCount(remaining_V) === C.length - 2) {
+                    recordRemovalsFromMask(line_pool, A.positions, D_mask);
+                    recordRemovalsFromMask(box_pool, B.positions, E_mask);
+                    if (remaining_V > 0) {
+                      recordRemovalsFromMask(
+                        line_pool,
+                        A.positions,
+                        remaining_V
+                      );
+                      recordRemovalsFromMask(
+                        box_pool,
+                        B.positions,
+                        remaining_V
+                      );
+                    }
+                    if (eliminations.length > 0)
+                      return {
+                        change: true,
+                        type: "remove",
+                        cells: eliminations,
+                      };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return { change: false, type: null, cells: [] };
+  },
+
+  wxyzWing: (board, pencils) => {
+    const sees = techniques._sees;
+    const combGen = techniques.combinations;
+    const eliminationsSet = new Set(); // to deduplicate
+    const eliminations = [];
+
+    const recordElim = (r, c, num) => {
+      const key = JSON.stringify([r, c, num]);
+      if (!eliminationsSet.has(key)) {
+        eliminationsSet.add(key);
+        eliminations.push({ r, c, num });
+      }
+    };
+
+    // gather bivalue cells: [ [r,c], Set ]
+    const bivalueCells = [];
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (pencils[r][c].size === 2) {
+          bivalueCells.push([[r, c], new Set([...pencils[r][c]])]);
+        }
+      }
+    }
+
+    // build units: rows, cols, boxes
+    const units = [];
+    for (let r = 0; r < 9; r++)
+      units.push(Array.from({ length: 9 }, (_, i) => [r, i]));
+    for (let c = 0; c < 9; c++)
+      units.push(Array.from({ length: 9 }, (_, i) => [i, c]));
+    for (let br = 0; br < 3; br++)
+      for (let bc = 0; bc < 3; bc++) {
+        const cells = [];
+        for (let rr = 0; rr < 3; rr++)
+          for (let cc = 0; cc < 3; cc++) {
+            cells.push([br * 3 + rr, bc * 3 + cc]);
+          }
+        units.push(cells);
+      }
+
+    // iterate units to find 3-cell ALS with exactly 4 distinct candidates
+    for (const unit of units) {
+      // unsolved cells in unit
+      const unsolved = unit.filter(([r, c]) => board[r][c] === 0);
+      if (unsolved.length < 4) continue;
+
+      // combinations of 3 cells from unsolved
+      for (const triple of combGen(unsolved, 3)) {
+        // union of candidates
+        const unionSet = new Set();
+        for (const [r, c] of triple)
+          for (const d of pencils[r][c]) unionSet.add(d);
+        if (unionSet.size !== 4) continue; // require WXYZ
+
+        const wxyz = [...unionSet]; // array of 4 digits
+
+        // For each bivalue cell
+        for (const [bcoord, bset] of bivalueCells) {
+          const [br, bc] = bcoord;
+
+          // skip if bivalue is part of ALS
+          if (triple.some(([ar, ac]) => ar === br && ac === bc)) continue;
+
+          // bivalue must be subset of ALS candidates
+          let subset = true;
+          for (const v of bset)
+            if (!unionSet.has(v)) {
+              subset = false;
+              break;
+            }
+          if (!subset) continue;
+
+          // get seen_count
+          const seenCount = triple.reduce(
+            (acc, cell) => acc + (sees(bcoord, cell) ? 1 : 0),
+            0
+          );
+          if (!(seenCount >= 1 && seenCount < 3)) continue; // must see at least one but not all 3
+
+          // For each orientation of bivalue: pick x as one candidate, z the other
+          const bArr = [...bset];
+          for (let idx = 0; idx < 2; idx++) {
+            const x = bArr[idx];
+            const z = bArr[1 - idx];
+
+            // ALS cells that contain x and z
+            const als_with_x = triple.filter(([r, c]) => pencils[r][c].has(x));
+            const als_with_z = triple.filter(([r, c]) => pencils[r][c].has(z));
+
+            // Condition 3: bivalue must see all ALS cells that contain X
+            const biv_sees_all_x = als_with_x.every((cell) =>
+              sees(bcoord, cell)
+            );
+            if (!biv_sees_all_x) continue;
+
+            // Determine possible eliminations:
+            // Normal case: remove z from any cell that sees bivalue AND all ALS cells that contain z
+            for (let r = 0; r < 9; r++) {
+              for (let c = 0; c < 9; c++) {
+                const target = [r, c];
+                // skip pattern cells
+                if (
+                  (r === br && c === bc) ||
+                  triple.some(([ar, ac]) => ar === r && ac === c)
+                )
+                  continue;
+                if (!pencils[r][c].has(z)) continue;
+
+                const seesBiv = sees(target, bcoord);
+                const seesAllZ =
+                  als_with_z.length === 0
+                    ? false
+                    : als_with_z.every((cell) => sees(target, cell));
+                if (seesBiv && seesAllZ) {
+                  recordElim(r, c, z);
+                }
+              }
+            }
+
+            // Doubly-linked case: if bivalue sees all ALS cells that contain Z as well (so it sees all ALS-with-x and all ALS-with-z)
+            const biv_sees_all_z = als_with_z.every((cell) =>
+              sees(bcoord, cell)
+            );
+            if (biv_sees_all_z) {
+              // For each digit in {x, z} : remove that digit from cells that see bivalue AND all ALS cells that contain that digit.
+              for (const digit of [x, z]) {
+                const als_with_d = triple.filter(([r, c]) =>
+                  pencils[r][c].has(digit)
+                );
+                if (als_with_d.length === 0) continue;
+                for (let r = 0; r < 9; r++) {
+                  for (let c = 0; c < 9; c++) {
+                    const target = [r, c];
+                    if (
+                      (r === br && c === bc) ||
+                      triple.some(([ar, ac]) => ar === r && ac === c)
+                    )
+                      continue;
+                    if (!pencils[r][c].has(digit)) continue;
+                    const seesBiv = sees(target, bcoord);
+                    const seesAll = als_with_d.every((cell) =>
+                      sees(target, cell)
+                    );
+                    if (seesBiv && seesAll) recordElim(r, c, digit);
+                  }
+                }
+              }
+
+              // For the remaining two digits (W and Y), remove them from any cell that sees ALL ALS cells that contain that digit.
+              const otherDigits = wxyz.filter((d) => d !== x && d !== z);
+              for (const digit of otherDigits) {
+                const als_with_d = triple.filter(([r, c]) =>
+                  pencils[r][c].has(digit)
+                );
+                if (als_with_d.length === 0) continue;
+                for (let r = 0; r < 9; r++) {
+                  for (let c = 0; c < 9; c++) {
+                    const target = [r, c];
+                    if (
+                      (r === br && c === bc) ||
+                      triple.some(([ar, ac]) => ar === r && ac === c)
+                    )
+                      continue;
+                    if (!pencils[r][c].has(digit)) continue;
+                    const seesAll = als_with_d.every((cell) =>
+                      sees(target, cell)
+                    );
+                    if (seesAll) recordElim(r, c, digit);
+                  }
+                }
+              }
+            }
+
+            // If any eliminations collected, return early per original behavior
+            if (eliminations.length > 0) {
+              return { change: true, type: "remove", cells: eliminations };
+            }
+          } // end iterate bivalue orientation
+        } // end bivalue loop
+      } // end triple combos
+    } // end units
+
+    return { change: false, type: null, cells: [] };
+  },
+  firework: (board, pencils) => {
+    const bitFor = (d) => 1 << (d - 1);
+    const maskFromSet = (s) => {
+      let m = 0;
+      for (const v of s) m |= bitFor(v);
+      return m;
+    };
+    const bitCount = (m) => {
+      let c = 0;
+      while (m) {
+        m &= m - 1;
+        c++;
+      }
+      return c;
+    };
+    const maskToDigits = (mask) => {
+      const out = [];
+      for (let d = 1; d <= 9; d++) if (mask & bitFor(d)) out.push(d);
+      return out;
+    };
+    const boxIndex = (r, c) => Math.floor(r / 3) * 3 + Math.floor(c / 3);
+    const boxStart = (b) => [Math.floor(b / 3) * 3, (b % 3) * 3];
+
+    const eliminations = [];
+
+    // Helper: record elimination
+    const restrictMask = (r, c, mask) => {
+      const before = maskFromSet(pencils[r][c]);
+      const after = before & mask;
+      if (after !== before) {
+        // const beforeDigits = maskToDigits(before);
+        // const afterDigits = maskToDigits(after);
+        // console.log(
+        //   `Fireworks restrict r${r + 1}c${
+        //     c + 1
+        //   }: {${beforeDigits}} -> {${afterDigits}}`
+        // );
+        for (let d = 1; d <= 9; d++) {
+          const bit = bitFor(d);
+          if (before & bit && !(after & bit))
+            eliminations.push({ r, c, num: d });
+        }
+      }
+    };
+
+    const removeMask = (r, c, mask) => {
+      const before = maskFromSet(pencils[r][c]);
+      const after = before & ~mask;
+      if (after !== before && before & mask) {
+        for (let d = 1; d <= 9; d++) {
+          const bit = bitFor(d);
+          if (mask & bit && before & bit) eliminations.push({ r, c, num: d });
+        }
+      }
+    };
+
+    for (let rIdx = 0; rIdx < 9; rIdx++) {
+      const rowCells = [];
+      for (let c = 0; c < 9; c++)
+        if (board[rIdx][c] === 0) rowCells.push([rIdx, c]);
+      if (rowCells.length < 4) continue;
+
+      const boxesInRow = Array.from({ length: 9 }, () => []);
+      for (const [r, c] of rowCells) boxesInRow[boxIndex(r, c)].push([r, c]);
+
+      for (let boxIdx = 0; boxIdx < 9; boxIdx++) {
+        const boxCells = boxesInRow[boxIdx];
+        if (boxCells.length < 3) continue;
+
+        const extraRowCells = rowCells.filter(
+          ([r, c]) => !boxCells.some(([br, bc]) => br === r && bc === c)
+        );
+        if (extraRowCells.length === 0) continue;
+
+        const bsz = boxCells.length;
+        for (let i = 0; i < bsz; i++)
+          for (let j = i + 1; j < bsz; j++)
+            for (let k = j + 1; k < bsz; k++) {
+              const boxTrip = [boxCells[i], boxCells[j], boxCells[k]];
+              for (const rowExtra of extraRowCells) {
+                const rowAhsCells = [...boxTrip, rowExtra];
+
+                let unionMask = 0;
+                for (const [r, c] of rowAhsCells)
+                  unionMask |= maskFromSet(pencils[r][c]);
+                if (bitCount(unionMask) < 3) continue;
+
+                const digits = maskToDigits(unionMask);
+                if (digits.length < 3) continue;
+
+                for (let a = 0; a < digits.length; a++)
+                  for (let b = a + 1; b < digits.length; b++)
+                    for (let c = b + 1; c < digits.length; c++) {
+                      const candMask =
+                        bitFor(digits[a]) |
+                        bitFor(digits[b]) |
+                        bitFor(digits[c]);
+
+                      // Row AHS check
+                      let isRowAhs = true;
+                      for (const [r, c] of rowCells) {
+                        const inAhs = rowAhsCells.some(
+                          ([rr, cc]) => rr === r && cc === c
+                        );
+                        if (!inAhs && maskFromSet(pencils[r][c]) & candMask) {
+                          isRowAhs = false;
+                          break;
+                        }
+                      }
+                      if (!isRowAhs) continue;
+
+                      for (let bit = candMask; bit; bit &= bit - 1) {
+                        const vbit = bit & -bit;
+                        const found = rowAhsCells.some(
+                          ([r, c]) => maskFromSet(pencils[r][c]) & vbit
+                        );
+                        if (!found) {
+                          isRowAhs = false;
+                          break;
+                        }
+                      }
+                      if (!isRowAhs) continue;
+
+                      for (const [r, c] of rowAhsCells)
+                        if ((maskFromSet(pencils[r][c]) & candMask) === 0) {
+                          isRowAhs = false;
+                          break;
+                        }
+                      if (!isRowAhs) continue;
+
+                      const extraRowCol = rowExtra[1];
+                      const boxColStart = (boxIdx % 3) * 3;
+                      for (
+                        let cIdx = boxColStart;
+                        cIdx < boxColStart + 3;
+                        cIdx++
+                      ) {
+                        const colCells = [];
+                        for (let rr = 0; rr < 9; rr++)
+                          if (board[rr][cIdx] === 0) colCells.push([rr, cIdx]);
+                        if (colCells.length < 4) continue;
+
+                        const boxColInt = colCells.filter(
+                          ([rr, cc]) => boxIndex(rr, cc) === boxIdx
+                        );
+                        if (boxColInt.length < 3) continue;
+
+                        const extraColCells = colCells.filter(
+                          ([rr, cc]) =>
+                            !boxColInt.some(
+                              ([br, bc]) => br === rr && bc === cc
+                            )
+                        );
+                        if (!extraColCells.length) continue;
+
+                        for (let ii = 0; ii < boxColInt.length; ii++)
+                          for (let jj = ii + 1; jj < boxColInt.length; jj++)
+                            for (let kk = jj + 1; kk < boxColInt.length; kk++) {
+                              const colTrip = [
+                                boxColInt[ii],
+                                boxColInt[jj],
+                                boxColInt[kk],
+                              ];
+                              for (const colExtra of extraColCells) {
+                                const colAhsCells = [...colTrip, colExtra];
+
+                                let isColAhs = true;
+                                for (const [r, c] of colCells) {
+                                  const inAhs = colAhsCells.some(
+                                    ([rr, cc]) => rr === r && cc === c
+                                  );
+                                  if (
+                                    !inAhs &&
+                                    maskFromSet(pencils[r][c]) & candMask
+                                  ) {
+                                    isColAhs = false;
+                                    break;
+                                  }
+                                }
+                                if (!isColAhs) continue;
+
+                                for (let bit = candMask; bit; bit &= bit - 1) {
+                                  const vbit = bit & -bit;
+                                  const found = colAhsCells.some(
+                                    ([r, c]) =>
+                                      maskFromSet(pencils[r][c]) & vbit
+                                  );
+                                  if (!found) {
+                                    isColAhs = false;
+                                    break;
+                                  }
+                                }
+                                if (!isColAhs) continue;
+
+                                for (const [r, c] of colAhsCells)
+                                  if (
+                                    (maskFromSet(pencils[r][c]) & candMask) ===
+                                    0
+                                  ) {
+                                    isColAhs = false;
+                                    break;
+                                  }
+                                if (!isColAhs) continue;
+
+                                // Found row & col AHS match: Firework pattern
+                                const [extraRowR, extraRowC] = rowExtra;
+                                const [extraColR, extraColC] = colExtra;
+                                let intersect = null,
+                                  nonjunction = null;
+
+                                if (boxIndex(extraColR, extraRowC) === boxIdx) {
+                                  intersect = [extraColR, extraRowC];
+                                  nonjunction = [extraRowR, extraColC];
+                                } else if (
+                                  boxIndex(extraRowR, extraColC) === boxIdx
+                                ) {
+                                  intersect = [extraRowR, extraColC];
+                                  nonjunction = [extraColR, extraRowC];
+                                } else continue;
+
+                                restrictMask(extraRowR, extraRowC, candMask);
+                                restrictMask(extraColR, extraColC, candMask);
+                                restrictMask(
+                                  intersect[0],
+                                  intersect[1],
+                                  candMask
+                                );
+
+                                const [br, bc] = boxStart(boxIdx);
+                                for (let rr = br; rr < br + 3; rr++) {
+                                  if (rr === rIdx) continue;
+                                  for (let cc = bc; cc < bc + 3; cc++) {
+                                    if (cc === cIdx) continue;
+                                    removeMask(rr, cc, candMask);
+                                  }
+                                }
+
+                                if (eliminations.length)
+                                  return {
+                                    change: true,
+                                    type: "remove",
+                                    cells: eliminations,
+                                  };
+                              }
+                            }
+                      }
+                    }
+              }
+            }
+      }
+    }
+
+    return { change: false, type: null, cells: [] };
+  },
+
   // --- End of newly added techniques ---
 };

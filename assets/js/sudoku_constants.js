@@ -62,7 +62,7 @@ const levelTips = [
   "Lv. 3: Quads, X-Wing, XY-Wing, Remote Pair",
   "Lv. 4: Unique Rectangles, BUG+1, XYZ-Wing, W-Wing, Swordfish, Jellyfish",
   "Lv. 5: Hidden Rectangles, BUG Lite (6 cells), (Grouped) Turbot-Fishes",
-  "Lv. 6: Finned Fishes, X-Chain, Firework, WXYZ-Wing, Sue de Coq",
+  "Lv. 6: Finned Fishes, X-Chain, XY-Chain, Firework, WXYZ-Wing, Sue de Coq",
   "Lv. 7: Grouped X-Chain, 3D Medusa, Alternating Inference Chain",
   "Lv. 8: Grouped AIC, Pair Subset Exclusion, ALS-XZ",
   "Lv. 9: Triple Sub. Excl., ALS-XY/W-Wing, Finned Franken/Mutant Swordfish",
