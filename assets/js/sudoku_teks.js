@@ -1,30 +1,30 @@
 const techniques = {
-  // --- New Helper Functions ---
   _getBoxIndex: (r, c) => Math.floor(r / 3) * 3 + Math.floor(c / 3),
+
+  _cellToId: (r, c) => r * 9 + c,
+  _idToCell: (id) => [Math.floor(id / 9), id % 9],
 
   _sees: (cell1, cell2) => {
     const [r1, c1] = cell1;
     const [r2, c2] = cell2;
-    if (r1 == r2 && c1 == c2) return false;
-    else if (r1 === r2 || c1 === c2) return true;
+    if (r1 === r2 && c1 === c2) return false;
+    if (r1 === r2 || c1 === c2) return true;
     return techniques._getBoxIndex(r1, c1) === techniques._getBoxIndex(r2, c2);
   },
 
   _commonVisibleCells: (cell1, cell2) => {
+    const id1 = techniques._cellToId(cell1[0], cell1[1]);
+    const id2 = techniques._cellToId(cell2[0], cell2[1]);
+    const peers1 = PEER_MAP[id1];
+    const peers2 = PEER_MAP[id2];
     const common = [];
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        if (
-          techniques._sees([r, c], cell1) &&
-          techniques._sees([r, c], cell2)
-        ) {
-          common.push([r, c]);
-        }
+    for (const peerId of peers1) {
+      if (peers2.has(peerId)) {
+        common.push(techniques._idToCell(peerId));
       }
     }
     return common;
   },
-  // --- End of New Helpers ---
 
   combinations: function* (arr, size) {
     if (size > arr.length) return;
@@ -93,6 +93,152 @@ const techniques = {
         }
       }
     }
+    return { change: false };
+  },
+
+  lockedSubset: (board, pencils, size) => {
+    // This technique finds subsets of candidates that are locked within the
+    // intersection of a box and a line (row or column).
+    // It's a combination of "Pointing" (eliminating from the line outside the box)
+    // and "Naked Subset" (eliminating from the box outside the line).
+
+    // Iterate through each of the 9 boxes
+    for (let b = 0; b < 9; b++) {
+      const box_r_start = Math.floor(b / 3) * 3;
+      const box_c_start = (b % 3) * 3;
+
+      // --- Part 1: Check Intersections with ROWS ---
+      for (
+        let r_intersect = box_r_start;
+        r_intersect < box_r_start + 3;
+        r_intersect++
+      ) {
+        // Find potential cells for a subset within this intersection
+        const potential_cells = [];
+        for (let c = box_c_start; c < box_c_start + 3; c++) {
+          if (
+            board[r_intersect][c] === 0 &&
+            pencils[r_intersect][c].size <= size &&
+            pencils[r_intersect][c].size > 1
+          ) {
+            potential_cells.push([r_intersect, c]);
+          }
+        }
+        if (potential_cells.length < size) continue;
+
+        // Generate combinations of 'size' cells from these potentials
+        for (const combo of techniques.combinations(potential_cells, size)) {
+          const union = new Set();
+          combo.forEach(([r, c]) => {
+            pencils[r][c].forEach((num) => union.add(num));
+          });
+
+          // If the union of candidates has the same size as the number of cells, we've found a subset
+          if (union.size === size) {
+            const removals = [];
+
+            // A) Eliminate from other cells in the ROW (outside this box). This is a "Pointing" move.
+            for (let c_peer = 0; c_peer < 9; c_peer++) {
+              if (c_peer >= box_c_start && c_peer < box_c_start + 3) continue; // Skip cells inside the box
+              if (board[r_intersect][c_peer] === 0) {
+                for (const num of union) {
+                  if (pencils[r_intersect][c_peer].has(num)) {
+                    removals.push({ r: r_intersect, c: c_peer, num });
+                  }
+                }
+              }
+            }
+
+            // B) Eliminate from other cells in the BOX (outside this row). This is a "Naked Subset" move within the box.
+            for (let r_peer = box_r_start; r_peer < box_r_start + 3; r_peer++) {
+              if (r_peer === r_intersect) continue; // Skip the intersection row itself
+              for (
+                let c_peer = box_c_start;
+                c_peer < box_c_start + 3;
+                c_peer++
+              ) {
+                if (board[r_peer][c_peer] === 0) {
+                  for (const num of union) {
+                    if (pencils[r_peer][c_peer].has(num)) {
+                      removals.push({ r: r_peer, c: c_peer, num });
+                    }
+                  }
+                }
+              }
+            }
+
+            if (removals.length > 0) {
+              return { change: true, type: "remove", cells: removals };
+            }
+          }
+        }
+      }
+
+      // --- Part 2: Check Intersections with COLUMNS ---
+      for (
+        let c_intersect = box_c_start;
+        c_intersect < box_c_start + 3;
+        c_intersect++
+      ) {
+        const potential_cells = [];
+        for (let r = box_r_start; r < box_r_start + 3; r++) {
+          if (
+            board[r][c_intersect] === 0 &&
+            pencils[r][c_intersect].size <= size &&
+            pencils[r][c_intersect].size > 1
+          ) {
+            potential_cells.push([r, c_intersect]);
+          }
+        }
+        if (potential_cells.length < size) continue;
+
+        for (const combo of techniques.combinations(potential_cells, size)) {
+          const union = new Set();
+          combo.forEach(([r, c]) => {
+            pencils[r][c].forEach((num) => union.add(num));
+          });
+
+          if (union.size === size) {
+            const removals = [];
+
+            // A) Eliminate from other cells in the COLUMN (outside this box). This is a "Pointing" move.
+            for (let r_peer = 0; r_peer < 9; r_peer++) {
+              if (r_peer >= box_r_start && r_peer < box_r_start + 3) continue; // Skip cells inside the box
+              if (board[r_peer][c_intersect] === 0) {
+                for (const num of union) {
+                  if (pencils[r_peer][c_intersect].has(num)) {
+                    removals.push({ r: r_peer, c: c_intersect, num });
+                  }
+                }
+              }
+            }
+
+            // B) Eliminate from other cells in the BOX (outside this column). This is a "Naked Subset" move within the box.
+            for (let r_peer = box_r_start; r_peer < box_r_start + 3; r_peer++) {
+              for (
+                let c_peer = box_c_start;
+                c_peer < box_c_start + 3;
+                c_peer++
+              ) {
+                if (c_peer === c_intersect) continue; // Skip the intersection column itself
+                if (board[r_peer][c_peer] === 0) {
+                  for (const num of union) {
+                    if (pencils[r_peer][c_peer].has(num)) {
+                      removals.push({ r: r_peer, c: c_peer, num });
+                    }
+                  }
+                }
+              }
+            }
+
+            if (removals.length > 0) {
+              return { change: true, type: "remove", cells: removals };
+            }
+          }
+        }
+      }
+    }
+
     return { change: false };
   },
 
@@ -241,37 +387,46 @@ const techniques = {
   },
 
   hiddenSubset: (board, pencils, size) => {
-    const units = [];
-    for (let i = 0; i < 9; i++) {
-      units.push(techniques._getUnitCells("row", i));
-      units.push(techniques._getUnitCells("col", i));
-      units.push(techniques._getUnitCells("box", i));
-    }
-    for (const unit of units) {
+    for (const unit of ALL_UNITS) {
       const emptyCells = unit.filter(([r, c]) => board[r][c] === 0);
       if (emptyCells.length < 2 * size + 1) continue;
-      const unitCandidates = new Set();
-      emptyCells.forEach(([r, c]) =>
-        pencils[r][c].forEach((p) => unitCandidates.add(p))
-      );
-      // if (unitCandidates.size < size) continue;
 
-      for (const numGroup of techniques.combinations(
-        [...unitCandidates],
-        size
-      )) {
-        const numGroupSet = new Set(numGroup);
-        const cellsWithNums = emptyCells.filter(
-          ([r, c]) => ![...numGroupSet].every((n) => !pencils[r][c].has(n))
-        );
-        if (cellsWithNums.length === size) {
+      const candMap = new Map();
+      for (const cell of emptyCells) {
+        for (const num of pencils[cell[0]][cell[1]]) {
+          if (!candMap.has(num)) candMap.set(num, []);
+          candMap.get(num).push(cell);
+        }
+      }
+
+      const availableCands = [...candMap.keys()];
+      if (availableCands.length <= size) continue;
+
+      for (const numGroup of techniques.combinations(availableCands, size)) {
+        const cellUnion = new Set();
+        numGroup.forEach((num) => {
+          candMap
+            .get(num)
+            .forEach((cell) =>
+              cellUnion.add(techniques._cellToId(cell[0], cell[1]))
+            );
+        });
+
+        if (cellUnion.size === size) {
           const removals = [];
-          for (const [r, c] of cellsWithNums) {
-            for (const p of pencils[r][c])
-              if (!numGroupSet.has(p)) removals.push({ r, c, num: p });
+          const numGroupSet = new Set(numGroup);
+          const cells = [...cellUnion].map((id) => techniques._idToCell(id));
+
+          for (const [r, c] of cells) {
+            for (const p of pencils[r][c]) {
+              if (!numGroupSet.has(p)) {
+                removals.push({ r, c, num: p });
+              }
+            }
           }
-          if (removals.length > 0)
+          if (removals.length > 0) {
             return { change: true, type: "remove", cells: removals };
+          }
         }
       }
     }
@@ -847,34 +1002,22 @@ const techniques = {
 
         for (const linkPair of techniques.combinations(strongLinks, 2)) {
           const [link1, link2] = linkPair;
-          let p1_coords, p2_coords, baseLoc;
 
-          if (link1.locs[0] === link2.locs[0]) {
-            baseLoc = link1.locs[0];
-            p1_coords = { line: link1.line, loc: link1.locs[1] };
-            p2_coords = { line: link2.line, loc: link2.locs[1] };
-          } else if (link1.locs[1] === link2.locs[1]) {
-            baseLoc = link1.locs[1];
-            p1_coords = { line: link1.line, loc: link1.locs[0] };
-            p2_coords = { line: link2.line, loc: link2.locs[0] };
-          } else if (link1.locs[0] === link2.locs[1]) {
-            baseLoc = link1.locs[0];
-            p1_coords = { line: link1.line, loc: link1.locs[1] };
-            p2_coords = { line: link2.line, loc: link2.locs[0] };
-          } else if (link1.locs[1] === link2.locs[0]) {
-            baseLoc = link1.locs[1];
-            p1_coords = { line: link1.line, loc: link1.locs[0] };
-            p2_coords = { line: link2.line, loc: link2.locs[1] };
-          } else {
-            continue;
-          }
+          // Find the common location (the base) and the two different locations (the peaks)
+          const sharedLocs = new Set(link1.locs);
+          const baseLoc = link2.locs.find((loc) => sharedLocs.has(loc));
+
+          if (baseLoc === undefined) continue; // No common location, not a skyscraper
+
+          const peak1Loc = link1.locs.find((loc) => loc !== baseLoc);
+          const peak2Loc = link2.locs.find((loc) => loc !== baseLoc);
 
           const p1 = isRowBased
-            ? [p1_coords.line, p1_coords.loc]
-            : [p1_coords.loc, p1_coords.line];
+            ? [link1.line, peak1Loc]
+            : [peak1Loc, link1.line];
           const p2 = isRowBased
-            ? [p2_coords.line, p2_coords.loc]
-            : [p2_coords.loc, p2_coords.line];
+            ? [link2.line, peak2Loc]
+            : [peak2Loc, link2.line];
 
           const removals = [];
           for (const [r, c] of techniques._commonVisibleCells(p1, p2)) {
@@ -883,28 +1026,16 @@ const techniques = {
             }
           }
           if (removals.length > 0) {
-            // --- ADDED: Define pattern cells for logging ---
-            const base1 = isRowBased
-              ? [link1.line, baseLoc]
-              : [baseLoc, link1.line];
-            const base2 = isRowBased
-              ? [link2.line, baseLoc]
-              : [baseLoc, link2.line];
-            const patternCells = [p1, p2, base1, base2];
-            return {
-              change: true,
-              type: "remove",
-              cells: removals,
-            };
+            return { change: true, type: "remove", cells: removals };
           }
         }
       }
       return { change: false };
     };
 
-    let result = skyscraperLogic(true);
+    let result = skyscraperLogic(true); // Row-based
     if (result.change) return result;
-    result = skyscraperLogic(false);
+    result = skyscraperLogic(false); // Column-based
     return result;
   },
 
@@ -2919,6 +3050,144 @@ const techniques = {
     }
     return { change: false };
   },
+  simpleColoring: (board, pencils) => {
+    // This technique works on a single digit at a time. It finds "strong links"
+    // (pairs of cells that are the only two in a unit with that candidate) and
+    // builds chains. It then assigns alternating "colors" to the cells in a chain.
+    for (let d = 1; d <= 9; d++) {
+      // 1. Build a graph of strong links for the current digit 'd'.
+      const graph = new Map();
+      const cellsWithDigit = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].has(d)) {
+            cellsWithDigit.push([r, c]);
+          }
+        }
+      }
+
+      for (let i = 0; i < cellsWithDigit.length; i++) {
+        for (let j = i + 1; j < cellsWithDigit.length; j++) {
+          const cell1 = cellsWithDigit[i];
+          const cell2 = cellsWithDigit[j];
+          const [r1, c1] = cell1;
+          const [r2, c2] = cell2;
+
+          let isStrongLink = false;
+          // Check for strong link in row, column, or box
+          if (r1 === r2) {
+            const unit = techniques._getUnitCells("row", r1);
+            if (unit.filter(([r, c]) => pencils[r][c].has(d)).length === 2)
+              isStrongLink = true;
+          }
+          if (!isStrongLink && c1 === c2) {
+            const unit = techniques._getUnitCells("col", c1);
+            if (unit.filter(([r, c]) => pencils[r][c].has(d)).length === 2)
+              isStrongLink = true;
+          }
+          if (
+            !isStrongLink &&
+            techniques._getBoxIndex(r1, c1) === techniques._getBoxIndex(r2, c2)
+          ) {
+            const unit = techniques._getUnitCells(
+              "box",
+              techniques._getBoxIndex(r1, c1)
+            );
+            if (unit.filter(([r, c]) => pencils[r][c].has(d)).length === 2)
+              isStrongLink = true;
+          }
+
+          if (isStrongLink) {
+            const key1 = JSON.stringify(cell1);
+            const key2 = JSON.stringify(cell2);
+            if (!graph.has(key1)) graph.set(key1, []);
+            if (!graph.has(key2)) graph.set(key2, []);
+            graph.get(key1).push(cell2);
+            graph.get(key2).push(cell1);
+          }
+        }
+      }
+
+      if (graph.size === 0) continue;
+
+      // 2. Traverse the graph, find connected components, and color them.
+      const visited = new Set();
+      for (const startNodeKey of graph.keys()) {
+        if (visited.has(startNodeKey)) continue;
+
+        const coloring = new Map();
+        const queue = [[JSON.parse(startNodeKey), 1]]; // [cell, color]
+
+        while (queue.length > 0) {
+          const [current, color] = queue.shift();
+          const currentKey = JSON.stringify(current);
+
+          if (coloring.has(currentKey)) continue;
+          coloring.set(currentKey, color);
+          visited.add(currentKey);
+
+          const neighbors = graph.get(currentKey) || [];
+          for (const neighbor of neighbors) {
+            queue.push([neighbor, 3 - color]); // Alternate color (1 or 2)
+          }
+        }
+
+        // 3. Apply coloring rules to find eliminations.
+        const color1Nodes = [];
+        const color2Nodes = [];
+        for (const [key, color] of coloring.entries()) {
+          if (color === 1) color1Nodes.push(JSON.parse(key));
+          else color2Nodes.push(JSON.parse(key));
+        }
+
+        // Rule 1: Contradiction - Two cells with the same color can't see each other.
+        // If they do, that color is invalid, and 'd' can be removed from all cells of that color.
+        for (const colorGroup of [color1Nodes, color2Nodes]) {
+          for (let i = 0; i < colorGroup.length; i++) {
+            for (let j = i + 1; j < colorGroup.length; j++) {
+              if (techniques._sees(colorGroup[i], colorGroup[j])) {
+                const removals = colorGroup.map(([r, c]) => ({ r, c, num: d }));
+                if (removals.length > 0)
+                  return { change: true, type: "remove", cells: removals };
+              }
+            }
+          }
+        }
+
+        // Rule 2: Elimination - If a cell with candidate 'd' sees both colors, remove 'd'.
+        const removals = [];
+        for (const [r, c] of cellsWithDigit) {
+          const key = JSON.stringify([r, c]);
+          if (coloring.has(key)) continue; // Skip cells that are part of the chain
+
+          let seesColor1 = false;
+          let seesColor2 = false;
+
+          for (const node of color1Nodes) {
+            if (techniques._sees([r, c], node)) {
+              seesColor1 = true;
+              break;
+            }
+          }
+          if (!seesColor1) continue;
+
+          for (const node of color2Nodes) {
+            if (techniques._sees([r, c], node)) {
+              seesColor2 = true;
+              break;
+            }
+          }
+
+          if (seesColor1 && seesColor2) {
+            removals.push({ r, c, num: d });
+          }
+        }
+        if (removals.length > 0)
+          return { change: true, type: "remove", cells: removals };
+      }
+    }
+    return { change: false };
+  },
   xChain: (board, pencils, maxLength = 10) => {
     const _inSameUnit = (a, b) =>
       a[0] === b[0] ||
@@ -3375,8 +3644,8 @@ const techniques = {
               for (const [r, c] of C) V_mask |= maskFromSet(pencils[r][c]);
               if (bitCount(V_mask) < C.length + 2) continue;
 
-              const line_alses = findAlses(line_pool, 1, 8, 1);
-              const box_alses = findAlses(box_pool, 1, 8, 1);
+              const line_alses = findAlses(line_pool, 1, 7, 1);
+              const box_alses = findAlses(box_pool, 1, 7, 1);
               if (!line_alses.length || !box_alses.length) continue;
 
               for (const A of line_alses) {

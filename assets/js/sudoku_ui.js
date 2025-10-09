@@ -25,6 +25,10 @@ const puzzleTimerEl = document.getElementById("puzzle-timer");
 const modeToggleButton = document.getElementById("mode-toggle-btn");
 const colorButton = modeSelector.querySelector('[data-mode="color"]');
 const difficultyLamp = document.getElementById("difficulty-lamp");
+const vagueHintBtn = document.getElementById("vague-hint-btn");
+
+let vagueHintMessage = "";
+let arePencilsHidden = false;
 
 // --- UI Update Functions ---
 
@@ -51,16 +55,16 @@ function updateButtonLabels() {
   }
 
   if (currentMode === "pencil") {
-    modeToggleButton.textContent = isMobile ? "Pen." : "Pencil";
+    modeToggleButton.textContent = isMobile ? "Pen." : "Pen.";
   } else {
-    modeToggleButton.textContent = isMobile ? "Num." : "Number (Z)";
+    modeToggleButton.textContent = isMobile ? "Num." : "Num. (Z)";
   }
 
   if (currentMode === "color") {
     if (coloringSubMode === "cell") {
       colorButton.textContent = isMobile ? "Color: Cell" : "Color: Cell";
     } else {
-      colorButton.textContent = isMobile ? "Color: Cand." : "Color: Candidate";
+      colorButton.textContent = isMobile ? "Color: Cand." : "Color: Cand.";
     }
   } else {
     colorButton.textContent = isMobile ? "Color" : "Color (X)";
@@ -70,12 +74,14 @@ function updateButtonLabels() {
   exptModeBtn.style.display = "inline-flex";
   const exptShortcut = isMobile ? "" : " (E)";
   exptModeBtn.textContent =
-    (isExperimentalMode ? "Expt. ON" : "Expt. OFF") + exptShortcut;
+    (isExperimentalMode ? "Expt!" : "Expt.") + exptShortcut;
   if (isExperimentalMode) {
     exptModeBtn.classList.add("active-green");
   } else {
     exptModeBtn.classList.remove("active-green");
   }
+
+  vagueHintBtn.textContent = isMobile ? "?" : "? (V)";
 }
 
 function addSudokuCoachLink(puzzleString) {
@@ -223,7 +229,7 @@ function renderBoard() {
     if (state.value !== 0) {
       content.textContent = state.value;
       content.classList.add(state.isGiven ? "given-value" : "user-value");
-    } else if (state.pencils.size > 0) {
+    } else if (!arePencilsHidden && state.pencils.size > 0) {
       const pencilGrid = document.createElement("div");
       pencilGrid.className = "pencil-grid";
       const orderA = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -398,9 +404,7 @@ function setupEventListeners() {
     const isMobile = window.innerWidth <= 550;
     if (currentMode === "color") {
       if (coloringSubMode === "cell") {
-        colorButton.textContent = isMobile
-          ? "Color: Cand.?"
-          : "Color: Candidate?";
+        colorButton.textContent = isMobile ? "Color: Cand?" : "Color: Cand?";
       } else {
         colorButton.textContent = isMobile ? "Color: Cell?" : "Color: Cell?";
       }
@@ -495,8 +499,26 @@ function setupEventListeners() {
     dateModal.classList.remove("flex");
     dateSelect.value = dateSelect.querySelector("option").value;
   });
+  vagueHintBtn.addEventListener("click", () => {
+    if (currentLampColor === "gray") {
+      showMessage("No hint available for an invalid puzzle.", "red");
+    } else if (currentLampColor === "black") {
+      showMessage("Hint unavailable: a wrong progress has been made.", "red");
+    } else if (vagueHintMessage) {
+      showMessage(`Vague Hint: ${vagueHintMessage}`, "green");
+    } else {
+      showMessage("Hint is only available until Level 6 techniques.", "orange");
+    }
+  });
   exptModeBtn.addEventListener("click", (e) => {
     e.stopPropagation();
+    if (arePencilsHidden && !isExperimentalMode) {
+      showMessage(
+        "Experimental mode is disabled while marks are hidden.",
+        "orange"
+      );
+      return;
+    }
     isExperimentalMode = !isExperimentalMode;
     updateButtonLabels();
     const isMobile = window.innerWidth <= 550;
@@ -518,6 +540,37 @@ function handleKeyPress(e) {
   const key = e.key;
   const key_lower = e.key.toLowerCase();
   const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+  if (isCtrlOrCmd && key_lower === "a") {
+    e.preventDefault();
+    arePencilsHidden = !arePencilsHidden;
+    if (arePencilsHidden) {
+      let message =
+        "Pencil marks hidden. (Press <span class='shortcut-highlight'>Ctrl+A</span> to make visible)";
+      // Force-switch from pencil to number mode if active
+      if (currentMode === "pencil") {
+        currentMode = "concrete";
+        message += " Switched to Number mode.";
+      }
+      // Force-switch from candidate to cell coloring if active
+      if (currentMode === "color" && coloringSubMode === "candidate") {
+        coloringSubMode = "cell";
+        message += " Switched to Cell coloring mode.";
+      }
+      // Force-disable experimental mode if active
+      if (isExperimentalMode) {
+        isExperimentalMode = false;
+        message += " Experimental mode disabled.";
+      }
+      showMessage(message, "gray");
+      updateControls();
+      updateButtonLabels();
+      renderBoard();
+    } else {
+      showMessage("Pencil marks are now visible.", "gray");
+      renderBoard();
+    }
+    return;
+  }
   if (isCtrlOrCmd && key_lower === "z") {
     e.preventDefault();
     undo();
@@ -596,7 +649,7 @@ function handleKeyPress(e) {
     }
     return;
   }
-  if (key === "Shift") {
+  if (!isCtrlOrCmd && key === "Shift") {
     highlightedDigit = null;
     highlightState = 0;
     onBoardUpdated();
@@ -649,11 +702,15 @@ function handleKeyPress(e) {
     }
     return;
   }
+  if (key_lower === "v") {
+    vagueHintBtn.click();
+    return;
+  }
   if (key_lower === "d") {
     formatToggleBtn.click();
     return;
   }
-  if (key_lower === "a") {
+  if (key_lower === "a" && !isCtrlOrCmd) {
     autoPencilBtn.click();
     return;
   }
@@ -662,6 +719,13 @@ function handleKeyPress(e) {
     return;
   }
   if (key_lower === "e" && !isCtrlOrCmd) {
+    if (arePencilsHidden) {
+      showMessage(
+        "Experimental mode is disabled while marks are hidden. (Press Ctrl+A to make visible)",
+        "orange"
+      );
+      return;
+    }
     exptModeBtn.click();
     return;
   }
@@ -738,6 +802,32 @@ function handleCellClick(e) {
 function handleModeChange(e) {
   const clickedButton = e.target.closest("button");
   if (!clickedButton) return;
+  if (clickedButton !== modeToggleButton && clickedButton !== colorButton) {
+    return;
+  }
+  if (clickedButton === modeToggleButton) {
+    const targetMode = currentMode === "concrete" ? "pencil" : "concrete";
+    if (targetMode === "pencil" && arePencilsHidden) {
+      showMessage(
+        "Pencil mode is disabled while marks are hidden. (Press Ctrl+A to make visible)",
+        "orange"
+      );
+      return;
+    }
+  }
+
+  if (clickedButton === colorButton) {
+    if (currentMode === "color") {
+      const targetSubMode = coloringSubMode === "cell" ? "candidate" : "cell";
+      if (targetSubMode === "candidate" && arePencilsHidden) {
+        showMessage(
+          "Candidate coloring is disabled while marks are hidden. (Press Ctrl+A to make visible)",
+          "orange"
+        );
+        return;
+      }
+    }
+  }
   const previousMode = currentMode;
   if (clickedButton === modeToggleButton) {
     currentMode =
@@ -1104,6 +1194,7 @@ function autoPencil() {
 
 async function loadPuzzle(puzzleString, puzzleData = null) {
   if (autoPencilTipTimer) clearTimeout(autoPencilTipTimer);
+  vagueHintMessage = "";
   isCustomPuzzle = puzzleData === null;
   if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
     showMessage("Error: Invalid puzzle string.", "red");
@@ -1179,6 +1270,7 @@ function clearUserBoard() {
       }
     }
   }
+  vagueHintMessage = "";
   isAutoPencilPending = false;
   isSolvePending = false;
   saveState();
@@ -1357,6 +1449,7 @@ function saveState() {
   history.push({
     boardState: cloneBoardState(boardState),
     lampColor: currentLampColor,
+    vagueHint: vagueHintMessage,
   });
   historyIndex++;
   updateUndoRedoButtons();
@@ -1391,6 +1484,7 @@ function undo() {
     historyIndex--;
     const historyEntry = history[historyIndex];
     boardState = cloneBoardState(historyEntry.boardState);
+    vagueHintMessage = historyEntry.vagueHint;
     updateLamp(historyEntry.lampColor);
     renderBoard();
     updateUndoRedoButtons();
@@ -1402,6 +1496,7 @@ function redo() {
     historyIndex++;
     const historyEntry = history[historyIndex];
     boardState = cloneBoardState(historyEntry.boardState);
+    vagueHintMessage = historyEntry.vagueHint;
     updateLamp(historyEntry.lampColor);
     renderBoard();
     updateUndoRedoButtons();
@@ -1417,6 +1512,7 @@ function updateUndoRedoButtons() {
 
 async function evaluateBoardDifficulty() {
   await new Promise(requestAnimationFrame);
+  vagueHintMessage = "";
   if (!initialPuzzleString || !solutionBoard) {
     updateLamp("gray");
     return;
@@ -1463,6 +1559,7 @@ async function evaluateBoardDifficulty() {
         virtualBoard[r][c] !== solutionBoard[r][c]
       ) {
         updateLamp("black");
+        vagueHintMessage = "";
         return;
       }
       if (
@@ -1471,12 +1568,14 @@ async function evaluateBoardDifficulty() {
         !startingPencils[r][c].has(solutionBoard[r][c])
       ) {
         updateLamp("black");
+        vagueHintMessage = "";
         return;
       }
     }
   }
   if (emptyCount <= 3) {
     updateLamp("white");
+    vagueHintMessage = "Naked Single"; // Set the hint message here
     return;
   }
   // --- Detect invalid starting state (wrong progress) ---
@@ -1495,6 +1594,16 @@ async function evaluateBoardDifficulty() {
   const techniqueOrder = [
     { name: "Naked Single", func: techniques.nakedSingle, level: 0 },
     { name: "Hidden Single", func: techniques.hiddenSingle, level: 0 },
+    {
+      name: "Locked Pair",
+      func: (b, p) => techniques.lockedSubset(b, p, 2),
+      level: 1,
+    },
+    {
+      name: "Locked Triple",
+      func: (b, p) => techniques.lockedSubset(b, p, 3),
+      level: 1,
+    },
     {
       name: "Intersection",
       func: (b, p) => techniques.intersection(b, p),
@@ -1571,6 +1680,7 @@ async function evaluateBoardDifficulty() {
     { name: "Finned X-Wing", func: techniques.finnedXWing, level: 2 },
     { name: "Finned Swordfish", func: techniques.finnedSwordfish, level: 3 },
     { name: "Finned Jellyfish", func: techniques.finnedJellyfish, level: 3 },
+    { name: "Simple Coloring", func: techniques.simpleColoring, level: 3 },
     { name: "X-Chain", func: techniques.xChain, level: 3 },
     { name: "XY-Chain", func: techniques.xyChain, level: 3 },
     { name: "Firework", func: techniques.firework, level: 3 },
@@ -1601,6 +1711,9 @@ async function evaluateBoardDifficulty() {
               console.log(`  - Remove ${num} from (${r}, ${c})`);
             });
           }
+        }
+        if (!vagueHintMessage) {
+          vagueHintMessage = tech.name;
         }
         maxDifficulty = Math.max(maxDifficulty, tech.level);
         if (result.type === "place") {
@@ -1641,6 +1754,7 @@ async function evaluateBoardDifficulty() {
   } else if (initialHasEmptyNoCand) {
     // Wrong progress made before evaluation started
     updateLamp("black");
+    vagueHintMessage = "";
   } else {
     // === Final bug detection ===
     let foundBug = false;
@@ -1656,6 +1770,7 @@ async function evaluateBoardDifficulty() {
 
     if (foundBug) {
       updateLamp("bug");
+      vagueHintMessage = "";
     } else {
       updateLamp("red");
     }

@@ -532,7 +532,7 @@
     background-color: var(--color-indigo-600);
   }
   .bg-white {
-    background-color: var(--color-white);
+    background-color: var(--nc-header-bg);
   }
   .p-2 {
     padding: calc(var(--spacing) * 2);
@@ -1036,26 +1036,33 @@ button:disabled:hover {
 
 /* --- Component: Controls & Buttons --- */
 .control-btn.active {
-  background-color: var(--color-indigo-600);
+  background-color: var(--color-indigo-600) !important;
   color: white;
   border-color: var(--nc-accent-color);
 }
 
 @media (prefers-color-scheme: light) {
   .control-btn.active {
-    background-color: var(--color-indigo-500);
+    background-color: var(--color-indigo-500) !important;
   }
 }
 
 .control-btn.active-green {
-  background-color: #c084fc;
+  background-color: #c084fc !important;
   color: white;
   border-color: #c084fc;
 }
-
 .color-btn.selected {
   outline: 3px solid var(--nc-accent-color);
   outline-offset: 2px;
+}
+
+.control-btn:not(.active):not(.active-green):hover,
+#undo-btn:hover,
+#redo-btn:hover,
+#clear-btn:hover,
+#clear-colors-btn:hover {
+  background-color: var(--nc-border-color) !important;
 }
 
 /* -- Number Pad -- */
@@ -1217,6 +1224,16 @@ button:disabled:hover {
   .pencil-mark {
     color: var(--color-gray-300);
   }
+
+  /* Apply hover effect for inactive control buttons in dark mode */
+  #mode-toggle-btn:not(.active):not(.active-green):hover,
+  [data-mode="color"]:not(.active):not(.active-green):hover,
+  #format-toggle-btn:not(.active):hover,
+  #expt-mode-btn:not(.active-green):hover,
+  #vague-hint-btn:hover {
+    background-color: #4b5563 !important; /* gray-600 */
+  }
+
   /* --- Modals & Info (Gray Theme) --- */
   #date-modal > div,
   #candidate-modal > div {

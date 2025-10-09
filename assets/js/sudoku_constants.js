@@ -95,3 +95,69 @@ let autoPencilTipTimer = null;
 let lampEvaluationTimeout = null;
 let currentLampColor = "gray";
 let isExperimentalMode = false;
+
+// --- Pre-calculated Sudoku Constants ---
+
+// An array of all 27 units (9 rows, 9 cols, 9 boxes)
+const ALL_UNITS = (() => {
+  const units = [];
+  // Rows
+  for (let i = 0; i < 9; i++) {
+    const unit = [];
+    for (let j = 0; j < 9; j++) unit.push([i, j]);
+    units.push(unit);
+  }
+  // Columns
+  for (let i = 0; i < 9; i++) {
+    const unit = [];
+    for (let j = 0; j < 9; j++) unit.push([j, i]);
+    units.push(unit);
+  }
+  // Boxes
+  for (let br = 0; br < 3; br++) {
+    for (let bc = 0; bc < 3; bc++) {
+      const unit = [];
+      for (let r_offset = 0; r_offset < 3; r_offset++) {
+        for (let c_offset = 0; c_offset < 3; c_offset++) {
+          unit.push([br * 3 + r_offset, bc * 3 + c_offset]);
+        }
+      }
+      units.push(unit);
+    }
+  }
+  return units;
+})();
+
+// A map from each cell's ID (0-80) to its set of 20 peers.
+const PEER_MAP = (() => {
+  const peers = Array(81)
+    .fill(0)
+    .map(() => new Set());
+  const getBoxIndex = (r, c) => Math.floor(r / 3) * 3 + Math.floor(c / 3);
+
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const id = r * 9 + c;
+      // Add row and column peers
+      for (let i = 0; i < 9; i++) {
+        if (i !== c) peers[id].add(r * 9 + i);
+        if (i !== r) peers[id].add(i * 9 + c);
+      }
+      // Add box peers
+      const boxStartR = Math.floor(r / 3) * 3;
+      const boxStartC = Math.floor(c / 3) * 3;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          const peerR = boxStartR + i;
+          const peerC = boxStartC + j;
+          if (peerR !== r || peerC !== c) {
+            peers[id].add(peerR * 9 + peerC);
+          }
+        }
+      }
+    }
+  }
+  return peers;
+})();
+
+// --- End of Constants ---

@@ -75,27 +75,33 @@
         >
           <button
             id="mode-toggle-btn"
-            class="control-btn active px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm"
+            class="control-btn active px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
           >
             Number (Z)
           </button>
           <button
             data-mode="color"
-            class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm"
+            class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
           >
             Color (X)
           </button>
           <button
             id="format-toggle-btn"
-            class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm"
+            class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm bg-white hover:bg-gray-100"
           >
             Display A (D)
           </button>
           <button
             id="expt-mode-btn"
-            class="control-btn hidden px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm"
+            class="control-btn hidden px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
           >
             Expt. OFF
+          </button>
+          <button
+            id="vague-hint-btn"
+            class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
+          >
+            ? (V)
           </button>
           <div
             id="difficulty-lamp"
@@ -108,14 +114,14 @@
       <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
         <button
           id="undo-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100"
         >
           <span>Undo</span
           ><span class="shortcut-indicator">&nbsp;(Ctrl+Z)</span>
         </button>
         <button
           id="redo-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100"
         >
           <span>Redo</span
           ><span class="shortcut-indicator">&nbsp;(Ctrl+Y)</span>
@@ -135,14 +141,14 @@
         </button>
         <button
           id="clear-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100"
         >
           <span>Quick Reset</span
           ><span class="shortcut-indicator">&nbsp;(Q)</span>
         </button>
         <button
           id="clear-colors-btn"
-          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100"
         >
           <span>Wipe Colors</span
           ><span class="shortcut-indicator">&nbsp;(W)</span>
