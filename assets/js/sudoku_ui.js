@@ -714,7 +714,7 @@ function handleKeyPress(e) {
     autoPencilBtn.click();
     return;
   }
-  if (key_lower === "s") {
+  if (key_lower === "s" && !isCtrlOrCmd) {
     solveBtn.click();
     return;
   }
