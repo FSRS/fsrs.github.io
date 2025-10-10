@@ -1811,91 +1811,91 @@ async function evaluateBoardDifficulty() {
     {
       name: "Intersection",
       func: (b, p) => techniques.intersection(b, p),
-      level: 1,
+      level: 2,
     },
     {
       name: "Naked Pair",
       func: (b, p) => techniques.nakedSubset(b, p, 2),
-      level: 1,
+      level: 2,
     },
     {
       name: "Hidden Pair",
       func: (b, p) => techniques.hiddenSubset(b, p, 2),
-      level: 1,
+      level: 2,
     },
     {
       name: "Naked Triple",
       func: (b, p) => techniques.nakedSubset(b, p, 3),
-      level: 1,
+      level: 2,
     },
     {
       name: "Hidden Triple",
       func: (b, p) => techniques.hiddenSubset(b, p, 3),
-      level: 1,
+      level: 2,
     },
     {
       name: "Naked Quad",
       func: (b, p) => techniques.nakedSubset(b, p, 4),
-      level: 2,
+      level: 3,
     },
     {
       name: "Hidden Quad",
       func: (b, p) => techniques.hiddenSubset(b, p, 4),
-      level: 2,
+      level: 3,
     },
     {
       name: "Remote Pair",
       func: (b, p) => techniques.remotePair(b, p),
-      level: 2,
+      level: 3,
     },
-    { name: "X-Wing", func: (b, p) => techniques.fish(b, p, 2), level: 2 },
-    { name: "XY-Wing", func: (b, p) => techniques.xyWing(b, p), level: 2 },
-    { name: "BUG+1", func: (b, p) => techniques.bugPlusOne(b, p), level: 2 },
+    { name: "X-Wing", func: (b, p) => techniques.fish(b, p, 2), level: 3 },
+    { name: "XY-Wing", func: (b, p) => techniques.xyWing(b, p), level: 3 },
+    { name: "BUG+1", func: (b, p) => techniques.bugPlusOne(b, p), level: 4 },
     {
       name: "Chute Remote Pair",
       func: (b, p) => techniques.chuteRemotePair(b, p),
-      level: 2,
+      level: 4,
     },
     {
       name: "Unique Rectangle",
       func: (b, p) => techniques.uniqueRectangle(b, p),
-      level: 2,
+      level: 4,
     },
-    { name: "XYZ-Wing", func: (b, p) => techniques.xyzWing(b, p), level: 2 },
-    { name: "W-Wing", func: (b, p) => techniques.wWing(b, p), level: 2 },
-    { name: "Swordfish", func: (b, p) => techniques.fish(b, p, 3), level: 2 },
-    { name: "Jellyfish", func: (b, p) => techniques.fish(b, p, 4), level: 2 },
-    { name: "Unique Hexagon", func: techniques.uniqueHexagon, level: 2 },
+    { name: "XYZ-Wing", func: (b, p) => techniques.xyzWing(b, p), level: 4 },
+    { name: "W-Wing", func: (b, p) => techniques.wWing(b, p), level: 4 },
+    { name: "Swordfish", func: (b, p) => techniques.fish(b, p, 3), level: 4 },
+    { name: "Jellyfish", func: (b, p) => techniques.fish(b, p, 4), level: 4 },
+    { name: "Unique Hexagon", func: techniques.uniqueHexagon, level: 5 },
     {
       name: "Extended Rectangle",
       func: techniques.extendedRectangle,
-      level: 2,
+      level: 5,
     },
-    { name: "Grouped W-Wing", func: techniques.groupedWWing, level: 2 },
-    { name: "Skyscraper", func: techniques.skyscraper, level: 2 },
-    { name: "2-String Kite", func: techniques.twoStringKite, level: 2 },
-    { name: "Turbot Fish", func: techniques.turbotFish, level: 2 },
-    { name: "Hidden Rectangle", func: techniques.hiddenRectangle, level: 2 },
+    { name: "Grouped W-Wing", func: techniques.groupedWWing, level: 5 },
+    { name: "Skyscraper", func: techniques.skyscraper, level: 5 },
+    { name: "2-String Kite", func: techniques.twoStringKite, level: 5 },
+    { name: "Turbot Fish", func: techniques.turbotFish, level: 5 },
+    { name: "Hidden Rectangle", func: techniques.hiddenRectangle, level: 5 },
     {
       name: "Rectangle Elimination",
       func: techniques.rectangleElimination,
-      level: 2,
+      level: 5,
     },
-    { name: "Finned X-Wing", func: techniques.finnedXWing, level: 2 },
-    { name: "Finned Swordfish", func: techniques.finnedSwordfish, level: 3 },
-    { name: "Finned Jellyfish", func: techniques.finnedJellyfish, level: 3 },
-    { name: "Simple Coloring", func: techniques.simpleColoring, level: 3 },
-    { name: "X-Chain", func: techniques.xChain, level: 3 },
-    { name: "XY-Chain", func: techniques.xyChain, level: 3 },
-    { name: "Firework", func: techniques.firework, level: 3 },
-    { name: "WXYZ-Wing", func: techniques.wxyzWing, level: 3 },
-    { name: "Sue de Coq", func: techniques.sueDeCoq, level: 3 },
-    { name: "Grouped X-Chain", func: techniques.groupedXChain, level: 4 },
-    { name: "3D Medusa", func: techniques.medusa3D, level: 4 },
+    { name: "Finned X-Wing", func: techniques.finnedXWing, level: 5 },
+    { name: "Finned Swordfish", func: techniques.finnedSwordfish, level: 6 },
+    { name: "Finned Jellyfish", func: techniques.finnedJellyfish, level: 6 },
+    { name: "Simple Coloring", func: techniques.simpleColoring, level: 6 },
+    { name: "X-Chain", func: techniques.xChain, level: 6 },
+    { name: "XY-Chain", func: techniques.xyChain, level: 6 },
+    { name: "Firework", func: techniques.firework, level: 6 },
+    { name: "WXYZ-Wing", func: techniques.wxyzWing, level: 6 },
+    { name: "Sue de Coq", func: techniques.sueDeCoq, level: 6 },
+    { name: "Grouped X-Chain", func: techniques.groupedXChain, level: 7 },
+    { name: "3D Medusa", func: techniques.medusa3D, level: 7 },
     {
       name: "Alternating Inference Chain",
       func: techniques.alternatingInferenceChain,
-      level: 4,
+      level: 7,
     },
   ];
   if (IS_DEBUG_MODE) {
@@ -1911,7 +1911,7 @@ async function evaluateBoardDifficulty() {
       const result = tech.func(virtualBoard, startingPencils);
       if (result.change) {
         if (IS_DEBUG_MODE) {
-          console.groupCollapsed(`Found: ${tech.name} (Lamp ${tech.level})`);
+          console.groupCollapsed(`Found: ${tech.name} (Level ${tech.level})`);
           if (result.type === "place") {
             console.log(
               `Action: Place ${result.num} at (${result.r}, ${result.c})`
@@ -1959,10 +1959,10 @@ async function evaluateBoardDifficulty() {
 
   if (isSolved) {
     if (maxDifficulty === 0) updateLamp("white");
-    else if (maxDifficulty === 1) updateLamp("green");
-    else if (maxDifficulty === 2) updateLamp("yellow");
-    else if (maxDifficulty === 3) updateLamp("orange");
-    else if (maxDifficulty === 4) updateLamp("red");
+    else if (maxDifficulty <= 2) updateLamp("green");
+    else if (maxDifficulty <= 5) updateLamp("yellow");
+    else if (maxDifficulty <= 6) updateLamp("orange");
+    else if (maxDifficulty <= 7) updateLamp("red");
   } else if (initialHasEmptyNoCand) {
     // Wrong progress made before evaluation started
     updateLamp("black");
