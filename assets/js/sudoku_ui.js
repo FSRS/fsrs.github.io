@@ -90,16 +90,32 @@ function updateButtonLabels() {
     (isExperimentalMode ? "Expt!" : "Expt.") + exptShortcut;
   if (isExperimentalMode) {
     exptModeBtn.classList.add("active-green");
-    exptModeBtn.dataset.tooltip = "Disable Experimental Mode (E).";
+    if (isMobile) {
+      // Use "past tense" for mobile, describing the new state
+      exptModeBtn.dataset.tooltip = "Experimental Mode Enabled.";
+    } else {
+      // Keep "future tense" for desktop, describing the action
+      exptModeBtn.dataset.tooltip = "Disable Experimental Mode (E).";
+    }
   } else {
     exptModeBtn.classList.remove("active-green");
-    exptModeBtn.dataset.tooltip =
-      "Enable Experimental Mode (E): Click candidates directly.";
+    if (isMobile) {
+      exptModeBtn.dataset.tooltip = "Experimental Mode Disabled.";
+    } else {
+      exptModeBtn.dataset.tooltip =
+        "Enable Experimental Mode (E): Click candidates directly.";
+    }
   }
 
   vagueHintBtn.textContent = isMobile ? "?" : "? (V)";
   vagueHintBtn.dataset.tooltip =
     "Get a vague hint for the next logical step (V).";
+
+  if (!isMobile) {
+    attachTooltipEvents(modeToggleButton);
+    attachTooltipEvents(colorButton);
+    attachTooltipEvents(exptModeBtn);
+  }
 }
 
 function addSudokuCoachLink(puzzleString) {
@@ -339,20 +355,31 @@ function renderBoard() {
 // --- Custom Tooltip Logic ---
 const tooltipEl = document.getElementById("custom-tooltip");
 let tooltipHideTimeout = null;
-
-// --- Custom Tooltip Logic ---
+let activeTooltipElement = null;
 
 function showTooltip(targetElement) {
-  // If a tooltip already exists for this element, do nothing.
-  if (targetElement.tooltipInstance) return;
+  // MODIFICATION: If a tooltip instance already exists (e.g., it's visible or fading out),
+  // remove it immediately. This is crucial for toggle buttons on mobile, ensuring the
+  // new tooltip with updated text can be displayed without being blocked.
+  if (targetElement.tooltipInstance) {
+    targetElement.tooltipInstance.remove();
+    targetElement.tooltipInstance = null;
+  }
 
-  const tooltipText = targetElement.dataset.tooltip;
+  let tooltipText = targetElement.dataset.tooltip;
   if (!tooltipText) return;
+
+  // Conditionally remove ALL parenthetical phrases on mobile
+  const isMobile = window.innerWidth <= 550;
+  if (isMobile) {
+    // This regex now globally removes any parenthetical phrase from the string
+    tooltipText = tooltipText.replace(/\s*\([^)]+\)/g, "").trim();
+  }
 
   // 1. Create a new tooltip element
   const tooltipEl = document.createElement("div");
   tooltipEl.className = "custom-tooltip";
-  tooltipEl.textContent = tooltipText;
+  tooltipEl.textContent = tooltipText; // Use the potentially modified text
 
   // 2. Store it on the target element for later reference
   targetElement.tooltipInstance = tooltipEl;
@@ -406,10 +433,33 @@ function hideTooltip(targetElement) {
 }
 
 function attachTooltipEvents(element) {
-  element.addEventListener("mouseenter", () => showTooltip(element));
-  element.addEventListener("mouseleave", () => hideTooltip(element));
-  // Also hide on click, useful for touch devices
-  element.addEventListener("click", () => hideTooltip(element));
+  const isMobile = window.innerWidth <= 550;
+
+  if (isMobile) {
+    // --- Mobile Touch Behavior (REVISED) ---
+    element.addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevents the global click listener from firing right away
+
+      // If a tooltip is already shown for this exact element, do nothing.
+      // This makes it "sticky" instead of toggling off.
+      if (activeTooltipElement === element) {
+        return;
+      }
+
+      // If a different tooltip is open, hide it.
+      if (activeTooltipElement) {
+        hideTooltip(activeTooltipElement);
+      }
+
+      // Show the new tooltip and track it as the active one.
+      showTooltip(element);
+      activeTooltipElement = element;
+    });
+  } else {
+    // --- Desktop Hover Behavior (Unchanged) ---
+    element.addEventListener("mouseenter", () => showTooltip(element));
+    element.addEventListener("mouseleave", () => hideTooltip(element));
+  }
 }
 
 function updateLamp(color) {
@@ -444,10 +494,11 @@ function updateLamp(color) {
 // --- Event Handlers and Listeners ---
 
 function setupEventListeners() {
-  // We no longer set static tooltips here, as they are in the HTML.
-
   gridContainer.addEventListener("click", handleCellClick);
-  modeSelector.addEventListener("click", handleModeChange);
+
+  // MODIFIED: Pass the event object 'e' to the handler
+  modeSelector.addEventListener("click", (e) => handleModeChange(e));
+
   numberPad.addEventListener("click", handleNumberPadClick);
   loadBtn.addEventListener("click", () => loadPuzzle(puzzleStringInput.value));
   solveBtn.addEventListener("click", solve);
@@ -488,30 +539,34 @@ function setupEventListeners() {
   });
   levelSelect.addEventListener("change", findAndLoadSelectedPuzzle);
   document.addEventListener("keydown", handleKeyPress);
-  modeToggleButton.addEventListener("mouseenter", () => {
-    const isMobile = window.innerWidth <= 550;
-    if (currentMode === "concrete") {
-      modeToggleButton.textContent = isMobile ? "Pen?" : "Pencil?";
-    } else if (currentMode === "pencil") {
-      modeToggleButton.textContent = isMobile ? "Num?" : "Number?";
-    }
-  });
-  modeToggleButton.addEventListener("mouseleave", () => {
-    updateButtonLabels();
-  });
-  colorButton.addEventListener("mouseenter", () => {
-    const isMobile = window.innerWidth <= 550;
-    if (currentMode === "color") {
-      if (coloringSubMode === "cell") {
-        colorButton.textContent = isMobile ? "Cand?" : "Color: Cand?";
-      } else {
-        colorButton.textContent = isMobile ? "Cell?" : "Color: Cell?";
+
+  const isMobile = window.innerWidth <= 550;
+  if (!isMobile) {
+    modeToggleButton.addEventListener("mouseenter", () => {
+      if (currentMode === "concrete") {
+        modeToggleButton.textContent = "Pencil?";
+      } else if (currentMode === "pencil") {
+        modeToggleButton.textContent = "Number?";
       }
-    }
-  });
-  colorButton.addEventListener("mouseleave", () => {
-    updateButtonLabels();
-  });
+    });
+    modeToggleButton.addEventListener("mouseleave", () => {
+      updateButtonLabels();
+    });
+
+    colorButton.addEventListener("mouseenter", () => {
+      if (currentMode === "color") {
+        if (coloringSubMode === "cell") {
+          colorButton.textContent = "Color: Cand?";
+        } else {
+          colorButton.textContent = "Color: Cell?";
+        }
+      }
+    });
+    colorButton.addEventListener("mouseleave", () => {
+      updateButtonLabels();
+    });
+  }
+
   const dateModal = document.getElementById("date-modal");
   const dateInput = document.getElementById("date-input");
   const dateError = document.getElementById("date-error");
@@ -620,7 +675,6 @@ function setupEventListeners() {
     }
     isExperimentalMode = !isExperimentalMode;
     updateButtonLabels();
-    const isMobile = window.innerWidth <= 550;
     let tip = "";
     if (isExperimentalMode) {
       tip = isMobile
@@ -632,16 +686,35 @@ function setupEventListeners() {
         : "Expt. OFF: Click-to-set/remove candidates disabled.";
     }
     showMessage(tip, "gray");
+
+    // Add the same mobile tooltip logic here
+    if (isMobile) {
+      if (activeTooltipElement) {
+        hideTooltip(activeTooltipElement);
+      }
+      showTooltip(exptModeBtn);
+      activeTooltipElement = exptModeBtn;
+    } else {
+      // For desktop, if the tooltip is currently visible when clicked, hide it.
+      if (exptModeBtn.tooltipInstance) {
+        hideTooltip(exptModeBtn);
+      }
+    }
   });
 
   // Attach tooltip events to all elements that have the data-tooltip attribute.
   document.querySelectorAll("[data-tooltip]").forEach(attachTooltipEvents);
 
-  // Manually attach listeners to buttons that get their tooltips dynamically.
-  attachTooltipEvents(modeToggleButton);
-  attachTooltipEvents(colorButton);
-  attachTooltipEvents(exptModeBtn);
+  // Manually attach listeners to the remaining dynamic buttons.
   attachTooltipEvents(vagueHintBtn);
+
+  // --- Global listener to close mobile tooltips when clicking away ---
+  document.addEventListener("click", () => {
+    if (activeTooltipElement) {
+      hideTooltip(activeTooltipElement);
+      activeTooltipElement = null;
+    }
+  });
 }
 
 function handleKeyPress(e) {
@@ -910,9 +983,15 @@ function handleCellClick(e) {
 function handleModeChange(e) {
   const clickedButton = e.target.closest("button");
   if (!clickedButton) return;
+
+  // Stop the event here to prevent the global click listener from closing the tooltip immediately
+  e.stopPropagation();
+
   if (clickedButton !== modeToggleButton && clickedButton !== colorButton) {
     return;
   }
+
+  // --- Mode Switching Logic ---
   if (clickedButton === modeToggleButton) {
     const targetMode = currentMode === "concrete" ? "pencil" : "concrete";
     if (targetMode === "pencil" && arePencilsHidden) {
@@ -936,6 +1015,7 @@ function handleModeChange(e) {
       }
     }
   }
+
   const previousMode = currentMode;
   if (clickedButton === modeToggleButton) {
     currentMode =
@@ -1003,6 +1083,23 @@ function handleModeChange(e) {
   }
   renderBoard();
   updateButtonLabels();
+  // --- NEW: Integrated Mobile Tooltip Logic ---
+  if (isMobile) {
+    // Hide any currently active tooltip.
+    if (activeTooltipElement) {
+      hideTooltip(activeTooltipElement);
+    }
+
+    // After the button's state and text have been updated, show the NEW tooltip.
+    showTooltip(clickedButton);
+    activeTooltipElement = clickedButton;
+  } else {
+    // For desktop, if the tooltip is currently visible when clicked, hide it.
+    // This removes the stale tooltip so the next hover will show the updated one.
+    if (clickedButton.tooltipInstance) {
+      hideTooltip(clickedButton);
+    }
+  }
 }
 
 function handleNumberPadClick(e) {
