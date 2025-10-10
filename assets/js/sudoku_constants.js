@@ -1,8 +1,8 @@
 // --- START: ADDED DEBUG FLAG ---
 // Set this to 'true' to see detailed solver logs in the console.
 // Set this to 'false' for release to hide them.
-const IS_DEBUG_MODE = false;
-const LOG_CANDIDATE_GRID = false;
+let IS_DEBUG_MODE = false;
+let LOG_CANDIDATE_GRID = false;
 // --- END: ADDED DEBUG FLAG ---
 
 const difficultyWords = [
