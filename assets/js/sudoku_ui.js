@@ -62,9 +62,9 @@ function updateButtonLabels() {
 
   if (currentMode === "color") {
     if (coloringSubMode === "cell") {
-      colorButton.textContent = isMobile ? "Color: Cell" : "Color: Cell";
+      colorButton.textContent = isMobile ? "Cell" : "Color: Cell";
     } else {
-      colorButton.textContent = isMobile ? "Color: Cand." : "Color: Cand.";
+      colorButton.textContent = isMobile ? "Cand." : "Color: Cand.";
     }
   } else {
     colorButton.textContent = isMobile ? "Color" : "Color (X)";
@@ -392,9 +392,9 @@ function setupEventListeners() {
   modeToggleButton.addEventListener("mouseenter", () => {
     const isMobile = window.innerWidth <= 550;
     if (currentMode === "concrete") {
-      modeToggleButton.textContent = isMobile ? "Pen.?" : "Pencil?";
+      modeToggleButton.textContent = isMobile ? "Pen?" : "Pencil?";
     } else if (currentMode === "pencil") {
-      modeToggleButton.textContent = isMobile ? "Num.?" : "Number?";
+      modeToggleButton.textContent = isMobile ? "Num?" : "Number?";
     }
   });
   modeToggleButton.addEventListener("mouseleave", () => {
@@ -404,9 +404,9 @@ function setupEventListeners() {
     const isMobile = window.innerWidth <= 550;
     if (currentMode === "color") {
       if (coloringSubMode === "cell") {
-        colorButton.textContent = isMobile ? "Color: Cand?" : "Color: Cand?";
+        colorButton.textContent = isMobile ? "Cand?" : "Color: Cand?";
       } else {
-        colorButton.textContent = isMobile ? "Color: Cell?" : "Color: Cell?";
+        colorButton.textContent = isMobile ? "Cell?" : "Color: Cell?";
       }
     }
   });
