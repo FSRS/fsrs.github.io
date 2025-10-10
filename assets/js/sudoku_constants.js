@@ -160,4 +160,25 @@ const PEER_MAP = (() => {
   return peers;
 })();
 
+// Build CELL_MASK, PEER_MASK, UNIT_MASKS globally
+const CELL_MASK = Array.from({ length: 81 }, (_, i) => 1n << BigInt(i));
+const PEER_MASK = Array(81).fill(0n);
+for (let r = 0; r < 9; r++) {
+  for (let c = 0; c < 9; c++) {
+    let mask = 0n;
+    for (let cc = 0; cc < 9; cc++) if (cc !== c) mask |= CELL_MASK[r * 9 + cc];
+    for (let rr = 0; rr < 9; rr++) if (rr !== r) mask |= CELL_MASK[rr * 9 + c];
+    const br = Math.floor(r / 3) * 3;
+    const bc = Math.floor(c / 3) * 3;
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++) {
+        const rr = br + i,
+          cc = bc + j;
+        if (rr === r && cc === c) continue;
+        mask |= CELL_MASK[rr * 9 + cc];
+      }
+    PEER_MASK[r * 9 + c] = mask;
+  }
+}
+
 // --- End of Constants ---

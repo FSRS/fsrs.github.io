@@ -3188,7 +3188,7 @@ const techniques = {
     }
     return { change: false };
   },
-  xChain: (board, pencils, maxLength = 10) => {
+  xChain: (board, pencils, maxLength = 8) => {
     const _inSameUnit = (a, b) =>
       a[0] === b[0] ||
       a[1] === b[1] ||
@@ -4132,6 +4132,842 @@ const techniques = {
     }
 
     return { change: false, type: null, cells: [] };
+  },
+
+  groupedXChain: function (board, pencils, maxLength = 8) {
+    const _sees = techniques._sees;
+
+    // A Node represents a single candidate cell or a group of candidates acting as one unit.
+    const _createNode = (cells, isGroup = false) => {
+      // Sort cells for a canonical key representation
+      const sortedCells = [...cells].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      return {
+        cells: sortedCells,
+        isGroup: isGroup,
+        key: JSON.stringify(sortedCells),
+      };
+    };
+
+    const _nodeSees = (nodeA, nodeB) => {
+      for (const cellA of nodeA.cells) {
+        for (const cellB of nodeB.cells) {
+          if (!_sees(cellA, cellB)) return false;
+        }
+      }
+      return true;
+    };
+
+    const _nodeHasOverlap = (nodeA, nodeB) => {
+      const cellsA = new Set(nodeA.cells.map(JSON.stringify));
+      for (const cellB of nodeB.cells) {
+        if (cellsA.has(JSON.stringify(cellB))) return true;
+      }
+      return false;
+    };
+
+    const _nodeInSameUnit = (nodeA, nodeB) => {
+      for (const cellA of nodeA.cells) {
+        for (const cellB of nodeB.cells) {
+          if (
+            cellA[0] === cellB[0] ||
+            cellA[1] === cellB[1] ||
+            techniques._getBoxIndex(cellA[0], cellA[1]) ===
+              techniques._getBoxIndex(cellB[0], cellB[1])
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    const _getCommonUnits = (cellsA, cellsB) => {
+      const allCells = [...cellsA, ...cellsB];
+      const rSet = new Set(allCells.map(([r, _]) => r));
+      const cSet = new Set(allCells.map(([_, c]) => c));
+      const bSet = new Set(
+        allCells.map(([r, c]) => techniques._getBoxIndex(r, c))
+      );
+      const units = [];
+      if (rSet.size === 1)
+        units.push(techniques._getUnitCells("row", rSet.values().next().value));
+      if (cSet.size === 1)
+        units.push(techniques._getUnitCells("col", cSet.values().next().value));
+      if (bSet.size === 1)
+        units.push(techniques._getUnitCells("box", bSet.values().next().value));
+      return units;
+    };
+
+    const _isValidStrongLink = (nodeA, nodeB, d) => {
+      if (_nodeHasOverlap(nodeA, nodeB)) return false;
+
+      const units = _getCommonUnits(nodeA.cells, nodeB.cells);
+      if (units.length === 0) return false;
+
+      const cellsA_Str = new Set(nodeA.cells.map(JSON.stringify));
+      const cellsB_Str = new Set(nodeB.cells.map(JSON.stringify));
+      const combinedStr = new Set([...cellsA_Str, ...cellsB_Str]);
+
+      for (const unit of units) {
+        const unitCellsStr = new Set(unit.map(JSON.stringify));
+        if (
+          ![...cellsA_Str, ...cellsB_Str].every((cell) =>
+            unitCellsStr.has(cell)
+          )
+        )
+          continue;
+
+        const candidatesInUnit = unit.filter(([r, c]) => pencils[r][c].has(d));
+        if (candidatesInUnit.length !== combinedStr.size) continue;
+
+        const candidatesInUnitStr = new Set(
+          candidatesInUnit.map(JSON.stringify)
+        );
+
+        let isMatch = true;
+        for (const cand of candidatesInUnitStr) {
+          if (!combinedStr.has(cand)) {
+            isMatch = false;
+            break;
+          }
+        }
+        if (isMatch) return true;
+      }
+      return false;
+    };
+
+    const _generateGroups = (d) => {
+      const groups = [];
+      for (let b = 0; b < 9; b++) {
+        const boxCells = techniques
+          ._getUnitCells("box", b)
+          .filter(([r, c]) => pencils[r][c].has(d));
+        const rowGroups = new Map(),
+          colGroups = new Map();
+
+        for (const [r, c] of boxCells) {
+          if (!rowGroups.has(r)) rowGroups.set(r, []);
+          if (!colGroups.has(c)) colGroups.set(c, []);
+          rowGroups.get(r).push([r, c]);
+          colGroups.get(c).push([r, c]);
+        }
+        for (const group of rowGroups.values()) {
+          if (group.length >= 2 && group.length <= 3) {
+            groups.push(_createNode(group, true));
+          }
+        }
+        for (const group of colGroups.values()) {
+          if (group.length >= 2 && group.length <= 3) {
+            groups.push(_createNode(group, true));
+          }
+        }
+      }
+      return groups;
+    };
+
+    const _buildStrongLinkGraph = (d) => {
+      const graph = new Map();
+      const nodeMap = new Map();
+
+      const cellNodes = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].has(d)) {
+            cellNodes.push(_createNode([[r, c]]));
+          }
+        }
+      }
+      const groupNodes = _generateGroups(d);
+      const allNodes = [...cellNodes, ...groupNodes];
+
+      allNodes.forEach((node) => nodeMap.set(node.key, node));
+
+      for (let i = 0; i < allNodes.length; i++) {
+        for (let j = i + 1; j < allNodes.length; j++) {
+          const a = allNodes[i];
+          const b = allNodes[j];
+          if (!_nodeSees(a, b)) continue;
+          if (_isValidStrongLink(a, b, d)) {
+            if (!graph.has(a.key)) graph.set(a.key, []);
+            if (!graph.has(b.key)) graph.set(b.key, []);
+            graph.get(a.key).push(b.key);
+            graph.get(b.key).push(a.key);
+          }
+        }
+      }
+      return { graph, nodeMap };
+    };
+
+    let changed = false;
+    const eliminations = [];
+    const chainContainsGroup = (chain) => chain.some((node) => node.isGroup);
+
+    const _eliminateChain = (d, chain) => {
+      const startNode = chain[0];
+      const endNode = chain[chain.length - 1];
+      const chainCells = new Set();
+      chain.forEach((node) =>
+        node.cells.forEach((cell) => chainCells.add(JSON.stringify(cell)))
+      );
+
+      if (
+        _nodeInSameUnit(startNode, endNode) &&
+        _nodeSees(startNode, endNode) &&
+        !_nodeHasOverlap(startNode, endNode)
+      ) {
+        // X-Cycle / Continuous Loop
+        const weakLinks = [];
+        for (let i = 1; i < chain.length - 2; i += 2) {
+          weakLinks.push([chain[i], chain[i + 1]]);
+        }
+        weakLinks.push([chain[chain.length - 1], chain[0]]);
+
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (chainCells.has(JSON.stringify([r, c]))) continue;
+            if (pencils[r][c].has(d)) {
+              const candidate = _createNode([[r, c]]);
+              for (const [n1, n2] of weakLinks) {
+                if (_nodeSees(candidate, n1) && _nodeSees(candidate, n2)) {
+                  eliminations.push({ r, c, num: d });
+                  changed = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Standard X-Chain
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (chainCells.has(JSON.stringify([r, c]))) continue;
+            if (pencils[r][c].has(d)) {
+              const candidate = _createNode([[r, c]]);
+              if (
+                _nodeSees(candidate, startNode) &&
+                _nodeSees(candidate, endNode)
+              ) {
+                eliminations.push({ r, c, num: d });
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    const _dfs = (d, graph, nodeMap, chain, visitedCells) => {
+      if (changed || chain.length >= maxLength) return;
+
+      if (chain.length >= 6 && chain.length % 2 === 0) {
+        _eliminateChain(d, chain);
+        if (changed) return;
+      }
+
+      const current = chain[chain.length - 1];
+      const isStrongLinkStep = (chain.length - 1) % 2 === 0;
+
+      if (isStrongLinkStep) {
+        const neighbors = graph.get(current.key) || [];
+        for (const neighborKey of neighbors) {
+          const neighbor = nodeMap.get(neighborKey);
+          const hasVisited = neighbor.cells.some((cell) =>
+            visitedCells.has(JSON.stringify(cell))
+          );
+          if (!hasVisited) {
+            const newVisited = new Set(visitedCells);
+            neighbor.cells.forEach((cell) =>
+              newVisited.add(JSON.stringify(cell))
+            );
+            _dfs(d, graph, nodeMap, [...chain, neighbor], newVisited);
+            if (changed) return;
+          }
+        }
+      } else {
+        // Weak link step
+        for (const neighborKey of nodeMap.keys()) {
+          const neighbor = nodeMap.get(neighborKey);
+          if (neighbor.key === current.key) continue;
+
+          const hasVisited = neighbor.cells.some((cell) =>
+            visitedCells.has(JSON.stringify(cell))
+          );
+          if (hasVisited) continue;
+
+          if (
+            _nodeSees(current, neighbor) &&
+            !_nodeHasOverlap(current, neighbor)
+          ) {
+            const newVisited = new Set(visitedCells);
+            neighbor.cells.forEach((cell) =>
+              newVisited.add(JSON.stringify(cell))
+            );
+            _dfs(d, graph, nodeMap, [...chain, neighbor], newVisited);
+            if (changed) return;
+          }
+        }
+      }
+    };
+
+    for (let d = 1; d <= 9; d++) {
+      const { graph, nodeMap } = _buildStrongLinkGraph(d);
+      if (graph.size === 0) continue;
+
+      for (const startNodeKey of graph.keys()) {
+        const startNode = nodeMap.get(startNodeKey);
+        const visited = new Set();
+        startNode.cells.forEach((cell) => visited.add(JSON.stringify(cell)));
+        _dfs(d, graph, nodeMap, [startNode], visited);
+        if (changed) {
+          const uniqueRemovals = Array.from(
+            new Set(eliminations.map(JSON.stringify))
+          ).map(JSON.parse);
+          return { change: true, type: "remove", cells: uniqueRemovals };
+        }
+      }
+    }
+
+    return { change: false };
+  },
+
+  medusa3D: function (board, pencils) {
+    const graph = techniques._buildMedusaGraph(pencils);
+    if (graph.size === 0) return { change: false };
+
+    const visited = new Set(); // Stores node keys {r,c,num} as strings
+
+    // Iterate through all nodes to find and color each connected component
+    for (const startNodeKey of graph.keys()) {
+      if (visited.has(startNodeKey)) continue;
+
+      // 1. Color the current component using Breadth-First Search (BFS)
+      const coloring = new Map();
+      const queue = [[JSON.parse(startNodeKey), 1]]; // [[node, color]]
+
+      while (queue.length > 0) {
+        const [currentNode, color] = queue.shift();
+        const currentKey = JSON.stringify(currentNode);
+        if (coloring.has(currentKey)) continue;
+
+        coloring.set(currentKey, color);
+        visited.add(currentKey);
+
+        const neighbors = graph.get(currentKey) || [];
+        for (const neighborKey of neighbors) {
+          if (!coloring.has(neighborKey)) {
+            queue.push([JSON.parse(neighborKey), 3 - color]); // Alternate color
+          }
+        }
+      }
+
+      // 2. Apply the 3D Medusa elimination rules to the colored component
+      const removals = techniques._applyMedusaRules(coloring, pencils, board);
+      if (removals.length > 0) {
+        // Deduplicate removals before returning
+        const uniqueRemovals = Array.from(
+          new Set(removals.map(JSON.stringify))
+        ).map(JSON.parse);
+        if (uniqueRemovals.length > 0) {
+          return { change: true, type: "remove", cells: uniqueRemovals };
+        }
+      }
+    }
+
+    return { change: false };
+  },
+
+  /**
+   * Builds the graph for 3D Medusa.
+   * Links include:
+   * 1. Strong links: Pairs of a single candidate in a unit.
+   * 2. Bivalue links: The two candidates within a single bivalue cell.
+   */
+  _buildMedusaGraph: function (pencils) {
+    const graph = new Map();
+    const addLink = (nodeA, nodeB) => {
+      const keyA = JSON.stringify(nodeA);
+      const keyB = JSON.stringify(nodeB);
+      if (!graph.has(keyA)) graph.set(keyA, []);
+      if (!graph.has(keyB)) graph.set(keyB, []);
+      graph.get(keyA).push(keyB);
+      graph.get(keyB).push(keyA);
+    };
+
+    // Part 1: Add strong links for each digit across all units
+    for (let d = 1; d <= 9; d++) {
+      for (let i = 0; i < 9; i++) {
+        // Rows
+        const rowCells = techniques
+          ._getUnitCells("row", i)
+          .filter(([r, c]) => pencils[r][c].has(d));
+        if (rowCells.length === 2) {
+          addLink(
+            { r: rowCells[0][0], c: rowCells[0][1], num: d },
+            { r: rowCells[1][0], c: rowCells[1][1], num: d }
+          );
+        }
+        // Columns
+        const colCells = techniques
+          ._getUnitCells("col", i)
+          .filter(([r, c]) => pencils[r][c].has(d));
+        if (colCells.length === 2) {
+          addLink(
+            { r: colCells[0][0], c: colCells[0][1], num: d },
+            { r: colCells[1][0], c: colCells[1][1], num: d }
+          );
+        }
+        // Boxes
+        const boxCells = techniques
+          ._getUnitCells("box", i)
+          .filter(([r, c]) => pencils[r][c].has(d));
+        if (boxCells.length === 2) {
+          addLink(
+            { r: boxCells[0][0], c: boxCells[0][1], num: d },
+            { r: boxCells[1][0], c: boxCells[1][1], num: d }
+          );
+        }
+      }
+    }
+
+    // Part 2: Add links for candidates within bivalue cells
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (pencils[r][c].size === 2) {
+          const [d1, d2] = [...pencils[r][c]];
+          addLink({ r, c, num: d1 }, { r, c, num: d2 });
+        }
+      }
+    }
+
+    return graph;
+  },
+
+  /**
+   * Applies the six elimination rules for 3D Medusa.
+   */
+  _applyMedusaRules: function (coloring, pencils, board) {
+    const removals = [];
+
+    // Helper to generate removals if a whole color is found to be invalid
+    const _eliminateColor = (badColor) => {
+      const colorRemovals = [];
+      for (const [nodeKey, color] of coloring.entries()) {
+        if (color === badColor) {
+          const node = JSON.parse(nodeKey);
+          if (pencils[node.r][node.c].has(node.num)) {
+            colorRemovals.push({ r: node.r, c: node.c, num: node.num });
+          }
+        }
+      }
+      return colorRemovals;
+    };
+
+    // --- Pre-computation for faster rule checking ---
+    const cellColors = new Map(); // Map<"r,c", [{num, color}, ...]>
+    const rowCount = Array.from({ length: 9 }, () =>
+      Array.from({ length: 9 }, () => [0, 0])
+    ); // [digit-1][row][color-1]
+    const colCount = Array.from({ length: 9 }, () =>
+      Array.from({ length: 9 }, () => [0, 0])
+    );
+    const boxCount = Array.from({ length: 9 }, () =>
+      Array.from({ length: 9 }, () => [0, 0])
+    );
+
+    for (const [nodeKey, color] of coloring.entries()) {
+      const node = JSON.parse(nodeKey);
+      const cellKey = `${node.r},${node.c}`;
+      if (!cellColors.has(cellKey)) cellColors.set(cellKey, []);
+      cellColors.get(cellKey).push({ num: node.num, color });
+
+      const d_idx = node.num - 1,
+        c_idx = color - 1;
+      rowCount[d_idx][node.r][c_idx]++;
+      colCount[d_idx][node.c][c_idx]++;
+      boxCount[d_idx][techniques._getBoxIndex(node.r, node.c)][c_idx]++;
+    }
+
+    // --- Contradiction Rules (return immediately as they are powerful) ---
+
+    // Rule 1: Two candidates in the same cell have the same color.
+    for (const colorsInCell of cellColors.values()) {
+      if (colorsInCell.filter((c) => c.color === 1).length > 1)
+        return _eliminateColor(1);
+      if (colorsInCell.filter((c) => c.color === 2).length > 1)
+        return _eliminateColor(2);
+    }
+
+    // Rule 2: The same digit has the same color twice in one unit.
+    for (let d = 0; d < 9; d++) {
+      for (let i = 0; i < 9; i++) {
+        if (
+          rowCount[d][i][0] > 1 ||
+          colCount[d][i][0] > 1 ||
+          boxCount[d][i][0] > 1
+        )
+          return _eliminateColor(1);
+        if (
+          rowCount[d][i][1] > 1 ||
+          colCount[d][i][1] > 1 ||
+          boxCount[d][i][1] > 1
+        )
+          return _eliminateColor(2);
+      }
+    }
+
+    // Rule 6: All candidates in an unsolved cell see nodes of a single color.
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (board[r][c] !== 0 || pencils[r][c].size === 0) continue;
+        for (let color_to_check = 1; color_to_check <= 2; color_to_check++) {
+          const seenDigits = new Set();
+          for (const [nodeKey, color] of coloring.entries()) {
+            if (color === color_to_check) {
+              const node = JSON.parse(nodeKey);
+              if (techniques._sees([r, c], [node.r, node.c])) {
+                seenDigits.add(node.num);
+              }
+            }
+          }
+
+          let isSubset = true;
+          for (const cand of pencils[r][c]) {
+            if (!seenDigits.has(cand)) {
+              isSubset = false;
+              break;
+            }
+          }
+          if (isSubset) return _eliminateColor(color_to_check);
+        }
+      }
+    }
+
+    // --- Standard Elimination Rules (accumulate changes) ---
+
+    // Rule 3: A cell with candidates of both colors cannot have other candidates.
+    for (const [cellKey, colorsInCell] of cellColors.entries()) {
+      const hasColor1 = colorsInCell.some((c) => c.color === 1);
+      const hasColor2 = colorsInCell.some((c) => c.color === 2);
+      if (hasColor1 && hasColor2) {
+        const [r, c] = cellKey.split(",").map(Number);
+        const colored_nums = new Set(colorsInCell.map((c) => c.num));
+        for (const cand of pencils[r][c]) {
+          if (!colored_nums.has(cand)) removals.push({ r, c, num: cand });
+        }
+      }
+    }
+    if (removals.length > 0) return removals;
+
+    // Rule 4: An uncolored candidate that sees both colors of its own digit is false.
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (board[r][c] !== 0) continue;
+        for (const d of pencils[r][c]) {
+          if (coloring.has(JSON.stringify({ r, c, num: d }))) continue;
+
+          let sees1 = false,
+            sees2 = false;
+          for (const [peerKey, color] of coloring.entries()) {
+            const peer = JSON.parse(peerKey);
+            if (peer.num === d && techniques._sees([r, c], [peer.r, peer.c])) {
+              if (color === 1) sees1 = true;
+              else sees2 = true;
+            }
+          }
+          if (sees1 && sees2) removals.push({ r, c, num: d });
+        }
+      }
+    }
+    if (removals.length > 0) return removals;
+
+    // Rule 5: An uncolored candidate is false if it sees a peer of the same digit, and its cell contains another candidate with the opposite color of that peer.
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (board[r][c] !== 0) continue;
+        for (const d1 of pencils[r][c]) {
+          if (coloring.has(JSON.stringify({ r, c, num: d1 }))) continue;
+
+          for (const [peerKey, peerColor] of coloring.entries()) {
+            const peer = JSON.parse(peerKey);
+            if (peer.num !== d1 || !techniques._sees([r, c], [peer.r, peer.c]))
+              continue;
+
+            for (const d2 of pencils[r][c]) {
+              if (d1 === d2) continue;
+              const cellmateKey = JSON.stringify({ r, c, num: d2 });
+              if (
+                coloring.has(cellmateKey) &&
+                coloring.get(cellmateKey) !== peerColor
+              ) {
+                removals.push({ r, c, num: d1 });
+                break;
+              }
+            }
+            if (
+              removals.some(
+                (rem) => rem.r === r && rem.c === c && rem.num === d1
+              )
+            )
+              break;
+          }
+        }
+      }
+    }
+
+    return removals;
+  },
+  alternatingInferenceChain: (board, pencils, maxLength = 16) => {
+    let changeFound = false;
+    let removals = [];
+
+    // --- Optimized Key & Bitmask Functions ---
+    const makeKey = (r, c, d) => r * 81 + c * 9 + (d - 1);
+    const parseKey = (key) => ({
+      r: Math.floor(key / 81),
+      c: Math.floor((key % 81) / 9),
+      d: (key % 9) + 1,
+    });
+    const _idToCell = (id) => [Math.floor(id / 9), id % 9];
+    const _sees = (id1, id2) => (PEER_MASK[id1] & CELL_MASK[id2]) !== 0n;
+
+    // --- Graph Building ---
+    const buildStrongLinkGraph = () => {
+      const graph = new Map();
+      const addStrongLink = (r1, c1, d1, r2, c2, d2) => {
+        const keyA = makeKey(r1, c1, d1);
+        const keyB = makeKey(r2, c2, d2);
+        if (!graph.has(keyA)) graph.set(keyA, []);
+        if (!graph.has(keyB)) graph.set(keyB, []);
+        graph.get(keyA).push(keyB);
+        graph.get(keyB).push(keyA);
+      };
+
+      // Strong links from bi-location candidates
+      for (let d = 1; d <= 9; d++) {
+        // Rows
+        for (let r = 0; r < 9; r++) {
+          const cols = [];
+          for (let c = 0; c < 9; c++) {
+            if (pencils[r][c].has(d)) cols.push(c);
+          }
+          if (cols.length === 2) {
+            addStrongLink(r, cols[0], d, r, cols[1], d);
+          }
+        }
+        // Columns
+        for (let c = 0; c < 9; c++) {
+          const rows = [];
+          for (let r = 0; r < 9; r++) {
+            if (pencils[r][c].has(d)) rows.push(r);
+          }
+          if (rows.length === 2) {
+            addStrongLink(rows[0], c, d, rows[1], c, d);
+          }
+        }
+        // Boxes
+        for (let b = 0; b < 9; b++) {
+          const cells = [];
+          const br = Math.floor(b / 3) * 3;
+          const bc = (b % 3) * 3;
+          for (let dr = 0; dr < 3; dr++) {
+            for (let dc = 0; dc < 3; dc++) {
+              const r = br + dr;
+              const c = bc + dc;
+              if (pencils[r][c].has(d)) cells.push([r, c]);
+            }
+          }
+          if (cells.length === 2) {
+            addStrongLink(
+              cells[0][0],
+              cells[0][1],
+              d,
+              cells[1][0],
+              cells[1][1],
+              d
+            );
+          }
+        }
+      }
+
+      // Strong links from bi-value cells
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (pencils[r][c].size === 2) {
+            const [d1, d2] = [...pencils[r][c]];
+            addStrongLink(r, c, d1, r, c, d2);
+          }
+        }
+      }
+      return graph;
+    };
+
+    const buildWeakLinkCache = () => {
+      const cache = new Map();
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const cellId = r * 9 + c;
+          const peerIds = PEER_MAP[cellId];
+
+          for (const d of pencils[r][c]) {
+            const key = makeKey(r, c, d);
+            const links = [];
+
+            // Same-digit weak links (peers)
+            for (const peerId of peerIds) {
+              const [pr, pc] = _idToCell(peerId);
+              if (pencils[pr][pc].has(d)) {
+                links.push(makeKey(pr, pc, d));
+              }
+            }
+
+            // Same-cell weak links (other candidates)
+            for (const otherD of pencils[r][c]) {
+              if (otherD !== d) {
+                links.push(makeKey(r, c, otherD));
+              }
+            }
+            cache.set(key, links);
+          }
+        }
+      }
+      return cache;
+    };
+
+    // --- Elimination Logic ---
+    const processRemovals = (foundRemovals) => {
+      if (foundRemovals && foundRemovals.length > 0) {
+        removals.push(...foundRemovals);
+        changeFound = true;
+        return true;
+      }
+      return false;
+    };
+
+    const eliminateCycle = (chain) => {
+      const start = parseKey(chain[0]);
+      const end = parseKey(chain[chain.length - 1]);
+      const startId = start.r * 9 + start.c;
+      const endId = end.r * 9 + end.c;
+
+      const type1 = startId === endId && start.d !== end.d;
+      const type2 = start.d === end.d && _sees(startId, endId);
+
+      if (!(type1 || type2)) return false;
+
+      const localRemovals = [];
+      const weakLinks = [];
+      for (let i = 1; i < chain.length - 1; i += 2) {
+        weakLinks.push([parseKey(chain[i]), parseKey(chain[i + 1])]);
+      }
+      weakLinks.push([end, start]); // Implicit closing link
+
+      for (const [nodeA, nodeB] of weakLinks) {
+        const idA = nodeA.r * 9 + nodeA.c;
+        const idB = nodeB.r * 9 + nodeB.c;
+
+        if (idA === idB && nodeA.d !== nodeB.d) {
+          const keep = new Set([nodeA.d, nodeB.d]);
+          for (const cand of pencils[nodeA.r][nodeA.c]) {
+            if (!keep.has(cand)) {
+              localRemovals.push({ r: nodeA.r, c: nodeA.c, num: cand });
+            }
+          }
+        } else if (nodeA.d === nodeB.d && _sees(idA, idB)) {
+          const commonPeersMask = PEER_MASK[idA] & PEER_MASK[idB];
+          for (let i = 0; i < 81; i++) {
+            if ((commonPeersMask & CELL_MASK[i]) !== 0n) {
+              const [pr, pc] = _idToCell(i);
+              if (pencils[pr][pc].has(nodeA.d)) {
+                localRemovals.push({ r: pr, c: pc, num: nodeA.d });
+              }
+            }
+          }
+        }
+      }
+      return processRemovals(localRemovals);
+    };
+
+    const eliminateChain = (chain) => {
+      const start = parseKey(chain[0]);
+      const end = parseKey(chain[chain.length - 1]);
+      const startId = start.r * 9 + start.c;
+      const endId = end.r * 9 + end.c;
+      const localRemovals = [];
+
+      if (start.d === end.d && !_sees(startId, endId)) {
+        const commonPeersMask = PEER_MASK[startId] & PEER_MASK[endId];
+        for (let i = 0; i < 81; i++) {
+          if ((commonPeersMask & CELL_MASK[i]) !== 0n) {
+            const [pr, pc] = _idToCell(i);
+            if (pencils[pr][pc].has(start.d)) {
+              localRemovals.push({ r: pr, c: pc, num: start.d });
+            }
+          }
+        }
+        return processRemovals(localRemovals);
+      } else if (start.d !== end.d && _sees(startId, endId)) {
+        if (pencils[start.r][start.c].has(end.d)) {
+          localRemovals.push({ r: start.r, c: start.c, num: end.d });
+        }
+        if (pencils[end.r][end.c].has(start.d)) {
+          localRemovals.push({ r: end.r, c: end.c, num: start.d });
+        }
+        return processRemovals(localRemovals);
+      }
+      return false;
+    };
+
+    // --- Search Algorithm ---
+    const dfs = (chain, visited, depth) => {
+      if (changeFound || depth >= maxLength) return;
+
+      if (depth >= 6 && depth % 2 === 0) {
+        const currentChain = chain.slice(0, depth);
+        if (eliminateCycle(currentChain)) return;
+        if (eliminateChain(currentChain)) return;
+      }
+
+      const currentKey = chain[depth - 1];
+      const isStrongLinkTurn = (depth - 1) % 2 === 0;
+
+      const neighbors = isStrongLinkTurn
+        ? strongLinkGraph.get(currentKey) || []
+        : weakLinkCache.get(currentKey) || [];
+
+      for (const neighborKey of neighbors) {
+        if (!visited[neighborKey]) {
+          visited[neighborKey] = true;
+          chain[depth] = neighborKey;
+          dfs(chain, visited, depth + 1);
+          visited[neighborKey] = false; // Backtrack
+          if (changeFound) return;
+        }
+      }
+    };
+
+    // --- Main Execution ---
+    const strongLinkGraph = buildStrongLinkGraph();
+    const weakLinkCache = buildWeakLinkCache();
+    const visited = new Array(729);
+    const chain = new Array(maxLength);
+
+    for (const startNodeKey of strongLinkGraph.keys()) {
+      if (changeFound) break;
+      visited.fill(false);
+      visited[startNodeKey] = true;
+      chain[0] = startNodeKey;
+      dfs(chain, visited, 1);
+    }
+
+    if (changeFound) {
+      const uniqueRemovals = Array.from(
+        new Set(removals.map(JSON.stringify))
+      ).map(JSON.parse);
+      return { change: true, type: "remove", cells: uniqueRemovals };
+    }
+
+    return { change: false };
   },
 
   // --- End of newly added techniques ---

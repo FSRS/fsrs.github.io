@@ -471,6 +471,7 @@ function updateLamp(color) {
     "yellow",
     "orange",
     "red",
+    "violet",
     "gray",
     "black",
     "bug",
@@ -482,7 +483,8 @@ function updateLamp(color) {
     green: "Medium: Level 1 - 2.",
     yellow: "Hard: Level 3 - 5.",
     orange: "Unfair: Level 6.",
-    red: "Extreme: Level 7+.",
+    red: "Extreme: Level 7.",
+    violet: "Insane: Level 8+.",
     black: "Error: An incorrect progress has been made.",
     gray: "Invalid: This puzzle does not have a unique solution.",
     bug: "Bug: Report it to fsrs please!",
@@ -661,7 +663,7 @@ function setupEventListeners() {
     } else if (vagueHintMessage) {
       showMessage(`Vague Hint: ${vagueHintMessage}`, "green");
     } else {
-      showMessage("Hint is only available until Level 6 techniques.", "orange");
+      showMessage("Hint is only available until Level 7 techniques.", "orange");
     }
   });
   exptModeBtn.addEventListener("click", (e) => {
@@ -721,12 +723,12 @@ function handleKeyPress(e) {
   const key = e.key;
   const key_lower = e.key.toLowerCase();
   const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-  if (isCtrlOrCmd && key_lower === "a") {
+  if (e.altKey && key_lower === "a") {
     e.preventDefault();
     arePencilsHidden = !arePencilsHidden;
     if (arePencilsHidden) {
       let message =
-        "Pencil marks hidden. (Press <span class='shortcut-highlight'>Ctrl+A</span> to make visible)";
+        "Pencil marks hidden. (Press <span class='shortcut-highlight'>Alt+A</span> to make visible)";
       // Force-switch from pencil to number mode if active
       if (currentMode === "pencil") {
         currentMode = "concrete";
@@ -891,7 +893,7 @@ function handleKeyPress(e) {
     formatToggleBtn.click();
     return;
   }
-  if (key_lower === "a" && !isCtrlOrCmd) {
+  if (key_lower === "a" && !isCtrlOrCmd && !e.altKey) {
     autoPencilBtn.click();
     return;
   }
@@ -902,7 +904,7 @@ function handleKeyPress(e) {
   if (key_lower === "e" && !isCtrlOrCmd) {
     if (arePencilsHidden) {
       showMessage(
-        "Experimental mode is disabled while marks are hidden. (Press Ctrl+A to make visible)",
+        "Experimental mode is disabled while marks are hidden. (Press Alt+A to make visible)",
         "orange"
       );
       return;
@@ -996,7 +998,7 @@ function handleModeChange(e) {
     const targetMode = currentMode === "concrete" ? "pencil" : "concrete";
     if (targetMode === "pencil" && arePencilsHidden) {
       showMessage(
-        "Pencil mode is disabled while marks are hidden. (Press Ctrl+A to make visible)",
+        "Pencil mode is disabled while marks are hidden. (Press Alt+A to make visible)",
         "orange"
       );
       return;
@@ -1008,7 +1010,7 @@ function handleModeChange(e) {
       const targetSubMode = coloringSubMode === "cell" ? "candidate" : "cell";
       if (targetSubMode === "candidate" && arePencilsHidden) {
         showMessage(
-          "Candidate coloring is disabled while marks are hidden. (Press Ctrl+A to make visible)",
+          "Candidate coloring is disabled while marks are hidden. (Press Alt+A to make visible)",
           "orange"
         );
         return;
@@ -1678,7 +1680,7 @@ function onBoardUpdated(forceEvaluation = false) {
   if (lampEvaluationTimeout) clearTimeout(lampEvaluationTimeout);
   lampEvaluationTimeout = setTimeout(() => {
     evaluateBoardDifficulty();
-  }, 100);
+  }, 200);
 }
 
 function undo() {
@@ -1888,6 +1890,13 @@ async function evaluateBoardDifficulty() {
     { name: "Firework", func: techniques.firework, level: 3 },
     { name: "WXYZ-Wing", func: techniques.wxyzWing, level: 3 },
     { name: "Sue de Coq", func: techniques.sueDeCoq, level: 3 },
+    { name: "Grouped X-Chain", func: techniques.groupedXChain, level: 4 },
+    { name: "3D Medusa", func: techniques.medusa3D, level: 4 },
+    {
+      name: "Alternating Inference Chain",
+      func: techniques.alternatingInferenceChain,
+      level: 4,
+    },
   ];
   if (IS_DEBUG_MODE) {
     console.clear();
@@ -1953,6 +1962,7 @@ async function evaluateBoardDifficulty() {
     else if (maxDifficulty === 1) updateLamp("green");
     else if (maxDifficulty === 2) updateLamp("yellow");
     else if (maxDifficulty === 3) updateLamp("orange");
+    else if (maxDifficulty === 4) updateLamp("red");
   } else if (initialHasEmptyNoCand) {
     // Wrong progress made before evaluation started
     updateLamp("black");
@@ -1974,7 +1984,7 @@ async function evaluateBoardDifficulty() {
       updateLamp("bug");
       vagueHintMessage = "";
     } else {
-      updateLamp("red");
+      updateLamp("violet");
     }
   }
 }
