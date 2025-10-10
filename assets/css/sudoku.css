@@ -885,6 +885,30 @@ button:disabled:hover {
 ================================================================================
 */
 
+/* --- Component: Custom Tooltip --- */
+#custom-tooltip {
+  background-color: #e5e7eb;
+  border: 1px solid #4b5563;
+  padding-inline: 0.5rem;
+  opacity: 0;
+  visibility: hidden;
+
+  /* This is the key change for a natural fade-out:
+    - opacity fades over 200ms.
+    - visibility waits 200ms before switching to hidden.
+  */
+  transition: opacity 200ms ease-in-out, visibility 0s linear 200ms;
+}
+
+/* This rule now overrides the delay for a natural fade-in:
+  - visibility becomes visible instantly.
+  - opacity then fades in over 200ms.
+*/
+#custom-tooltip.tooltip-visible {
+  opacity: 0.95;
+  visibility: visible;
+  transition-delay: 0s;
+}
 /* --- Component: Difficulty Lamp --- */
 #difficulty-lamp {
   width: 0.75rem; /* 12px */
@@ -1158,6 +1182,11 @@ button:disabled:hover {
   |   colors, etc.                                                             |
   ------------------------------------------------------------------------------
   */
+
+  /* --- Component: Custom Tooltip --- */
+  #custom-tooltip {
+    background-color: #374151;
+  }
 
   /* --- Base Page & Text Colors (Gray Theme) --- */
   .text-gray-800 {

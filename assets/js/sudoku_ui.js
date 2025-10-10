@@ -56,18 +56,31 @@ function updateButtonLabels() {
 
   if (currentMode === "pencil") {
     modeToggleButton.textContent = isMobile ? "Pen." : "Pen.";
+    modeToggleButton.dataset.tooltip =
+      "Pencil Mode: Click a cell, then a digit to toggle a candidate. (Z to switch)";
   } else {
     modeToggleButton.textContent = isMobile ? "Num." : "Num. (Z)";
+    if (currentMode === "concrete") {
+      modeToggleButton.dataset.tooltip =
+        "Number Mode: Click a cell, then a digit to set its value. (Z to switch)";
+    } else {
+      modeToggleButton.dataset.tooltip = "Switch to Number/Pencil mode (Z)";
+    }
   }
 
   if (currentMode === "color") {
     if (coloringSubMode === "cell") {
       colorButton.textContent = isMobile ? "Cell" : "Color: Cell";
+      colorButton.dataset.tooltip =
+        "Color Cell Mode: Pick a color, then click a cell to paint it. (X to switch)";
     } else {
       colorButton.textContent = isMobile ? "Cand." : "Color: Cand.";
+      colorButton.dataset.tooltip =
+        "Color Candidate Mode: Pick a color, then click a candidate to paint it. (X to switch)";
     }
   } else {
     colorButton.textContent = isMobile ? "Color" : "Color (X)";
+    colorButton.dataset.tooltip = "Switch to Color mode (X)";
   }
 
   formatToggleBtn.style.display = "none";
@@ -77,11 +90,16 @@ function updateButtonLabels() {
     (isExperimentalMode ? "Expt!" : "Expt.") + exptShortcut;
   if (isExperimentalMode) {
     exptModeBtn.classList.add("active-green");
+    exptModeBtn.dataset.tooltip = "Disable Experimental Mode (E).";
   } else {
     exptModeBtn.classList.remove("active-green");
+    exptModeBtn.dataset.tooltip =
+      "Enable Experimental Mode (E): Click candidates directly.";
   }
 
   vagueHintBtn.textContent = isMobile ? "?" : "? (V)";
+  vagueHintBtn.dataset.tooltip =
+    "Get a vague hint for the next logical step (V).";
 }
 
 function addSudokuCoachLink(puzzleString) {
@@ -95,6 +113,8 @@ function addSudokuCoachLink(puzzleString) {
   link.href = solverUrl;
   link.target = "_blank";
   link.rel = "noopener noreferrer";
+  link.dataset.tooltip =
+    "Open this puzzle in the Sudoku Coach solver in a new tab (Ctrl+E).";
   const isMobile = window.innerWidth <= 550;
   link.textContent = isMobile
     ? "Export to SC Solver"
@@ -102,6 +122,7 @@ function addSudokuCoachLink(puzzleString) {
   link.className =
     "w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orange-600";
   container.appendChild(link);
+  attachTooltipEvents(link); // Attach events to this newly created element
 }
 
 function initBoardState() {
@@ -315,6 +336,53 @@ function renderBoard() {
   validateBoard();
 }
 
+// --- Custom Tooltip Logic ---
+const tooltipEl = document.getElementById("custom-tooltip");
+
+function showTooltip(targetElement) {
+  const tooltipText = targetElement.dataset.tooltip;
+  if (!tooltipText || !tooltipEl) return;
+
+  tooltipEl.textContent = tooltipText;
+  const targetRect = targetElement.getBoundingClientRect();
+
+  // Make visible to measure its dimensions
+  tooltipEl.classList.add("tooltip-visible");
+  const tooltipRect = tooltipEl.getBoundingClientRect();
+
+  // Position tooltip above the element, centered horizontally
+  let top = targetRect.top - tooltipRect.height - 8; // 8px gap
+  let left = targetRect.left + targetRect.width / 2 - tooltipRect.width / 2;
+
+  // Boundary checks to keep it on screen
+  if (top < 8) {
+    // If it's off the top, move it below
+    top = targetRect.bottom + 8;
+  }
+  if (left < 8) {
+    // Prevent left overflow
+    left = 8;
+  }
+  if (left + tooltipRect.width > window.innerWidth - 8) {
+    // Prevent right overflow
+    left = window.innerWidth - tooltipRect.width - 8;
+  }
+
+  tooltipEl.style.top = `${top}px`;
+  tooltipEl.style.left = `${left}px`;
+}
+
+function hideTooltip() {
+  if (tooltipEl) {
+    tooltipEl.classList.remove("tooltip-visible");
+  }
+}
+
+function attachTooltipEvents(element) {
+  element.addEventListener("mouseenter", () => showTooltip(element));
+  element.addEventListener("mouseleave", hideTooltip);
+}
+
 function updateLamp(color) {
   if (!difficultyLamp) return;
   currentLampColor = color;
@@ -340,12 +408,15 @@ function updateLamp(color) {
     gray: "Invalid: This puzzle does not have a unique solution.",
     bug: "Bug: Report it to fsrs please!",
   };
-  difficultyLamp.title = tooltips[color] || "Difficulty Indicator";
+  // Update the data-tooltip attribute for the custom tooltip
+  difficultyLamp.dataset.tooltip = tooltips[color] || "Difficulty Indicator";
 }
 
 // --- Event Handlers and Listeners ---
 
 function setupEventListeners() {
+  // We no longer set static tooltips here, as they are in the HTML.
+
   gridContainer.addEventListener("click", handleCellClick);
   modeSelector.addEventListener("click", handleModeChange);
   numberPad.addEventListener("click", handleNumberPadClick);
@@ -364,7 +435,6 @@ function setupEventListeners() {
     e.stopPropagation();
     candidatePopupFormat = candidatePopupFormat === "A" ? "B" : "A";
     updateButtonLabels();
-    renderBoard();
     const tip = `Candidate display set to ${
       candidatePopupFormat === "A" ? "Numpad (A)" : "Phone (B)"
     } layout.`;
@@ -534,6 +604,15 @@ function setupEventListeners() {
     }
     showMessage(tip, "gray");
   });
+
+  // Attach tooltip events to all elements that have the data-tooltip attribute.
+  document.querySelectorAll("[data-tooltip]").forEach(attachTooltipEvents);
+
+  // Manually attach listeners to buttons that get their tooltips dynamically.
+  attachTooltipEvents(modeToggleButton);
+  attachTooltipEvents(colorButton);
+  attachTooltipEvents(exptModeBtn);
+  attachTooltipEvents(vagueHintBtn);
 }
 
 function handleKeyPress(e) {
@@ -1324,7 +1403,6 @@ function solve() {
   }
   const validity = checkPuzzleUniqueness(initialBoard);
   if (!validity.isValid) {
-
     showMessage(`${validity.message}`, "red");
     return;
   }
