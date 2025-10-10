@@ -396,16 +396,34 @@ function isValid(board, row, col, num) {
 }
 
 function solveSudoku(board) {
+  // 1. Pre-processing: Simplify the board with logical deductions first.
+  // This runs only once at the beginning of the solve process.
+  while (findAndPlaceOneHiddenSingle(board)) {
+    // This loop will fill in all the "obvious" cells without any guessing.
+  }
+
+  // 2. Start the recursive backtracking process on the simplified board.
+  return solveSudokuRecursive(board);
+}
+
+function solveSudokuRecursive(board) {
+  // This is your original, working backtracking function.
+  // It contains NO logic-based simplification loops.
   const find = findEmpty(board);
-  if (!find) return true;
+  if (!find) return true; // Solved
   const [row, col] = find;
 
   for (let num = 1; num <= 9; num++) {
     if (isValid(board, row, col, num)) {
-      board[row][col] = num;
-      if (solveSudoku(board)) return true;
-      board[row][col] = 0;
+      board[row][col] = num; // Guess
+
+      if (solveSudokuRecursive(board)) {
+        return true; // Solution found
+      }
+
+      board[row][col] = 0; // Backtrack
     }
   }
-  return false;
+
+  return false; // No solution found from this path
 }
