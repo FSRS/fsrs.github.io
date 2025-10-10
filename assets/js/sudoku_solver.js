@@ -396,21 +396,14 @@ function isValid(board, row, col, num) {
 }
 
 function solveSudoku(board) {
-  while (findAndPlaceOneHiddenSingle(board)) {
-  }
-
   const find = findEmpty(board);
-  if (!find) {
-    return true; // Base case: If no empty cells are left, the puzzle is solved.
-  }
+  if (!find) return true;
   const [row, col] = find;
 
   for (let num = 1; num <= 9; num++) {
     if (isValid(board, row, col, num)) {
       board[row][col] = num;
-      if (solveSudoku(board)) {
-        return true;
-      }
+      if (solveSudoku(board)) return true;
       board[row][col] = 0;
     }
   }
