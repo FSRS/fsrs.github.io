@@ -1312,7 +1312,7 @@ function solve() {
     isSolvePending = false;
     return;
   }
-  const startTime = performance.now();
+
   const initialBoard = Array(9)
     .fill(null)
     .map(() => Array(9).fill(0));
@@ -1324,8 +1324,8 @@ function solve() {
   }
   const validity = checkPuzzleUniqueness(initialBoard);
   if (!validity.isValid) {
-    const duration = (performance.now() - startTime).toFixed(2);
-    showMessage(`${validity.message} (${duration} ms)`, "red");
+
+    showMessage(`${validity.message}`, "red");
     return;
   }
   for (let r = 0; r < 9; r++) {
@@ -1334,10 +1334,10 @@ function solve() {
       boardState[r][c].pencils.clear();
     }
   }
-  const duration = (performance.now() - startTime).toFixed(2);
+
   saveState();
   onBoardUpdated();
-  showMessage(`Puzzle Solved! (Unique; ${duration} ms)`, "green");
+  showMessage("Puzzle Solved! (Unique)", "green");
   triggerSolveAnimation();
   stopTimer();
 }
