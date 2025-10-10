@@ -479,18 +479,27 @@ function updateLamp(color) {
   difficultyLamp.classList.remove(...colors.map((c) => `lamp-${c}`));
   difficultyLamp.classList.add(`lamp-${color}`);
   const tooltips = {
-    white: "Easy: Level 0.",
-    green: "Medium: Level 1 - 2.",
-    yellow: "Hard: Level 3 - 5.",
-    orange: "Unfair: Level 6.",
-    red: "Extreme: Level 7.",
-    violet: "Insane: Level 8+.",
+    white: "Easy: Level 0",
+    green: "Medium: Level 1 - 2",
+    yellow: "Hard: Level 3 - 5",
+    orange: "Unfair: Level 6",
+    red: "Extreme: Level 7",
+    violet: "Insane: Level 8+",
     black: "Error: An incorrect progress has been made.",
     gray: "Invalid: This puzzle does not have a unique solution.",
     bug: "Bug: Report it to fsrs please!",
   };
+  // Get the base tooltip text
+  let tooltipText = tooltips[color] || "Difficulty Indicator";
+
+  // Check if on a mobile device and shorten the text
+  const isMobile = window.innerWidth <= 550;
+  if (isMobile) {
+    tooltipText = tooltipText.replace("Level", "Lv.");
+  }
+
   // Update the data-tooltip attribute for the custom tooltip
-  difficultyLamp.dataset.tooltip = tooltips[color] || "Difficulty Indicator";
+  difficultyLamp.dataset.tooltip = tooltipText;
 }
 
 // --- Event Handlers and Listeners ---
