@@ -338,49 +338,78 @@ function renderBoard() {
 
 // --- Custom Tooltip Logic ---
 const tooltipEl = document.getElementById("custom-tooltip");
+let tooltipHideTimeout = null;
+
+// --- Custom Tooltip Logic ---
 
 function showTooltip(targetElement) {
+  // If a tooltip already exists for this element, do nothing.
+  if (targetElement.tooltipInstance) return;
+
   const tooltipText = targetElement.dataset.tooltip;
-  if (!tooltipText || !tooltipEl) return;
+  if (!tooltipText) return;
 
+  // 1. Create a new tooltip element
+  const tooltipEl = document.createElement("div");
+  tooltipEl.className = "custom-tooltip";
   tooltipEl.textContent = tooltipText;
-  const targetRect = targetElement.getBoundingClientRect();
 
-  // Make visible to measure its dimensions
-  tooltipEl.classList.add("tooltip-visible");
+  // 2. Store it on the target element for later reference
+  targetElement.tooltipInstance = tooltipEl;
+  document.body.appendChild(tooltipEl);
+
+  // --- Positioning Logic ---
+  const targetRect = targetElement.getBoundingClientRect();
   const tooltipRect = tooltipEl.getBoundingClientRect();
 
-  // Position tooltip above the element, centered horizontally
   let top = targetRect.top - tooltipRect.height - 8; // 8px gap
   let left = targetRect.left + targetRect.width / 2 - tooltipRect.width / 2;
 
-  // Boundary checks to keep it on screen
+  // Boundary checks
   if (top < 8) {
-    // If it's off the top, move it below
     top = targetRect.bottom + 8;
   }
   if (left < 8) {
-    // Prevent left overflow
     left = 8;
   }
   if (left + tooltipRect.width > window.innerWidth - 8) {
-    // Prevent right overflow
     left = window.innerWidth - tooltipRect.width - 8;
   }
 
   tooltipEl.style.top = `${top}px`;
   tooltipEl.style.left = `${left}px`;
+
+  // 3. Use requestAnimationFrame to trigger the fade-in transition
+  requestAnimationFrame(() => {
+    tooltipEl.classList.add("visible");
+  });
 }
 
-function hideTooltip() {
-  if (tooltipEl) {
-    tooltipEl.classList.remove("tooltip-visible");
-  }
+function hideTooltip(targetElement) {
+  const tooltipEl = targetElement.tooltipInstance;
+  if (!tooltipEl) return;
+
+  // 1. Trigger the fade-out transition
+  tooltipEl.classList.remove("visible");
+
+  // 2. Listen for the transition to end, then remove the element
+  tooltipEl.addEventListener(
+    "transitionend",
+    () => {
+      tooltipEl.remove();
+    },
+    { once: true }
+  ); // Important: 'once' cleans up the listener automatically
+
+  // 3. Clear the reference
+  targetElement.tooltipInstance = null;
 }
 
 function attachTooltipEvents(element) {
   element.addEventListener("mouseenter", () => showTooltip(element));
-  element.addEventListener("mouseleave", hideTooltip);
+  element.addEventListener("mouseleave", () => hideTooltip(element));
+  // Also hide on click, useful for touch devices
+  element.addEventListener("click", () => hideTooltip(element));
 }
 
 function updateLamp(color) {
