@@ -30,6 +30,7 @@ const vagueHintBtn = document.getElementById("vague-hint-btn");
 let vagueHintMessage = "";
 let isClearStoragePending = false;
 let arePencilsHidden = false;
+let isSolvingViaButton = false;
 let currentElapsedTime = 0;
 let pausedElapsedTimes = {};
 let puzzleTimers = {}; // { "dateLevel": { elapsedMs, startTime } }
@@ -1543,6 +1544,7 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
       showMessage(tip, "gray");
     }
   }, 5000);
+  checkCompletion();
 }
 
 function clearUserBoard() {
@@ -1589,13 +1591,8 @@ function serializeProgress() {
   return progress;
 }
 
-/**
- * Saves the current puzzle progress to localStorage if it's a daily puzzle
- * and if the user has made any inputs (numbers, pencils, or colors).
- * If no user input exists, any previous save for this puzzle is removed.
- */
 function savePuzzleProgress() {
-  if (isCustomPuzzle) return; // Do not save custom puzzles
+  if (isCustomPuzzle || isSolvingViaButton) return; // Do not save custom puzzles or when auto-solving
 
   const selectedDate = parseInt(dateSelect.value, 10);
   const selectedLevel = parseInt(levelSelect.value, 10);
@@ -1764,6 +1761,9 @@ function solve() {
     showMessage(`${validity.message}`, "red");
     return;
   }
+
+  isSolvingViaButton = true; // Prevent saveState from saving progress
+
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       boardState[r][c].value = solutionBoard[r][c];
@@ -1771,11 +1771,15 @@ function solve() {
     }
   }
 
-  saveState();
+  saveState(); // Update undo history without saving to localStorage
+  removeCurrentPuzzleSave(); // Clear any existing save data
+
   onBoardUpdated();
   showMessage("Puzzle Solved! (Unique)", "green");
   triggerSolveAnimation();
   stopTimer();
+
+  isSolvingViaButton = false; // Re-enable saving for subsequent user actions
 }
 
 function showMessage(text, color) {
@@ -2039,6 +2043,39 @@ function loadExperimentalModePreference() {
     isExperimentalMode = JSON.parse(savedPref);
   }
 }
+
+/**
+ * Removes the saved progress for the current daily puzzle from localStorage.
+ */
+function removeCurrentPuzzleSave() {
+  if (isCustomPuzzle) return;
+
+  const selectedDate = parseInt(dateSelect.value, 10);
+  const selectedLevel = parseInt(levelSelect.value, 10);
+  if (!selectedDate || isNaN(selectedLevel)) return;
+
+  let allSaves = [];
+  try {
+    const savedData = localStorage.getItem("sudokuSaves");
+    if (savedData) {
+      allSaves = JSON.parse(savedData);
+      if (!Array.isArray(allSaves)) allSaves = [];
+    }
+  } catch (e) {
+    console.error("Failed to parse saved Sudoku data:", e);
+    return;
+  }
+
+  const existingSaveIndex = allSaves.findIndex(
+    (s) => s.date === selectedDate && s.level === selectedLevel
+  );
+
+  if (existingSaveIndex > -1) {
+    allSaves.splice(existingSaveIndex, 1);
+    localStorage.setItem("sudokuSaves", JSON.stringify(allSaves));
+  }
+}
+
 // --- Difficulty Evaluation Logic ---
 
 async function evaluateBoardDifficulty() {
