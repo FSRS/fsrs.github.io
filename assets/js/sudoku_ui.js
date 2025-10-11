@@ -1261,7 +1261,7 @@ function checkCompletion() {
       );
       const shareButton = document.createElement("button");
       shareButton.textContent = "Share";
-      shareButton.className = "puzzle-action-button";
+      shareButton.className = "puzzle-action-button rounded-md";
       shareButton.onclick = () => {
         const shareText = generateDiscordShareText();
         navigator.clipboard
@@ -1282,7 +1282,7 @@ function checkCompletion() {
             messageArea.appendChild(successText);
             const copyAgainButton = document.createElement("button");
             copyAgainButton.textContent = "Copy Again";
-            copyAgainButton.className = "puzzle-action-button";
+            copyAgainButton.className = "puzzle-action-button rounded-md";
             copyAgainButton.onclick = shareButton.onclick;
             messageArea.appendChild(copyAgainButton);
           })
