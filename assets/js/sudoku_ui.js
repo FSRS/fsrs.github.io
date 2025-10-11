@@ -28,7 +28,12 @@ const difficultyLamp = document.getElementById("difficulty-lamp");
 const vagueHintBtn = document.getElementById("vague-hint-btn");
 
 let vagueHintMessage = "";
+let isClearStoragePending = false;
 let arePencilsHidden = false;
+let currentElapsedTime = 0;
+let pausedElapsedTimes = {};
+let puzzleTimers = {}; // { "dateLevel": { elapsedMs, startTime } }
+let currentPuzzleKey = null; // Track which puzzle is currently active
 
 // --- UI Update Functions ---
 
@@ -505,6 +510,7 @@ function updateLamp(color) {
 // --- Event Handlers and Listeners ---
 
 function setupEventListeners() {
+  loadExperimentalModePreference(); // Load the user's preference first
   gridContainer.addEventListener("click", handleCellClick);
 
   // MODIFIED: Pass the event object 'e' to the handler
@@ -513,7 +519,11 @@ function setupEventListeners() {
   numberPad.addEventListener("click", handleNumberPadClick);
   loadBtn.addEventListener("click", () => loadPuzzle(puzzleStringInput.value));
   solveBtn.addEventListener("click", solve);
-  clearBtn.addEventListener("click", clearUserBoard);
+  clearBtn.addEventListener("click", () => {
+    clearUserBoard();
+    clearAllColors();
+    showMessage("Board cleared.", "gray");
+  });
   clearColorsBtn.addEventListener("click", clearAllColors);
   autoPencilBtn.addEventListener("click", autoPencil);
   undoBtn.addEventListener("click", undo);
@@ -685,6 +695,7 @@ function setupEventListeners() {
       return;
     }
     isExperimentalMode = !isExperimentalMode;
+    saveExperimentalModePreference();
     updateButtonLabels();
     let tip = "";
     if (isExperimentalMode) {
@@ -732,6 +743,25 @@ function handleKeyPress(e) {
   const key = e.key;
   const key_lower = e.key.toLowerCase();
   const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+  if (e.altKey && key_lower === "w") {
+    e.preventDefault();
+    if (!isClearStoragePending) {
+      showMessage(
+        "Press <span class='shortcut-highlight'>Alt+W</span> again to clear ALL saved data and the current board.",
+        "orange"
+      );
+      isClearStoragePending = true;
+      return;
+    }
+    // Actions on second press
+    localStorage.removeItem("sudokuSaves");
+    localStorage.removeItem("sudokuExperimentalMode");
+    clearUserBoard(); // Clears the current board state
+    showMessage("All saved data cleared and board has been reset.", "green");
+    isClearStoragePending = false; // Reset flag after completion
+    return;
+  }
   if (e.altKey && key_lower === "a") {
     e.preventDefault();
     arePencilsHidden = !arePencilsHidden;
@@ -925,7 +955,7 @@ function handleKeyPress(e) {
     clearBtn.click();
     return;
   }
-  if (key_lower === "w") {
+  if (key_lower === "w" && !e.altKey) {
     clearColorsBtn.click();
     return;
   }
@@ -1219,18 +1249,6 @@ function findAndLoadSelectedPuzzle() {
   if (puzzle) {
     puzzleStringInput.value = puzzle.puzzle;
     loadPuzzle(puzzle.puzzle, puzzle);
-    showMessage(
-      `Loaded puzzle for ${
-        dateSelect.options[dateSelect.selectedIndex].text
-      }, Level ${selectedLevel}`,
-      "green"
-    );
-    setTimeout(() => {
-      const tip = levelTips[selectedLevel];
-      if (tip) {
-        showMessage(tip, "gray");
-      }
-    }, 1500);
   } else {
     initBoardState();
     onBoardUpdated();
@@ -1252,6 +1270,7 @@ function checkCompletion() {
     }
   }
   if (validateBoard()) {
+    savePuzzleTimer();
     if (!isCustomPuzzle) {
       messageArea.innerHTML = "";
       messageArea.className =
@@ -1431,6 +1450,16 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
       boardForValidation[row][col] = num;
     }
   }
+  let savedTime = 0;
+  let wasSaveLoaded = false; // Flag to track if progress was applied
+
+  if (!isCustomPuzzle && puzzleData) {
+    savedTime = applySavedProgress(puzzleData);
+    if (savedTime > 0) {
+      wasSaveLoaded = true;
+    }
+  }
+
   const initialBoardForSolution = boardForValidation.map((row) => [...row]);
   solveSudoku(initialBoardForSolution);
   solutionBoard = initialBoardForSolution;
@@ -1446,6 +1475,7 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
   hasUsedAutoPencil = false;
   isAutoPencilPending = false;
   isSolvePending = false;
+  isClearStoragePending = false;
   puzzleInfoContainer.classList.remove("hidden");
   puzzleTimerEl.classList.remove("hidden");
   if (puzzleData) {
@@ -1459,11 +1489,51 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
     dateSelect.value = "custom";
   }
   renderBoard();
-  await evaluateBoardDifficulty();
+
+  // --- CORRECTED LOGIC ORDER ---
+
+  // 1. Save the outgoing puzzle's timer state using the OLD key.
+  savePuzzleTimer();
+
+  // 2. Set the key for the NEW puzzle.
+  currentPuzzleKey = isCustomPuzzle
+    ? null
+    : `${puzzleData.date}-${puzzleData.level}`;
+
+  // 3. Load the incoming puzzle's timer. This also correctly sets the global
+  //    currentElapsedTime variable for the new puzzle.
+  loadPuzzleTimer(savedTime);
+
+  // 4. Now that the timer variable is correct, save the initial state for the undo history.
+  //    This will also correctly save the puzzle progress with the right time.
   saveState();
+
+  // 5. Perform final UI updates.
+  await evaluateBoardDifficulty();
   addSudokuCoachLink(puzzleString);
-  if (!puzzleData) showMessage("Custom puzzle loaded!", "green");
-  startTimer();
+
+  // --- Messages ---
+  if (isCustomPuzzle) {
+    showMessage("Custom puzzle loaded!", "green");
+  } else if (!wasSaveLoaded && puzzleData) {
+    showMessage(
+      `Loaded puzzle for ${
+        dateSelect.options[dateSelect.selectedIndex].text
+      }, Level ${puzzleData.level}`,
+      "green"
+    );
+  }
+
+  // Schedule the delayed level tip ONLY for daily puzzles (both new and loaded).
+  if (puzzleData) {
+    setTimeout(() => {
+      const tip = levelTips[puzzleData.level];
+      if (tip) {
+        showMessage(tip, "gray");
+      }
+    }, 2000);
+  }
+
   autoPencilTipTimer = setTimeout(() => {
     if (!hasUsedAutoPencil) {
       const isMobile = window.innerWidth <= 550;
@@ -1487,11 +1557,164 @@ function clearUserBoard() {
   vagueHintMessage = "";
   isAutoPencilPending = false;
   isSolvePending = false;
+  isClearStoragePending = false;
   saveState();
   onBoardUpdated(true);
-  showMessage("Board cleared.", "gray");
 }
 
+// --- ADD Progress Save/Load Functions ---
+
+/**
+ * Converts the current user progress on the board into a serializable array.
+ * @returns {Array} An array representing the user's inputs.
+ */
+function serializeProgress() {
+  const progress = [];
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = boardState[r][c];
+      // We only need to save data for non-given cells
+      if (cell.isGiven) {
+        progress.push(null);
+      } else {
+        progress.push({
+          v: cell.value,
+          p: [...cell.pencils], // Convert Set to Array for JSON
+          cc: cell.cellColor,
+          pc: [...cell.pencilColors.entries()], // Convert Map to Array for JSON
+        });
+      }
+    }
+  }
+  return progress;
+}
+
+/**
+ * Saves the current puzzle progress to localStorage if it's a daily puzzle
+ * and if the user has made any inputs (numbers, pencils, or colors).
+ * If no user input exists, any previous save for this puzzle is removed.
+ */
+function savePuzzleProgress() {
+  if (isCustomPuzzle) return; // Do not save custom puzzles
+
+  const selectedDate = parseInt(dateSelect.value, 10);
+  const selectedLevel = parseInt(levelSelect.value, 10);
+
+  if (!selectedDate || isNaN(selectedLevel) || !initialPuzzleString) return;
+
+  // --- MODIFICATION: Check if any user input exists ---
+  let hasUserInput = false;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = boardState[r][c];
+      if (!cell.isGiven) {
+        if (
+          cell.value !== 0 ||
+          cell.pencils.size > 0 ||
+          cell.cellColor !== null ||
+          cell.pencilColors.size > 0
+        ) {
+          hasUserInput = true;
+          break; // Found input, no need to check further
+        }
+      }
+    }
+    if (hasUserInput) break;
+  }
+
+  let allSaves = [];
+  try {
+    const savedData = localStorage.getItem("sudokuSaves");
+    if (savedData) {
+      allSaves = JSON.parse(savedData);
+      if (!Array.isArray(allSaves)) allSaves = [];
+    }
+  } catch (e) {
+    console.error("Failed to parse saved Sudoku data:", e);
+    allSaves = [];
+  }
+
+  const existingSaveIndex = allSaves.findIndex(
+    (s) => s.date === selectedDate && s.level === selectedLevel
+  );
+
+  if (hasUserInput) {
+    // If user made progress, create or update the save file.
+    const currentSave = {
+      date: selectedDate,
+      level: selectedLevel,
+      puzzle: initialPuzzleString,
+      progress: serializeProgress(),
+      time: Math.max(0, Math.floor(currentElapsedTime)),
+    };
+
+    if (existingSaveIndex > -1) {
+      allSaves[existingSaveIndex] = currentSave; // Update existing save
+    } else {
+      allSaves.push(currentSave); // Add new save
+    }
+
+    // Limit total saves to prevent localStorage from filling up
+    if (allSaves.length > 70) {
+      allSaves.shift(); // Remove the oldest save
+    }
+  } else {
+    // If no user input, remove any existing save for this puzzle.
+    if (existingSaveIndex > -1) {
+      allSaves.splice(existingSaveIndex, 1);
+    }
+  }
+
+  // Update localStorage with the potentially modified saves array.
+  localStorage.setItem("sudokuSaves", JSON.stringify(allSaves));
+}
+
+/**
+ * Applies saved progress to the board state when a daily puzzle is loaded.
+ * @param {object} puzzleData - The metadata for the daily puzzle being loaded.
+ */
+function applySavedProgress(puzzleData) {
+  let allSaves = [];
+  try {
+    const savedData = localStorage.getItem("sudokuSaves");
+    if (savedData) allSaves = JSON.parse(savedData);
+    else return 0; // Return 0 if no saves exist
+  } catch (e) {
+    return 0;
+  }
+
+  const savedGameIndex = allSaves.findIndex(
+    (s) => s.date === puzzleData.date && s.level === puzzleData.level
+  );
+  if (savedGameIndex === -1) return 0; // No save for this puzzle
+
+  const savedGame = allSaves[savedGameIndex];
+
+  if (savedGame.puzzle !== puzzleData.puzzle) {
+    allSaves.splice(savedGameIndex, 1);
+    localStorage.setItem("sudokuSaves", JSON.stringify(allSaves));
+    return 0; // Invalid save, return 0
+  }
+
+  const progress = savedGame.progress;
+  if (!progress || progress.length !== 81) return 0;
+
+  for (let i = 0; i < 81; i++) {
+    const savedCell = progress[i];
+    if (savedCell) {
+      const r = Math.floor(i / 9);
+      const c = i % 9;
+      const currentCell = boardState[r][c];
+      currentCell.value = savedCell.v || 0;
+      currentCell.pencils = new Set(savedCell.p || []);
+      currentCell.cellColor = savedCell.cc || null;
+      currentCell.pencilColors = new Map(savedCell.pc || []);
+    }
+  }
+
+  showMessage("Loaded saved progress.", "green");
+  return typeof savedGame.time === "number" ? savedGame.time : 0;
+}
 function validateBoard() {
   const board = boardState.map((row) => row.map((cell) => cell.value));
   const cells = gridContainer.querySelectorAll(".sudoku-cell");
@@ -1618,30 +1841,24 @@ function generateDiscordShareText() {
   return header + "\n" + gridStr.trim();
 }
 
-function startTimer() {
-  stopTimer();
-  startTime = Date.now();
-  puzzleTimerEl.textContent = "00:00";
-  timerInterval = setInterval(updateTimer, 1000);
-}
-
-function stopTimer() {
-  if (timerInterval) clearInterval(timerInterval);
-}
-
-function updateTimer() {
-  const elapsedMs = Date.now() - startTime;
-  const totalSeconds = Math.floor(elapsedMs / 1000);
+/**
+ * Formats milliseconds into a HH:MM:SS or MM:SS string.
+ * @param {number} ms - The elapsed time in milliseconds.
+ * @returns {string} The formatted time string.
+ */
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   const formattedSeconds = String(seconds).padStart(2, "0");
   const formattedMinutes = String(minutes).padStart(2, "0");
+
   if (hours > 0) {
     const formattedHours = String(hours).padStart(2, "0");
-    puzzleTimerEl.textContent = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   } else {
-    puzzleTimerEl.textContent = `${formattedMinutes}:${formattedSeconds}`;
+    return `${formattedMinutes}:${formattedSeconds}`;
   }
 }
 
@@ -1666,6 +1883,7 @@ function saveState() {
   });
   historyIndex++;
   updateUndoRedoButtons();
+  savePuzzleProgress();
 }
 
 function onBoardUpdated(forceEvaluation = false) {
@@ -1690,6 +1908,86 @@ function onBoardUpdated(forceEvaluation = false) {
   lampEvaluationTimeout = setTimeout(() => {
     evaluateBoardDifficulty();
   }, 200);
+}
+
+/**
+ * Stops the active timer interval.
+ */
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+/**
+ * Resets global timer variables and clears the display.
+ */
+function resetTimerState() {
+  stopTimer();
+  startTime = null;
+  currentElapsedTime = 0;
+  puzzleTimerEl.textContent = "00:00";
+}
+
+/**
+ * Starts the timer, continuing from a given initial time.
+ * @param {number} initialMs - The time to start from, in milliseconds.
+ */
+function startTimer(initialMs = 0) {
+  stopTimer(); // Ensure no other timers are running.
+
+  // Ensure initialMs is a valid number.
+  if (typeof initialMs !== "number" || initialMs < 0) {
+    initialMs = 0;
+  }
+
+  // Set the start time relative to the elapsed time to ensure continuity.
+  startTime = Date.now() - initialMs;
+  currentElapsedTime = initialMs;
+  puzzleTimerEl.textContent = formatTime(initialMs);
+
+  // Create a new interval to update the timer every second.
+  timerInterval = setInterval(() => {
+    const elapsedMs = Date.now() - startTime;
+    currentElapsedTime = elapsedMs;
+    puzzleTimerEl.textContent = formatTime(elapsedMs);
+  }, 1000);
+}
+
+/**
+ * Saves the current timer's elapsed time into an in-session cache
+ * before switching to a new puzzle.
+ */
+function savePuzzleTimer() {
+  // If a puzzle was active, stop its timer and save its state.
+  if (currentPuzzleKey) {
+    stopTimer();
+    puzzleTimers[currentPuzzleKey] = currentElapsedTime;
+  }
+}
+
+/**
+ * Loads the timer for the current puzzle. It prioritizes in-session saved
+ * time, falling back to time saved in localStorage.
+ * @param {number} savedTimeFromStorage - The elapsed time loaded from localStorage.
+ */
+function loadPuzzleTimer(savedTimeFromStorage) {
+  resetTimerState();
+
+  // Do not start a timer for custom puzzles or if the puzzle key is missing.
+  if (isCustomPuzzle || !currentPuzzleKey) {
+    return;
+  }
+
+  // Prioritize the time saved during the current session.
+  const inSessionTime = puzzleTimers[currentPuzzleKey];
+
+  // If we have an in-session time, use it; otherwise, use the time from storage.
+  const timeToStart =
+    typeof inSessionTime === "number" ? inSessionTime : savedTimeFromStorage;
+
+  startTimer(timeToStart > 0 ? timeToStart : 0);
 }
 
 function undo() {
@@ -1721,6 +2019,26 @@ function updateUndoRedoButtons() {
   redoBtn.disabled = historyIndex >= history.length - 1;
 }
 
+// --- ADD 'Experimental Mode' Preference Functions ---
+/**
+ * Saves the current state of isExperimentalMode to localStorage.
+ */
+function saveExperimentalModePreference() {
+  localStorage.setItem(
+    "sudokuExperimentalMode",
+    JSON.stringify(isExperimentalMode)
+  );
+}
+
+/**
+ * Loads the experimental mode preference from localStorage on startup.
+ */
+function loadExperimentalModePreference() {
+  const savedPref = localStorage.getItem("sudokuExperimentalMode");
+  if (savedPref !== null) {
+    isExperimentalMode = JSON.parse(savedPref);
+  }
+}
 // --- Difficulty Evaluation Logic ---
 
 async function evaluateBoardDifficulty() {
