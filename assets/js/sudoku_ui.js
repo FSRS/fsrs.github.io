@@ -98,7 +98,7 @@ function updateButtonLabels() {
     exptModeBtn.classList.add("active-green");
     if (isMobile) {
       // Use "past tense" for mobile, describing the new state
-      exptModeBtn.dataset.tooltip = "Experimental Mode Enabled.";
+      exptModeBtn.dataset.tooltip = "Experimental Mode Enabled!";
     } else {
       // Keep "future tense" for desktop, describing the action
       exptModeBtn.dataset.tooltip = "Disable Experimental Mode (E).";
@@ -364,9 +364,6 @@ let tooltipHideTimeout = null;
 let activeTooltipElement = null;
 
 function showTooltip(targetElement) {
-  // MODIFICATION: If a tooltip instance already exists (e.g., it's visible or fading out),
-  // remove it immediately. This is crucial for toggle buttons on mobile, ensuring the
-  // new tooltip with updated text can be displayed without being blocked.
   if (targetElement.tooltipInstance) {
     targetElement.tooltipInstance.remove();
     targetElement.tooltipInstance = null;
@@ -395,12 +392,37 @@ function showTooltip(targetElement) {
   const targetRect = targetElement.getBoundingClientRect();
   const tooltipRect = tooltipEl.getBoundingClientRect();
 
-  let top = targetRect.top - tooltipRect.height - 8; // 8px gap
+  // Define which elements should have their tooltips appear below on mobile
+  const elementsForBottomTooltip = [
+    "mode-toggle-btn",
+    "expt-mode-btn",
+    "difficulty-lamp",
+    "vague-hint-btn",
+  ];
+  const isColorButton = targetElement.dataset.mode === "color"; // Special check for the color button
+
+  let top;
   let left = targetRect.left + targetRect.width / 2 - tooltipRect.width / 2;
 
+  // Conditionally position the tooltip below the button on mobile for specific elements
+  if (
+    isMobile &&
+    (elementsForBottomTooltip.includes(targetElement.id) || isColorButton)
+  ) {
+    // Position BELOW the button
+    top = targetRect.bottom + 8; // 8px gap
+  } else {
+    // Default position: ABOVE the element
+    top = targetRect.top - tooltipRect.height - 8; // 8px gap
+  }
   // Boundary checks
+  // If positioning it 'above' pushes it off-screen, flip it to 'below'
   if (top < 8) {
     top = targetRect.bottom + 8;
+  }
+  // If positioning it 'below' pushes it off-screen, flip it back to 'above'
+  if (top + tooltipRect.height > window.innerHeight - 8) {
+    top = targetRect.top - tooltipRect.height - 8;
   }
   if (left < 8) {
     left = 8;
@@ -508,6 +530,28 @@ function updateLamp(color) {
   difficultyLamp.dataset.tooltip = tooltipText;
 }
 
+/**
+ * Checks if the current board state exactly matches the pre-computed solution.
+ * @returns {boolean} True if the board matches the solution, otherwise false.
+ */
+function isBoardIdenticalToSolution() {
+  // If there's no solution board available (e.g., for an invalid puzzle), it can't be solved.
+  if (!solutionBoard) {
+    return false;
+  }
+
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      // If any cell in the current state doesn't match the solution, return false immediately.
+      if (boardState[r][c].value !== solutionBoard[r][c]) {
+        return false;
+      }
+    }
+  }
+
+  // If all cells match, the board is correctly solved.
+  return true;
+}
 // --- Event Handlers and Listeners ---
 
 function setupEventListeners() {
@@ -676,6 +720,10 @@ function setupEventListeners() {
     dateSelect.value = dateSelect.querySelector("option").value;
   });
   vagueHintBtn.addEventListener("click", () => {
+    if (isBoardIdenticalToSolution()) {
+      showMessage("The Sudoku is already solved!", "green");
+      return;
+    }
     if (currentLampColor === "gray") {
       showMessage("No hint available for an invalid puzzle.", "red");
     } else if (currentLampColor === "black") {
