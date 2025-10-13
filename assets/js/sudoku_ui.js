@@ -493,34 +493,66 @@ function attachTooltipEvents(element) {
   }
 }
 
-function updateLamp(color) {
+/**
+ * Update lamp UI and optionally record timestamp progression.
+ * @param {string} color - lamp color
+ * @param {object} opts - options
+ *   opts.record (boolean) - whether to run timestamp bookkeeping (default true).
+ */
+function updateLamp(color, { record = true } = {}) {
   if (!difficultyLamp) return;
 
-  // --- MODIFICATION START ---
-  // If the lamp turns black due to an error, update the UI visually
-  // but do not affect the timestamp logic or the recorded previous color.
+  const allColors = [
+    "white",
+    "green",
+    "yellow",
+    "orange",
+    "red",
+    "violet",
+    "gray",
+    "black",
+    "bug",
+  ];
+
+  // Always update visual state so undos/redos show correct lamp
+  currentLampColor = color;
+  difficultyLamp.classList.remove(...allColors.map((c) => `lamp-${c}`));
+  difficultyLamp.classList.add(`lamp-${color}`);
+
+  // Visual-only states that must never touch timestamp logic
   if (color === "black") {
-    currentLampColor = color;
-    const allColors = [
-      "white",
-      "green",
-      "yellow",
-      "orange",
-      "red",
-      "violet",
-      "gray",
-      "black",
-      "bug",
-    ];
-    difficultyLamp.classList.remove(...allColors.map((c) => `lamp-${c}`));
-    difficultyLamp.classList.add(`lamp-${color}`);
     difficultyLamp.dataset.tooltip =
       "Error: An incorrect progress has been made.";
-    return; // Exit early to prevent timestamp changes
+    return; // never record timestamps on 'black'
   }
-  // --- MODIFICATION END ---
+  if (color === "bug") {
+    difficultyLamp.dataset.tooltip =
+      "Bug detected: Please report if reproducible.";
+    return; // never record timestamps on 'bug'
+  }
 
-  // --- Logic to record lamp accomplishment timestamps ---
+  // If caller asked to skip timestamp bookkeeping (undo/redo / restore),
+  // update tooltip text but leave lampTimestamps / previousLampColor untouched.
+  if (!record) {
+    const tooltips = {
+      white: "Easy: Level 0",
+      green: "Medium: Level 1 - 2",
+      yellow: "Hard: Level 3 - 5",
+      orange: "Unfair: Level 6",
+      red: "Extreme: Level 7",
+      violet: "Insane: Level 8+",
+      gray: "Invalid: This puzzle does not have a unique solution.",
+    };
+    let tooltipText = tooltips[color] || "Difficulty Indicator";
+    if (window.innerWidth <= 550)
+      tooltipText = tooltipText.replace("Level", "Lv.");
+    difficultyLamp.dataset.tooltip = tooltipText;
+    return;
+  }
+
+  // -------------------------
+  // Timestamp bookkeeping (record === true)
+  // -------------------------
   const colorHierarchy = {
     bug: 8,
     gray: 8,
@@ -532,23 +564,24 @@ function updateLamp(color) {
     white: 2,
   };
 
-  const previousRank = colorHierarchy[previousLampColor] || 9; // Default to a high rank
+  const previousRank = colorHierarchy[previousLampColor] || 9;
   const currentRank = colorHierarchy[color] || 9;
 
-  // 1. If difficulty decreased (e.g., red -> orange), record timestamps.
+  // If difficulty *decreased* (e.g., red -> orange -> ... -> white)
+  // we want to record the time we reached those colors.
+  // IMPORTANT: overwrite any existing timestamps for those colors so a
+  // later "correct" solving run replaces earlier mistaken timestamps.
   if (currentRank < previousRank) {
     const colorsToSet = Object.keys(colorHierarchy).filter(
       (key) =>
         colorHierarchy[key] < previousRank && colorHierarchy[key] >= currentRank
     );
     colorsToSet.forEach((colorName) => {
-      // Only set the timestamp if it hasn't been achieved yet
-      if (!lampTimestamps[colorName]) {
-        lampTimestamps[colorName] = currentElapsedTime;
-      }
+      // Overwrite with the latest time for authoritative final run
+      lampTimestamps[colorName] = currentElapsedTime;
     });
   }
-  // 2. If difficulty increased (e.g., white -> green), reset lower timestamps.
+  // If difficulty increased (e.g., white -> green) clear timestamps lower than new rank.
   else if (currentRank > previousRank) {
     const colorsToReset = Object.keys(colorHierarchy).filter(
       (key) => colorHierarchy[key] < currentRank
@@ -559,23 +592,8 @@ function updateLamp(color) {
       }
     });
   }
-  previousLampColor = color; // Update the previous color for the next check
-  // --- END OF TIMESTAMP LOGIC ---
 
-  currentLampColor = color;
-  const colors = [
-    "white",
-    "green",
-    "yellow",
-    "orange",
-    "red",
-    "violet",
-    "gray",
-    "black",
-    "bug",
-  ];
-  difficultyLamp.classList.remove(...colors.map((c) => `lamp-${c}`));
-  difficultyLamp.classList.add(`lamp-${color}`);
+  // Update tooltip text
   const tooltips = {
     white: "Easy: Level 0",
     green: "Medium: Level 1 - 2",
@@ -586,17 +604,13 @@ function updateLamp(color) {
     gray: "Invalid: This puzzle does not have a unique solution.",
     bug: "Bug: Report it to fsrs please!",
   };
-  // Get the base tooltip text
   let tooltipText = tooltips[color] || "Difficulty Indicator";
-
-  // Check if on a mobile device and shorten the text
-  const isMobile = window.innerWidth <= 550;
-  if (isMobile) {
+  if (window.innerWidth <= 550)
     tooltipText = tooltipText.replace("Level", "Lv.");
-  }
-
-  // Update the data-tooltip attribute for the custom tooltip
   difficultyLamp.dataset.tooltip = tooltipText;
+
+  // commit previous color after bookkeeping
+  previousLampColor = color;
 }
 
 /**
@@ -1818,6 +1832,16 @@ function applySavedProgress(puzzleData) {
 
   lampTimestamps = savedGame.lampTimes || {};
 
+  if (lampTimestamps) {
+    // find highest achieved color by comparing presence in lampTimestamps
+    const order = ["red", "orange", "yellow", "green", "white"];
+    let last = null;
+    for (const c of order) {
+      if (lampTimestamps[c]) last = c;
+    }
+    if (last) updateLamp(last, { record: false });
+  }
+
   for (let i = 0; i < 81; i++) {
     const savedCell = progress[i];
     if (savedCell) {
@@ -1952,8 +1976,7 @@ function generateDiscordShareText() {
   // The first line with level description
   const levelStr = `${levelInfo[level].emoji} Level ${level} (${levelWord})`;
 
-  // Build the detailed timestamp section
-  let timeDetails = "";
+  // Preferred order to display accomplishments (highest difficulty -> solved)
   const accomplishmentOrder = [
     { color: "red", emoji: ":red_square:" },
     { color: "orange", emoji: ":orange_square:" },
@@ -1962,23 +1985,19 @@ function generateDiscordShareText() {
     { color: "white", emoji: ":white_large_square:" },
   ];
 
-  const startingColor = levelInfo[level].color;
-  let started = false;
-
-  for (const item of accomplishmentOrder) {
-    if (item.color === startingColor) {
-      started = true;
-      continue; // Don't show the timestamp for the starting level
+  // Build timestamps for any accomplishments we have recorded in lampTimestamps.
+  // We no longer depend on the puzzle's starting color appearing in this list.
+  let timeDetails = "";
+  accomplishmentOrder.forEach((item) => {
+    const ts = lampTimestamps && lampTimestamps[item.color];
+    if (typeof ts === "number") {
+      timeDetails += `\n${item.emoji} ${formatTime(ts)}`;
     }
-    if (started && lampTimestamps[item.color]) {
-      timeDetails += `\n${item.emoji} ${formatTime(
-        lampTimestamps[item.color]
-      )}`;
-    }
-  }
+  });
 
-  // Final solved time
-  const finalTimeStr = puzzleTimerEl.textContent;
+  // Final solved time (always included)
+  const finalTimeStr =
+    puzzleTimerEl.textContent || formatTime(currentElapsedTime || 0);
   timeDetails += `\n:ballot_box_with_check: ${finalTimeStr}`;
 
   const header = `${title} | ${puzzleDateStr}\n${levelStr}${timeDetails}\n`;
@@ -2052,12 +2071,16 @@ function saveState() {
     boardState: cloneBoardState(boardState),
     lampColor: currentLampColor,
     vagueHint: vagueHintMessage,
+    // --- MODIFICATION START ---
+    previousLampColor: previousLampColor,
+    // Add a deep copy of the timestamps to prevent reference issues
+    lampTimestamps: JSON.parse(JSON.stringify(lampTimestamps)),
+    // --- MODIFICATION END ---
   });
   historyIndex++;
   updateUndoRedoButtons();
   savePuzzleProgress();
 }
-
 function onBoardUpdated(forceEvaluation = false) {
   renderBoard();
   if (!forceEvaluation) {
@@ -2168,7 +2191,10 @@ function undo() {
     const historyEntry = history[historyIndex];
     boardState = cloneBoardState(historyEntry.boardState);
     vagueHintMessage = historyEntry.vagueHint;
-    updateLamp(historyEntry.lampColor);
+
+    updateLamp(historyEntry.lampColor, { record: false });
+    // --- MODIFICATION END ---
+
     renderBoard();
     updateUndoRedoButtons();
   }
@@ -2180,7 +2206,9 @@ function redo() {
     const historyEntry = history[historyIndex];
     boardState = cloneBoardState(historyEntry.boardState);
     vagueHintMessage = historyEntry.vagueHint;
-    updateLamp(historyEntry.lampColor);
+
+    updateLamp(historyEntry.lampColor, { record: false });
+
     renderBoard();
     updateUndoRedoButtons();
   }
@@ -2490,15 +2518,14 @@ async function evaluateBoardDifficulty() {
   const isSolved = virtualBoard.flat().every((v) => v !== 0);
 
   if (isSolved) {
+    if (previousLampColor === "black" || previousLampColor === "bug") {
+      previousLampColor = null;
+    }
     if (maxDifficulty === 0) updateLamp("white");
     else if (maxDifficulty <= 2) updateLamp("green");
     else if (maxDifficulty <= 5) updateLamp("yellow");
     else if (maxDifficulty <= 6) updateLamp("orange");
     else if (maxDifficulty <= 7) updateLamp("red");
-  } else if (initialHasEmptyNoCand) {
-    // Wrong progress made before evaluation started
-    updateLamp("black");
-    vagueHintMessage = "";
   } else {
     // === Final bug detection ===
     let foundBug = false;
