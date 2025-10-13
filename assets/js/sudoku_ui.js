@@ -1861,7 +1861,21 @@ function generateDiscordShareText() {
   }
   const level = levelSelect.value;
   const levelWord = difficultyWords[level] || "Unknown";
-  const levelStr = `Level ${level} (${levelWord})`;
+  let levelEmoji = "";
+  if (level === 0) {
+    levelEmoji = ":white_large_square:";
+  } else if (level <= 2) {
+    levelEmoji = ":green_square:";
+  } else if (level <= 5) {
+    levelEmoji = ":yellow_square:";
+  } else if (level === 6) {
+    levelEmoji = ":orange_square:";
+  } else if (level === 7) {
+    levelEmoji = ":red_square:";
+  } else {
+    levelEmoji = ":purple_square:";
+  }
+  const levelStr = `${levelEmoji} Level ${level} (${levelWord})`;
   const timeStr = puzzleTimerEl.textContent;
   const header = `${title} | ${puzzleDateStr}\n${levelStr} | Time ${timeStr}\n`;
   const digitMap = {
