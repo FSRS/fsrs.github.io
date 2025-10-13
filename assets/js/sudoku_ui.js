@@ -1950,6 +1950,8 @@ function showMessage(text, color) {
 function generateDiscordShareText() {
   const title = "[fsrs Daily Sudoku](https://fsrs.darksabun.club/sudoku.html)";
   const dateVal = dateSelect.value;
+
+  // --- FIX START: Restore the original dynamic date logic ---
   let puzzleDateStr = new Date().toISOString().slice(0, 10);
   if (dateVal && /^\d{8}$/.test(dateVal)) {
     puzzleDateStr = `${dateVal.slice(0, 4)}-${dateVal.slice(
@@ -1957,6 +1959,8 @@ function generateDiscordShareText() {
       6
     )}-${dateVal.slice(6, 8)}`;
   }
+  // --- FIX END ---
+
   const level = parseInt(levelSelect.value, 10);
   const levelWord = difficultyWords[level] || "Unknown";
 
@@ -1973,10 +1977,15 @@ function generateDiscordShareText() {
     { emoji: ":purple_square:", color: "violet" }, // 9
   ];
 
-  // The first line with level description
-  const levelStr = `${levelInfo[level].emoji} Level ${level} (${levelWord})`;
+  const colorHierarchy = {
+    violet: 7,
+    red: 6,
+    orange: 5,
+    yellow: 4,
+    green: 3,
+    white: 2,
+  };
 
-  // Preferred order to display accomplishments (highest difficulty -> solved)
   const accomplishmentOrder = [
     { color: "red", emoji: ":red_square:" },
     { color: "orange", emoji: ":orange_square:" },
@@ -1985,24 +1994,26 @@ function generateDiscordShareText() {
     { color: "white", emoji: ":white_large_square:" },
   ];
 
-  // Build timestamps for any accomplishments we have recorded in lampTimestamps.
-  // We no longer depend on the puzzle's starting color appearing in this list.
-  let timeDetails = "";
-  accomplishmentOrder.forEach((item) => {
-    const ts = lampTimestamps && lampTimestamps[item.color];
-    if (typeof ts === "number") {
-      timeDetails += `\n${item.emoji} ${formatTime(ts)}`;
-    }
-  });
+  const startingColor = levelInfo[level].color;
+  const startingRank = colorHierarchy[startingColor] || 9;
 
-  // Final solved time (always included)
-  const finalTimeStr =
-    puzzleTimerEl.textContent || formatTime(currentElapsedTime || 0);
+  const levelStr = `${levelInfo[level].emoji} Level ${level} (${levelWord})`;
+
+  let timeDetails = "";
+  for (const item of accomplishmentOrder) {
+    const itemRank = colorHierarchy[item.color];
+    if (itemRank < startingRank && lampTimestamps[item.color]) {
+      timeDetails += `\n${item.emoji} ${formatTime(
+        lampTimestamps[item.color]
+      )}`;
+    }
+  }
+
+  const finalTimeStr = puzzleTimerEl.textContent;
   timeDetails += `\n:ballot_box_with_check: ${finalTimeStr}`;
 
   const header = `${title} | ${puzzleDateStr}\n${levelStr}${timeDetails}\n`;
 
-  // The rest of the function remains the same (for the grid)
   const digitMap = {
     1: ":one:",
     2: ":two:",
