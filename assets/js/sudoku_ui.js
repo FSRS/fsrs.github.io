@@ -36,6 +36,9 @@ let pausedElapsedTimes = {};
 let puzzleTimers = {}; // { "dateLevel": { elapsedMs, startTime } }
 let currentPuzzleKey = null; // Track which puzzle is currently active
 
+let lampTimestamps = {};
+let previousLampColor = null;
+
 // --- UI Update Functions ---
 
 function updateColorPalettes(isDarkMode) {
@@ -492,6 +495,73 @@ function attachTooltipEvents(element) {
 
 function updateLamp(color) {
   if (!difficultyLamp) return;
+
+  // --- MODIFICATION START ---
+  // If the lamp turns black due to an error, update the UI visually
+  // but do not affect the timestamp logic or the recorded previous color.
+  if (color === "black") {
+    currentLampColor = color;
+    const allColors = [
+      "white",
+      "green",
+      "yellow",
+      "orange",
+      "red",
+      "violet",
+      "gray",
+      "black",
+      "bug",
+    ];
+    difficultyLamp.classList.remove(...allColors.map((c) => `lamp-${c}`));
+    difficultyLamp.classList.add(`lamp-${color}`);
+    difficultyLamp.dataset.tooltip =
+      "Error: An incorrect progress has been made.";
+    return; // Exit early to prevent timestamp changes
+  }
+  // --- MODIFICATION END ---
+
+  // --- Logic to record lamp accomplishment timestamps ---
+  const colorHierarchy = {
+    bug: 8,
+    gray: 8,
+    violet: 7,
+    red: 6,
+    orange: 5,
+    yellow: 4,
+    green: 3,
+    white: 2,
+  };
+
+  const previousRank = colorHierarchy[previousLampColor] || 9; // Default to a high rank
+  const currentRank = colorHierarchy[color] || 9;
+
+  // 1. If difficulty decreased (e.g., red -> orange), record timestamps.
+  if (currentRank < previousRank) {
+    const colorsToSet = Object.keys(colorHierarchy).filter(
+      (key) =>
+        colorHierarchy[key] < previousRank && colorHierarchy[key] >= currentRank
+    );
+    colorsToSet.forEach((colorName) => {
+      // Only set the timestamp if it hasn't been achieved yet
+      if (!lampTimestamps[colorName]) {
+        lampTimestamps[colorName] = currentElapsedTime;
+      }
+    });
+  }
+  // 2. If difficulty increased (e.g., white -> green), reset lower timestamps.
+  else if (currentRank > previousRank) {
+    const colorsToReset = Object.keys(colorHierarchy).filter(
+      (key) => colorHierarchy[key] < currentRank
+    );
+    colorsToReset.forEach((colorName) => {
+      if (lampTimestamps[colorName]) {
+        delete lampTimestamps[colorName];
+      }
+    });
+  }
+  previousLampColor = color; // Update the previous color for the next check
+  // --- END OF TIMESTAMP LOGIC ---
+
   currentLampColor = color;
   const colors = [
     "white",
@@ -513,7 +583,6 @@ function updateLamp(color) {
     orange: "Unfair: Level 6",
     red: "Extreme: Level 7",
     violet: "Insane: Level 8+",
-    black: "Error: An incorrect progress has been made.",
     gray: "Invalid: This puzzle does not have a unique solution.",
     bug: "Bug: Report it to fsrs please!",
   };
@@ -1477,6 +1546,8 @@ function autoPencil() {
 async function loadPuzzle(puzzleString, puzzleData = null) {
   if (autoPencilTipTimer) clearTimeout(autoPencilTipTimer);
   vagueHintMessage = "";
+  lampTimestamps = {};
+  previousLampColor = null;
   isCustomPuzzle = puzzleData === null;
   if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
     showMessage("Error: Invalid puzzle string.", "red");
@@ -1691,6 +1762,7 @@ function savePuzzleProgress() {
       puzzle: initialPuzzleString,
       progress: serializeProgress(),
       time: Math.max(0, Math.floor(currentElapsedTime)),
+      lampTimes: lampTimestamps,
     };
 
     if (existingSaveIndex > -1) {
@@ -1743,6 +1815,8 @@ function applySavedProgress(puzzleData) {
 
   const progress = savedGame.progress;
   if (!progress || progress.length !== 81) return 0;
+
+  lampTimestamps = savedGame.lampTimes || {};
 
   for (let i = 0; i < 81; i++) {
     const savedCell = progress[i];
@@ -1859,25 +1933,57 @@ function generateDiscordShareText() {
       6
     )}-${dateVal.slice(6, 8)}`;
   }
-  const level = levelSelect.value;
+  const level = parseInt(levelSelect.value, 10);
   const levelWord = difficultyWords[level] || "Unknown";
-  let levelEmoji = "";
-  if (level === 0) {
-    levelEmoji = ":white_large_square:";
-  } else if (level <= 2) {
-    levelEmoji = ":green_square:";
-  } else if (level <= 5) {
-    levelEmoji = ":yellow_square:";
-  } else if (level === 6) {
-    levelEmoji = ":orange_square:";
-  } else if (level === 7) {
-    levelEmoji = ":red_square:";
-  } else {
-    levelEmoji = ":purple_square:";
+
+  const levelInfo = [
+    { emoji: ":white_large_square:", color: "white" }, // 0
+    { emoji: ":green_square:", color: "green" }, // 1
+    { emoji: ":green_square:", color: "green" }, // 2
+    { emoji: ":yellow_square:", color: "yellow" }, // 3
+    { emoji: ":yellow_square:", color: "yellow" }, // 4
+    { emoji: ":yellow_square:", color: "yellow" }, // 5
+    { emoji: ":orange_square:", color: "orange" }, // 6
+    { emoji: ":red_square:", color: "red" }, // 7
+    { emoji: ":purple_square:", color: "violet" }, // 8
+    { emoji: ":purple_square:", color: "violet" }, // 9
+  ];
+
+  // The first line with level description
+  const levelStr = `${levelInfo[level].emoji} Level ${level} (${levelWord})`;
+
+  // Build the detailed timestamp section
+  let timeDetails = "";
+  const accomplishmentOrder = [
+    { color: "red", emoji: ":red_square:" },
+    { color: "orange", emoji: ":orange_square:" },
+    { color: "yellow", emoji: ":yellow_square:" },
+    { color: "green", emoji: ":green_square:" },
+    { color: "white", emoji: ":white_large_square:" },
+  ];
+
+  const startingColor = levelInfo[level].color;
+  let started = false;
+
+  for (const item of accomplishmentOrder) {
+    if (item.color === startingColor) {
+      started = true;
+      continue; // Don't show the timestamp for the starting level
+    }
+    if (started && lampTimestamps[item.color]) {
+      timeDetails += `\n${item.emoji} ${formatTime(
+        lampTimestamps[item.color]
+      )}`;
+    }
   }
-  const levelStr = `${levelEmoji} Level ${level} (${levelWord})`;
-  const timeStr = puzzleTimerEl.textContent;
-  const header = `${title} | ${puzzleDateStr}\n${levelStr} | Time ${timeStr}\n`;
+
+  // Final solved time
+  const finalTimeStr = puzzleTimerEl.textContent;
+  timeDetails += `\n:ballot_box_with_check: ${finalTimeStr}`;
+
+  const header = `${title} | ${puzzleDateStr}\n${levelStr}${timeDetails}\n`;
+
+  // The rest of the function remains the same (for the grid)
   const digitMap = {
     1: ":one:",
     2: ":two:",
