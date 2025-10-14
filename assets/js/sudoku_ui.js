@@ -1695,6 +1695,7 @@ function clearUserBoard() {
   isClearStoragePending = false;
   saveState();
   onBoardUpdated(true);
+  evaluateBoardDifficulty();
 }
 
 // --- ADD Progress Save/Load Functions ---
@@ -2094,21 +2095,17 @@ function saveState() {
 }
 function onBoardUpdated(forceEvaluation = false) {
   renderBoard();
-  if (!forceEvaluation) {
-    let emptyWithNoPencils = 0;
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        if (
-          boardState[r][c].value === 0 &&
-          boardState[r][c].pencils.size === 0
-        ) {
-          emptyWithNoPencils++;
-        }
+  if (forceEvaluation) return; // <--- added line: skip evaluation for undo/redo
+  let emptyWithNoPencils = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (boardState[r][c].value === 0 && boardState[r][c].pencils.size === 0) {
+        emptyWithNoPencils++;
       }
     }
-    if (emptyWithNoPencils >= 4) {
-      return;
-    }
+  }
+  if (emptyWithNoPencils >= 4) {
+    return;
   }
   if (lampEvaluationTimeout) clearTimeout(lampEvaluationTimeout);
   lampEvaluationTimeout = setTimeout(() => {
@@ -2204,9 +2201,9 @@ function undo() {
     vagueHintMessage = historyEntry.vagueHint;
 
     updateLamp(historyEntry.lampColor, { record: false });
-    // --- MODIFICATION END ---
 
     renderBoard();
+    onBoardUpdated();
     updateUndoRedoButtons();
   }
 }
@@ -2221,6 +2218,7 @@ function redo() {
     updateLamp(historyEntry.lampColor, { record: false });
 
     renderBoard();
+    onBoardUpdated();
     updateUndoRedoButtons();
   }
 }
