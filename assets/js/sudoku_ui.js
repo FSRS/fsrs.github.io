@@ -2205,6 +2205,7 @@ function undo() {
     renderBoard();
     onBoardUpdated();
     updateUndoRedoButtons();
+    savePuzzleProgress(); // Save the state after undoing
   }
 }
 
@@ -2220,6 +2221,7 @@ function redo() {
     renderBoard();
     onBoardUpdated();
     updateUndoRedoButtons();
+    savePuzzleProgress(); // Save the state after redoing
   }
 }
 
