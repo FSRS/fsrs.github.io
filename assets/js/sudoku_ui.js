@@ -32,6 +32,7 @@ let isClearStoragePending = false;
 let arePencilsHidden = false;
 let isSolvingViaButton = false;
 let currentElapsedTime = 0;
+let currentlyHoveredElement = null;
 let pausedElapsedTimes = {};
 let puzzleTimers = {}; // { "dateLevel": { elapsedMs, startTime } }
 let currentPuzzleKey = null; // Track which puzzle is currently active
@@ -247,6 +248,7 @@ function renderBoard() {
       cell.classList.remove("has-color");
     }
     cell.addEventListener("mouseover", () => {
+      currentlyHoveredElement = cell; // Track the cell
       if (
         currentMode === "color" &&
         coloringSubMode === "cell" &&
@@ -256,6 +258,7 @@ function renderBoard() {
       }
     });
     cell.addEventListener("mouseout", () => {
+      currentlyHoveredElement = null; // Clear tracking on leave
       if (currentMode === "color" && coloringSubMode === "cell") {
         cell.style.backgroundColor = state.cellColor || "";
       }
@@ -290,7 +293,9 @@ function renderBoard() {
             mark.style.color = state.pencilColors.get(i);
           }
           if (!isMobile || (isMobile && isExperimentalMode)) {
-            mark.addEventListener("mouseover", () => {
+            mark.addEventListener("mouseover", (e) => {
+              e.stopPropagation(); // Prevents the cell from getting the event
+              currentlyHoveredElement = mark;
               if (
                 currentMode === "color" &&
                 coloringSubMode === "candidate" &&
@@ -299,7 +304,9 @@ function renderBoard() {
                 mark.style.color = selectedColor;
               }
             });
-            mark.addEventListener("mouseout", () => {
+            mark.addEventListener("mouseout", (e) => {
+              e.stopPropagation(); // Prevents the cell from getting the event
+              currentlyHoveredElement = null;
               mark.style.color = state.pencilColors.get(i) || "";
             });
             mark.addEventListener("click", (e) => {
@@ -1284,6 +1291,13 @@ function handleNumberPadClick(e) {
       .querySelectorAll(".color-btn")
       .forEach((b) => b.classList.remove("selected"));
     btn.classList.add("selected");
+    if (currentlyHoveredElement) {
+      if (coloringSubMode === "cell") {
+        currentlyHoveredElement.style.backgroundColor = selectedColor;
+      } else if (coloringSubMode === "candidate") {
+        currentlyHoveredElement.style.color = selectedColor;
+      }
+    }
     return;
   }
   const num = parseInt(btn.dataset.number);
