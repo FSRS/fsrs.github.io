@@ -60,6 +60,37 @@ const techniques = {
     return cells;
   },
 
+  eliminateCandidates: (board, pencils) => {
+    const removals = [];
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        // Find all concrete numbers (given or filled)
+        if (board[r][c] > 0) {
+          const num = board[r][c];
+          // Look at all peers
+          for (let pr = 0; pr < 9; pr++) {
+            for (let pc = 0; pc < 9; pc++) {
+              if (techniques._sees([r, c], [pr, pc])) {
+                // If the peer has this number as a candidate, mark it for removal
+                if (pencils[pr][pc].has(num)) {
+                  removals.push({ r: pr, c: pc, num });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    if (removals.length > 0) {
+      // De-duplicate removals (a cell can be a peer in multiple ways)
+      const uniqueRemovals = Array.from(
+        new Set(removals.map(JSON.stringify))
+      ).map(JSON.parse);
+      return { change: true, type: "remove", cells: uniqueRemovals };
+    }
+    return { change: false };
+  },
+
   nakedSingle: (board, pencils) => {
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {

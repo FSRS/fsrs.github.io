@@ -2381,6 +2381,11 @@ async function evaluateBoardDifficulty() {
   }
   let maxDifficulty = 0;
   const techniqueOrder = [
+    {
+      name: "Eliminate Candidates",
+      func: techniques.eliminateCandidates,
+      level: 0,
+    },
     { name: "Naked Single", func: techniques.nakedSingle, level: 0 },
     { name: "Hidden Single", func: techniques.hiddenSingle, level: 0 },
     {
