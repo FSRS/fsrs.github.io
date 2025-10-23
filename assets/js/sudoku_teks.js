@@ -2336,6 +2336,38 @@ const techniques = {
             }
           }
 
+          // --- NEW: 3x2 ERs (3 rows in SAME band, 2 cols in DIFFERENT stacks) ---
+          for (let band = 0; band < 3; band++) {
+            const r1 = band * 3;
+            const r2 = band * 3 + 1;
+            const r3 = band * 3 + 2;
+
+            for (let c1 = 0; c1 < 8; c1++) {
+              for (let c2 = c1 + 1; c2 < 9; c2++) {
+                // Check if cols are in different stacks
+                if (Math.floor(c1 / 3) !== Math.floor(c2 / 3)) {
+                  const cells = [
+                    [r1, c1],
+                    [r2, c1],
+                    [r3, c1],
+                    [r1, c2],
+                    [r2, c2],
+                    [r3, c2],
+                  ];
+                  techniques._checkAndAddER(
+                    cells,
+                    d1,
+                    d2,
+                    d3,
+                    pencils,
+                    rectangles,
+                    true // is_3x2
+                  );
+                }
+              }
+            }
+          }
+
           // --- 2x3 ERs (2 rows in same band, 3 cols in different stacks) ---
           for (let band = 0; band < 3; band++) {
             const rows_in_band = [band * 3, band * 3 + 1, band * 3 + 2];
@@ -2362,6 +2394,38 @@ const techniques = {
                       false
                     );
                   }
+                }
+              }
+            }
+          }
+
+          // --- NEW: 2x3 ERs (2 rows in DIFFERENT bands, 3 cols in SAME stack) ---
+          for (let stack = 0; stack < 3; stack++) {
+            const c1 = stack * 3;
+            const c2 = stack * 3 + 1;
+            const c3 = stack * 3 + 2;
+
+            for (let r1 = 0; r1 < 8; r1++) {
+              for (let r2 = r1 + 1; r2 < 9; r2++) {
+                // Check if rows are in different bands
+                if (Math.floor(r1 / 3) !== Math.floor(r2 / 3)) {
+                  const cells = [
+                    [r1, c1],
+                    [r1, c2],
+                    [r1, c3],
+                    [r2, c1],
+                    [r2, c2],
+                    [r2, c3],
+                  ];
+                  techniques._checkAndAddER(
+                    cells,
+                    d1,
+                    d2,
+                    d3,
+                    pencils,
+                    rectangles,
+                    false // is_3x2 = false
+                  );
                 }
               }
             }
@@ -4273,9 +4337,9 @@ const techniques = {
         const boxCells = techniques
           ._getUnitCells("box", b)
           .filter(([r, c]) => pencils[r][c].has(d));
-        
+
         // Optimization: skip if no groups are possible
-        if (boxCells.length < 2) continue; 
+        if (boxCells.length < 2) continue;
 
         const rowGroups = new Map(),
           colGroups = new Map();
@@ -4297,29 +4361,37 @@ const techniques = {
             groups.push(_createNode(group, true));
           }
         }
-        
+
         // --- New logic for the 5-cell "cross" pattern ---
         if (boxCells.length === 5) {
           // Find all 3-cell groups
-          const row3Groups = [...rowGroups.values()].filter(g => g.length === 3);
-          const col3Groups = [...colGroups.values()].filter(g => g.length === 3);
+          const row3Groups = [...rowGroups.values()].filter(
+            (g) => g.length === 3
+          );
+          const col3Groups = [...colGroups.values()].filter(
+            (g) => g.length === 3
+          );
 
           // Check for the specific pattern: 1 row-3 and 1 col-3
           if (row3Groups.length === 1 && col3Groups.length === 1) {
             const row3Cells = row3Groups[0];
             const col3Cells = col3Groups[0];
-            
+
             // Find the intersection (overlapping cell)
             const row3CellStrings = new Set(row3Cells.map(JSON.stringify));
-            const overlapCells = col3Cells.filter(cell => 
+            const overlapCells = col3Cells.filter((cell) =>
               row3CellStrings.has(JSON.stringify(cell))
             );
 
             const overlapCellStr = JSON.stringify(overlapCells[0]);
 
             // Create the 2-cell "fin" groups by filtering out the overlap
-            const groupRow2 = row3Cells.filter(cell => JSON.stringify(cell) !== overlapCellStr);
-            const groupCol2 = col3Cells.filter(cell => JSON.stringify(cell) !== overlapCellStr);
+            const groupRow2 = row3Cells.filter(
+              (cell) => JSON.stringify(cell) !== overlapCellStr
+            );
+            const groupCol2 = col3Cells.filter(
+              (cell) => JSON.stringify(cell) !== overlapCellStr
+            );
 
             // Add the new 2-cell groups
             groups.push(_createNode(groupRow2, true));
