@@ -4273,6 +4273,10 @@ const techniques = {
         const boxCells = techniques
           ._getUnitCells("box", b)
           .filter(([r, c]) => pencils[r][c].has(d));
+        
+        // Optimization: skip if no groups are possible
+        if (boxCells.length < 2) continue; 
+
         const rowGroups = new Map(),
           colGroups = new Map();
 
@@ -4282,14 +4286,44 @@ const techniques = {
           rowGroups.get(r).push([r, c]);
           colGroups.get(c).push([r, c]);
         }
+
         for (const group of rowGroups.values()) {
-          if (group.length >= 2 && group.length <= 3) {
+          if (group.length >= 2) {
             groups.push(_createNode(group, true));
           }
         }
         for (const group of colGroups.values()) {
-          if (group.length >= 2 && group.length <= 3) {
+          if (group.length >= 2) {
             groups.push(_createNode(group, true));
+          }
+        }
+        
+        // --- New logic for the 5-cell "cross" pattern ---
+        if (boxCells.length === 5) {
+          // Find all 3-cell groups
+          const row3Groups = [...rowGroups.values()].filter(g => g.length === 3);
+          const col3Groups = [...colGroups.values()].filter(g => g.length === 3);
+
+          // Check for the specific pattern: 1 row-3 and 1 col-3
+          if (row3Groups.length === 1 && col3Groups.length === 1) {
+            const row3Cells = row3Groups[0];
+            const col3Cells = col3Groups[0];
+            
+            // Find the intersection (overlapping cell)
+            const row3CellStrings = new Set(row3Cells.map(JSON.stringify));
+            const overlapCells = col3Cells.filter(cell => 
+              row3CellStrings.has(JSON.stringify(cell))
+            );
+
+            const overlapCellStr = JSON.stringify(overlapCells[0]);
+
+            // Create the 2-cell "fin" groups by filtering out the overlap
+            const groupRow2 = row3Cells.filter(cell => JSON.stringify(cell) !== overlapCellStr);
+            const groupCol2 = col3Cells.filter(cell => JSON.stringify(cell) !== overlapCellStr);
+
+            // Add the new 2-cell groups
+            groups.push(_createNode(groupRow2, true));
+            groups.push(_createNode(groupCol2, true));
           }
         }
       }
