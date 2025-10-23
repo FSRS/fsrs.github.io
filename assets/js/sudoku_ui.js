@@ -2283,7 +2283,7 @@ function undo() {
     );
     previousLampColor = historyEntry.previousLampColor;
 
-    updateLamp(historyEntry.lampColor, { record: false });
+    // updateLamp(historyEntry.lampColor, { record: false });
 
     renderBoard();
     onBoardUpdated();
@@ -2304,7 +2304,7 @@ function redo() {
     );
     previousLampColor = historyEntry.previousLampColor;
 
-    updateLamp(historyEntry.lampColor, { record: false });
+    // updateLamp(historyEntry.lampColor, { record: false });
 
     renderBoard();
     onBoardUpdated();
