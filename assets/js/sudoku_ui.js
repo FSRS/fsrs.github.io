@@ -39,6 +39,7 @@ let currentPuzzleKey = null; // Track which puzzle is currently active
 
 let lampTimestamps = {};
 let previousLampColor = null;
+let lastValidLampColor = "white";
 
 // --- UI Update Functions ---
 
@@ -617,6 +618,10 @@ function updateLamp(color, { record = true } = {}) {
   difficultyLamp.dataset.tooltip = tooltipText;
 
   // commit previous color after bookkeeping
+  // Track last valid difficulty color (for restoration after black)
+  if (!["black", "bug", "gray"].includes(color)) {
+    lastValidLampColor = color;
+  }
   previousLampColor = color;
 }
 
@@ -1329,7 +1334,7 @@ function handleNumberPadClick(e) {
     }
     if (changeMade) {
       saveState();
-      onBoardUpdated(currentMode === "concrete");
+      onBoardUpdated();
       checkCompletion();
     } else {
       renderBoard();
@@ -1564,7 +1569,7 @@ function autoPencil() {
   if (shouldSkipEval) {
     renderBoard();
   } else {
-    onBoardUpdated(true);
+    onBoardUpdated();
   }
   showMessage("Auto-Pencil complete!", "green");
   hasUsedAutoPencil = true;
@@ -2107,23 +2112,33 @@ function saveState() {
   updateUndoRedoButtons();
   savePuzzleProgress();
 }
-function onBoardUpdated(forceEvaluation = false) {
+function onBoardUpdated(skipEvaluation = false) {
   renderBoard();
-  if (forceEvaluation) return; // <--- added line: skip evaluation for undo/redo
-  let emptyWithNoPencils = 0;
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
-      if (boardState[r][c].value === 0 && boardState[r][c].pencils.size === 0) {
-        emptyWithNoPencils++;
-      }
-    }
+
+  const isBoardValid = validateBoard();
+
+  if (!isBoardValid) {
+    updateLamp("black", { record: false });
+  } else if (currentLampColor === "black") {
+    // Restore previous evaluated difficulty color
+    updateLamp(lastValidLampColor, { record: false });
   }
-  if (emptyWithNoPencils >= 4) {
-    return;
-  }
+
+  if (skipEvaluation) return;
+
+  // let emptyWithNoPencils = 0;
+  // for (let r = 0; r < 9; r++) {
+  //   for (let c = 0; c < 9; c++) {
+  //     if (boardState[r][c].value === 0 && boardState[r][c].pencils.size === 0) {
+  //       emptyWithNoPencils++;
+  //     }
+  //   }
+  // }
+  // if (emptyWithNoPencils >= 4) return;
+
   if (lampEvaluationTimeout) clearTimeout(lampEvaluationTimeout);
   lampEvaluationTimeout = setTimeout(() => {
-    evaluateBoardDifficulty();
+    if (isBoardValid) evaluateBoardDifficulty();
   }, 200);
 }
 
