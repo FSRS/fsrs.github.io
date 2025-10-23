@@ -36,6 +36,7 @@ let currentlyHoveredElement = null;
 let pausedElapsedTimes = {};
 let puzzleTimers = {}; // { "dateLevel": { elapsedMs, startTime } }
 let currentPuzzleKey = null; // Track which puzzle is currently active
+let isLoadingSavedGame = false;
 
 let lampTimestamps = {};
 let previousLampColor = null;
@@ -531,17 +532,17 @@ function updateLamp(color, { record = true } = {}) {
   if (color === "black") {
     difficultyLamp.dataset.tooltip =
       "Error: An incorrect progress has been made.";
-    return; // never record timestamps on 'black'
+    return;
   }
   if (color === "bug") {
     difficultyLamp.dataset.tooltip =
       "Bug detected: Please report if reproducible.";
-    return; // never record timestamps on 'bug'
+    return;
   }
 
-  // If caller asked to skip timestamp bookkeeping (undo/redo / restore),
+  // If caller asked to skip timestamp bookkeeping (undo/redo / restore / loading),
   // update tooltip text but leave lampTimestamps / previousLampColor untouched.
-  if (!record) {
+  if (!record || isLoadingSavedGame) {
     const tooltips = {
       white: "Easy: Level 0",
       green: "Medium: Level 1 - 2",
@@ -555,11 +556,19 @@ function updateLamp(color, { record = true } = {}) {
     if (window.innerWidth <= 550)
       tooltipText = tooltipText.replace("Level", "Lv.");
     difficultyLamp.dataset.tooltip = tooltipText;
+
+    // CRITICAL FIX: When loading a saved game, we still need to update previousLampColor
+    // so future updates work correctly, but we DON'T modify lampTimestamps
+    if (isLoadingSavedGame && !["black", "bug", "gray"].includes(color)) {
+      lastValidLampColor = color;
+      previousLampColor = color;
+    }
+
     return;
   }
 
   // -------------------------
-  // Timestamp bookkeeping (record === true)
+  // Timestamp bookkeeping (record === true AND not loading)
   // -------------------------
   const colorHierarchy = {
     bug: 8,
@@ -1582,13 +1591,17 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
   lampTimestamps = {};
   previousLampColor = null;
   isCustomPuzzle = puzzleData === null;
+  isLoadingSavedGame = false;
+
   if (puzzleString.length !== 81 || !/^[0-9\.]+$/.test(puzzleString)) {
     showMessage("Error: Invalid puzzle string.", "red");
     addSudokuCoachLink(null);
     return;
   }
+
   initialPuzzleString = puzzleString;
   initBoardState();
+
   const boardForValidation = Array(9)
     .fill(null)
     .map(() => Array(9).fill(0));
@@ -1603,25 +1616,29 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
       boardForValidation[row][col] = num;
     }
   }
+
   let savedTime = 0;
-  let wasSaveLoaded = false; // Flag to track if progress was applied
+  let wasSaveLoaded = false;
 
   if (!isCustomPuzzle && puzzleData) {
     savedTime = applySavedProgress(puzzleData);
     if (savedTime > 0) {
       wasSaveLoaded = true;
+      isLoadingSavedGame = true;
     }
   }
 
   const initialBoardForSolution = boardForValidation.map((row) => [...row]);
   solveSudoku(initialBoardForSolution);
   solutionBoard = initialBoardForSolution;
+
   if (isCustomPuzzle) {
     const validity = checkPuzzleUniqueness(boardForValidation);
     if (!validity.isValid) {
       setTimeout(() => showMessage(validity.message, "red"), 750);
     }
   }
+
   selectedCell = { row: null, col: null };
   history = [];
   historyIndex = -1;
@@ -1631,6 +1648,7 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
   isClearStoragePending = false;
   puzzleInfoContainer.classList.remove("hidden");
   puzzleTimerEl.classList.remove("hidden");
+
   if (puzzleData) {
     puzzleLevelEl.textContent = `Lv. ${puzzleData.level} (${
       difficultyWords[puzzleData.level]
@@ -1641,31 +1659,28 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
     puzzleScoreEl.textContent = "";
     dateSelect.value = "custom";
   }
+
   renderBoard();
 
-  // --- CORRECTED LOGIC ORDER ---
-
-  // 1. Save the outgoing puzzle's timer state using the OLD key.
   savePuzzleTimer();
 
-  // 2. Set the key for the NEW puzzle.
   currentPuzzleKey = isCustomPuzzle
     ? null
     : `${puzzleData.date}-${puzzleData.level}`;
 
-  // 3. Load the incoming puzzle's timer. This also correctly sets the global
-  //    currentElapsedTime variable for the new puzzle.
   loadPuzzleTimer(savedTime);
 
-  // 4. Now that the timer variable is correct, save the initial state for the undo history.
-  //    This will also correctly save the puzzle progress with the right time.
+  // Perform evaluation BEFORE saving initial state
+  await evaluateBoardDifficulty();
+
+  // Reset flag after evaluation
+  isLoadingSavedGame = false;
+
+  // NOW save the initial state with correct lamp color and preserved timestamps
   saveState();
 
-  // 5. Perform final UI updates.
-  await evaluateBoardDifficulty();
   addSudokuCoachLink(puzzleString);
 
-  // --- Messages ---
   if (isCustomPuzzle) {
     showMessage("Custom puzzle loaded!", "green");
   } else if (!wasSaveLoaded && puzzleData) {
@@ -1677,7 +1692,6 @@ async function loadPuzzle(puzzleString, puzzleData = null) {
     );
   }
 
-  // Schedule the delayed level tip ONLY for daily puzzles (both new and loaded).
   if (puzzleData) {
     setTimeout(() => {
       const tip = levelTips[puzzleData.level];
@@ -1829,7 +1843,7 @@ function applySavedProgress(puzzleData) {
   try {
     const savedData = localStorage.getItem("sudokuSaves");
     if (savedData) allSaves = JSON.parse(savedData);
-    else return 0; // Return 0 if no saves exist
+    else return 0;
   } catch (e) {
     return 0;
   }
@@ -1837,29 +1851,63 @@ function applySavedProgress(puzzleData) {
   const savedGameIndex = allSaves.findIndex(
     (s) => s.date === puzzleData.date && s.level === puzzleData.level
   );
-  if (savedGameIndex === -1) return 0; // No save for this puzzle
+  if (savedGameIndex === -1) return 0;
 
   const savedGame = allSaves[savedGameIndex];
 
   if (savedGame.puzzle !== puzzleData.puzzle) {
     allSaves.splice(savedGameIndex, 1);
     localStorage.setItem("sudokuSaves", JSON.stringify(allSaves));
-    return 0; // Invalid save, return 0
+    return 0;
   }
 
   const progress = savedGame.progress;
   if (!progress || progress.length !== 81) return 0;
 
+  // CRITICAL: Restore lampTimestamps FIRST
   lampTimestamps = savedGame.lampTimes || {};
 
-  if (lampTimestamps) {
-    // find highest achieved color by comparing presence in lampTimestamps
+  // Restore the lamp visual state
+  if (lampTimestamps && Object.keys(lampTimestamps).length > 0) {
     const order = ["red", "orange", "yellow", "green", "white"];
     let last = null;
     for (const c of order) {
-      if (lampTimestamps[c]) last = c;
+      if (lampTimestamps[c] !== undefined) last = c;
     }
-    if (last) updateLamp(last, { record: false });
+    if (last) {
+      // Set both current and previous to the saved color
+      // This prevents the "decrease" logic from triggering
+      currentLampColor = last;
+      previousLampColor = last;
+      lastValidLampColor = last;
+
+      // Update visual only
+      difficultyLamp.classList.remove(
+        "lamp-white",
+        "lamp-green",
+        "lamp-yellow",
+        "lamp-orange",
+        "lamp-red",
+        "lamp-violet",
+        "lamp-gray",
+        "lamp-black",
+        "lamp-bug"
+      );
+      difficultyLamp.classList.add(`lamp-${last}`);
+
+      const tooltips = {
+        white: "Easy: Level 0",
+        green: "Medium: Level 1 - 2",
+        yellow: "Hard: Level 3 - 5",
+        orange: "Unfair: Level 6",
+        red: "Extreme: Level 7",
+        violet: "Insane: Level 8+",
+      };
+      let tooltipText = tooltips[last] || "Difficulty Indicator";
+      if (window.innerWidth <= 550)
+        tooltipText = tooltipText.replace("Level", "Lv.");
+      difficultyLamp.dataset.tooltip = tooltipText;
+    }
   }
 
   for (let i = 0; i < 81; i++) {
@@ -1878,6 +1926,7 @@ function applySavedProgress(puzzleData) {
   showMessage("Loaded saved progress.", "green");
   return typeof savedGame.time === "number" ? savedGame.time : 0;
 }
+
 function validateBoard() {
   const board = boardState.map((row) => row.map((cell) => cell.value));
   const cells = gridContainer.querySelectorAll(".sudoku-cell");
@@ -2229,6 +2278,11 @@ function undo() {
     boardState = cloneBoardState(historyEntry.boardState);
     vagueHintMessage = historyEntry.vagueHint;
 
+    lampTimestamps = JSON.parse(
+      JSON.stringify(historyEntry.lampTimestamps || {})
+    );
+    previousLampColor = historyEntry.previousLampColor;
+
     updateLamp(historyEntry.lampColor, { record: false });
 
     renderBoard();
@@ -2244,6 +2298,11 @@ function redo() {
     const historyEntry = history[historyIndex];
     boardState = cloneBoardState(historyEntry.boardState);
     vagueHintMessage = historyEntry.vagueHint;
+
+    lampTimestamps = JSON.parse(
+      JSON.stringify(historyEntry.lampTimestamps || {})
+    );
+    previousLampColor = historyEntry.previousLampColor;
 
     updateLamp(historyEntry.lampColor, { record: false });
 
