@@ -40,7 +40,6 @@ let isLoadingSavedGame = false;
 
 let lampTimestamps = {};
 let previousLampColor = null;
-let lastValidLampColor = "white";
 
 // --- UI Update Functions ---
 
@@ -627,10 +626,6 @@ function updateLamp(color, { record = true } = {}) {
   difficultyLamp.dataset.tooltip = tooltipText;
 
   // commit previous color after bookkeeping
-  // Track last valid difficulty color (for restoration after black)
-  if (!["black", "bug", "gray"].includes(color)) {
-    lastValidLampColor = color;
-  }
   previousLampColor = color;
 }
 
@@ -1343,7 +1338,7 @@ function handleNumberPadClick(e) {
     }
     if (changeMade) {
       saveState();
-      onBoardUpdated();
+      onBoardUpdated(currentMode === "concrete");
       checkCompletion();
     } else {
       renderBoard();
@@ -1578,7 +1573,7 @@ function autoPencil() {
   if (shouldSkipEval) {
     renderBoard();
   } else {
-    onBoardUpdated();
+    onBoardUpdated(true);
   }
   showMessage("Auto-Pencil complete!", "green");
   hasUsedAutoPencil = true;
@@ -2161,33 +2156,23 @@ function saveState() {
   updateUndoRedoButtons();
   savePuzzleProgress();
 }
-function onBoardUpdated(skipEvaluation = false) {
+function onBoardUpdated(forceEvaluation = false) {
   renderBoard();
-
-  const isBoardValid = validateBoard();
-
-  if (!isBoardValid) {
-    updateLamp("black", { record: false });
-  } else if (currentLampColor === "black") {
-    // Restore previous evaluated difficulty color
-    updateLamp(lastValidLampColor, { record: false });
+  if (forceEvaluation) return; // <--- added line: skip evaluation for undo/redo
+  let emptyWithNoPencils = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (boardState[r][c].value === 0 && boardState[r][c].pencils.size === 0) {
+        emptyWithNoPencils++;
+      }
+    }
   }
-
-  if (skipEvaluation) return;
-
-  // let emptyWithNoPencils = 0;
-  // for (let r = 0; r < 9; r++) {
-  //   for (let c = 0; c < 9; c++) {
-  //     if (boardState[r][c].value === 0 && boardState[r][c].pencils.size === 0) {
-  //       emptyWithNoPencils++;
-  //     }
-  //   }
-  // }
-  // if (emptyWithNoPencils >= 4) return;
-
+  if (emptyWithNoPencils >= 4) {
+    return;
+  }
   if (lampEvaluationTimeout) clearTimeout(lampEvaluationTimeout);
   lampEvaluationTimeout = setTimeout(() => {
-    if (isBoardValid) evaluateBoardDifficulty();
+    evaluateBoardDifficulty();
   }, 200);
 }
 
