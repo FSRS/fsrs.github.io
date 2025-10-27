@@ -1307,8 +1307,12 @@ function handleNumberPadClick(e) {
     btn.classList.add("selected");
     if (currentlyHoveredElement) {
       if (coloringSubMode === "cell") {
-        currentlyHoveredElement.style.backgroundColor = selectedColor;
+        // FIX: Only apply background color if hovering a cell, not a pencil mark
+        if (currentlyHoveredElement.classList.contains("sudoku-cell")) {
+          currentlyHoveredElement.style.backgroundColor = selectedColor;
+        }
       } else if (coloringSubMode === "candidate") {
+        // This is intended: it colors the text of the pencil mark
         currentlyHoveredElement.style.color = selectedColor;
       }
     }
