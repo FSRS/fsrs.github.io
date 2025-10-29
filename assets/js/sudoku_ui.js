@@ -1726,7 +1726,10 @@ function clearUserBoard() {
       }
     }
   }
+  lampTimestamps = {};
+  previousLampColor = null;
   vagueHintMessage = "";
+  hasUsedAutoPencil = false;
   isAutoPencilPending = false;
   isSolvePending = false;
   isClearStoragePending = false;
