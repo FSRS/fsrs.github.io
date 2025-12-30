@@ -163,12 +163,14 @@
       <div id="solver-link-container" class="text-center mt-2"></div>
       <div class="mt-2">
         <div class="mt-1 flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
+          <textarea
             id="puzzle-string"
-            class="flex-grow shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2"
-            placeholder="Enter 81 characters..."
-          />
+            rows="1"
+            class="flex-grow shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full text-xs border-gray-300 rounded-md p-2 resize-y whitespace-pre font-mono"
+            placeholder="Enter 81 characters or ASCII Grid..."
+            style="min-height: 42px; overflow-x: auto; overflow-y: hidden"
+          ></textarea>
+
           <button
             id="load-btn"
             data-tooltip="Load a custom 81-character puzzle string."
