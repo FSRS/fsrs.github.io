@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -58,8 +58,13 @@
 
       <div
         id="sudoku-grid"
-        class="sudoku-grid grid grid-cols-1 w-full border-2 border-gray-700"
-      ></div>
+        class="sudoku-grid grid grid-cols-1 w-full border-2 border-gray-700 relative"
+      >
+        <svg
+          id="drawing-layer"
+          class="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"
+        ></svg>
+      </div>
 
       <div
         id="puzzle-info"
@@ -82,10 +87,16 @@
             Number (Z)
           </button>
           <button
+            data-mode="draw"
+            class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
+          >
+            Draw (X)
+          </button>
+          <button
             data-mode="color"
             class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
           >
-            Color (X)
+            Color (C)
           </button>
           <button
             id="format-toggle-btn"
@@ -93,12 +104,7 @@
           >
             Display A (D)
           </button>
-          <button
-            id="expt-mode-btn"
-            class="control-btn hidden px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
-          >
-            Expt. OFF
-          </button>
+
           <button
             id="vague-hint-btn"
             class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
@@ -138,13 +144,23 @@
           <span>Auto-Pencil</span
           ><span class="shortcut-indicator">&nbsp;(A)</span>
         </button>
+
+        <button
+          id="expt-mode-btn"
+          class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100"
+        >
+          Expt. OFF
+        </button>
+
         <button
           id="solve-btn"
+          style="display: none"
           data-tooltip="Reveal the solution for the puzzle (S)."
           class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
         >
           <span>Solve</span><span class="shortcut-indicator">&nbsp;(S)</span>
         </button>
+
         <button
           id="clear-btn"
           data-tooltip="Clear all user-entered numbers and pencil marks (Q)."
@@ -162,6 +178,9 @@
           ><span class="shortcut-indicator">&nbsp;(W)</span>
         </button>
       </div>
+
+      <div id="solver-link-container" class="text-center mt-2"></div>
+
       <div id="solver-link-container" class="text-center mt-2"></div>
       <div class="mt-2">
         <div class="mt-1 flex flex-col sm:flex-row gap-2">
