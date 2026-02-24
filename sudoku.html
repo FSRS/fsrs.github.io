@@ -18,7 +18,16 @@
   <body
     class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4"
   >
-    <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-xl">
+    <div
+      class="relative bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-xl"
+    >
+      <button
+        id="theme-toggle"
+        class="absolute top-3 left-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
+        data-tooltip="Toggle theme"
+      >
+        ◑
+      </button>
       <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">
         <a
           href="https://fsrs.darksabun.club/"
