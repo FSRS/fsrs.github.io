@@ -670,7 +670,41 @@
         </div>
       </div>
     </div>
-
+    <div
+      id="completion-share-modal"
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative"
+      >
+        <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
+          Share Results
+        </h3>
+        <p class="text-gray-600 dark:text-gray-300 mb-6 text-sm">
+          Choose a format to copy your completion time.
+        </p>
+        <div class="flex flex-col gap-3">
+          <button
+            id="completion-discord-btn"
+            class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 shadow-sm transition-colors"
+          >
+            Copy Discord Format
+          </button>
+          <button
+            id="completion-plain-btn"
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            Copy Plain Text
+          </button>
+          <button
+            id="completion-cancel-btn"
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
     <div
       id="format-confirm-modal"
       class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
