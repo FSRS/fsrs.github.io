@@ -121,6 +121,15 @@
       </button>
 
       <button
+        id="pref-btn"
+        class="absolute top-3 right-14 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
+        data-tooltip="Preferences"
+        aria-label="Preferences"
+      >
+        ⚙
+      </button>
+
+      <button
         id="share-btn"
         class="absolute top-3 right-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
         data-tooltip="Share puzzle link"
@@ -785,6 +794,67 @@
           >
             Back
           </button>
+        </div>
+      </div>
+    </div>
+    <div
+      id="preferences-modal"
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-xl w-[95vw] max-w-sm flex flex-col border border-gray-200 dark:border-gray-700 relative max-h-[70vh] overflow-hidden"
+      >
+        <h3 class="text-lg font-bold mb-2 text-gray-800 dark:text-gray-100">
+          Preferences
+        </h3>
+
+        <div class="mb-2 pb-2 border-b border-gray-300 dark:border-gray-700">
+          <label
+            class="flex items-start gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              id="toggle-uniqueness-btn"
+              class="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+            />
+            <div>
+              <span class="block">Enable Uniqueness Rules</span>
+            </div>
+          </label>
+        </div>
+
+        <p class="text-xs text-gray-500 mb-2 italic">
+          Drag & drop to reorder solver priority.
+        </p>
+
+        <div
+          id="technique-list-container"
+          class="overflow-y-auto flex-1 min-h-0 pr-1 flex flex-col gap-1 custom-scrollbar"
+        ></div>
+
+        <div
+          class="mt-3 flex justify-between gap-2 pt-3 border-t border-gray-300 dark:border-gray-700"
+        >
+          <button
+            id="pref-default-btn"
+            class="px-2 py-1.5 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700 shadow-sm transition-colors"
+          >
+            Reset
+          </button>
+          <div class="flex gap-2">
+            <button
+              id="pref-cancel-btn"
+              class="px-2 py-1.5 bg-gray-200 text-gray-800 text-sm font-semibold rounded hover:bg-gray-300 shadow-sm transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              id="pref-save-btn"
+              class="px-3 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 shadow-sm transition-colors"
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>
