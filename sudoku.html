@@ -329,28 +329,58 @@
               style="
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                gap: 0.35rem;
                 height: 3rem;
                 margin-bottom: 0.5rem;
               "
             >
               <button
                 id="solver-prev-btn"
-                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 rounded hover:bg-gray-200 dark:hover:bg-gray-600 font-bold dark:text-white transition-colors"
+                data-tooltip="Previous Step"
+                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors"
+                style="border-radius: 4px"
               >
                 ◀
               </button>
               <button
                 id="solver-next-btn"
-                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 rounded hover:bg-gray-200 dark:hover:bg-gray-600 font-bold dark:text-white transition-colors"
+                data-tooltip="Next Step"
+                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors"
+                style="border-radius: 4px"
               >
                 ▶
               </button>
+
+              <button
+                id="solver-view-all-btn"
+                data-tooltip="View all applicable techniques on the current board state"
+                class="flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm"
+                style="border-radius: 4px"
+              >
+                A
+              </button>
+              <button
+                id="solver-back-from-all-btn"
+                data-tooltip="Back to Solver Mode"
+                class="hidden flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm"
+                style="border-radius: 4px"
+              >
+                Back
+              </button>
+
+              <span
+                id="vat-mode-text"
+                class="hidden text-sm font-semibold text-blue-500 dark:text-blue-300 whitespace-nowrap ml-3"
+              >
+                Viewing All Teks</span
+              >
+
               <span
                 id="solver-step-fraction"
                 class="text-sm font-mono font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0"
-                style="width: 4.5rem; text-align: right; white-space: pre"
+                style="width: 3.5rem; text-align: right; white-space: pre"
               ></span>
+
               <div
                 id="solver-timeline-wrapper"
                 class="relative flex-grow rounded-sm cursor-pointer touch-none shadow-inner"
@@ -837,20 +867,20 @@
         >
           <button
             id="pref-default-btn"
-            class="px-2 py-1.5 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700 shadow-sm transition-colors"
+            class="px-2 py-1 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700 shadow-sm transition-colors"
           >
             Reset
           </button>
           <div class="flex gap-2">
             <button
               id="pref-cancel-btn"
-              class="px-2 py-1.5 bg-gray-200 text-gray-800 text-sm font-semibold rounded hover:bg-gray-300 shadow-sm transition-colors"
+              class="px-2 py-1 bg-gray-200 text-gray-800 text-sm font-semibold rounded hover:bg-gray-300 shadow-sm transition-colors"
             >
               Cancel
             </button>
             <button
               id="pref-save-btn"
-              class="px-3 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 shadow-sm transition-colors"
+              class="px-3 py-1 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 shadow-sm transition-colors"
             >
               Save
             </button>
