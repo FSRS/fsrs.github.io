@@ -6,89 +6,77 @@
     <title>for some reason - Irreducible Sudoku</title>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=M+PLUS+1+Code:wght@100..700&family=Nanum+Gothic+Coding&display=swap"
-      crossorigin="anonymous"
-    />
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap"
+      crossorigin="anonymous" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-jp-dynamic-subset.min.css"
+      crossorigin="anonymous" />
     <link href="sudoku/sudoku.css" rel="stylesheet" />
     <link
       href="https://fonts.googleapis.com/css2?family=Satisfy&display=swap"
-      rel="stylesheet"
-    />
+      rel="stylesheet" />
     <link
       rel="apple-touch-icon"
       sizes="57x57"
-      href="assets/favicon/apple-icon-57x57.png"
-    />
+      href="assets/favicon/apple-icon-57x57.png" />
     <link
       rel="apple-touch-icon"
       sizes="60x60"
-      href="assets/favicon/apple-icon-60x60.png"
-    />
+      href="assets/favicon/apple-icon-60x60.png" />
     <link
       rel="apple-touch-icon"
       sizes="72x72"
-      href="assets/favicon/apple-icon-72x72.png"
-    />
+      href="assets/favicon/apple-icon-72x72.png" />
     <link
       rel="apple-touch-icon"
       sizes="76x76"
-      href="assets/favicon/apple-icon-76x76.png"
-    />
+      href="assets/favicon/apple-icon-76x76.png" />
     <link
       rel="apple-touch-icon"
       sizes="114x114"
-      href="assets/favicon/apple-icon-114x114.png"
-    />
+      href="assets/favicon/apple-icon-114x114.png" />
     <link
       rel="apple-touch-icon"
       sizes="120x120"
-      href="assets/favicon/apple-icon-120x120.png"
-    />
+      href="assets/favicon/apple-icon-120x120.png" />
     <link
       rel="apple-touch-icon"
       sizes="144x144"
-      href="assets/favicon/apple-icon-144x144.png"
-    />
+      href="assets/favicon/apple-icon-144x144.png" />
     <link
       rel="apple-touch-icon"
       sizes="152x152"
-      href="assets/favicon/apple-icon-152x152.png"
-    />
+      href="assets/favicon/apple-icon-152x152.png" />
     <link
       rel="apple-touch-icon"
       sizes="180x180"
-      href="assets/favicon/apple-icon-180x180.png"
-    />
+      href="assets/favicon/apple-icon-180x180.png" />
     <link
       rel="icon"
       type="image/png"
       sizes="192x192"
-      href="assets/favicon/android-icon-192x192.png"
-    />
+      href="assets/favicon/android-icon-192x192.png" />
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="assets/favicon/favicon-32x32.png"
-    />
+      href="assets/favicon/favicon-32x32.png" />
     <link
       rel="icon"
       type="image/png"
       sizes="96x96"
-      href="assets/favicon/favicon-96x96.png"
-    />
+      href="assets/favicon/favicon-96x96.png" />
     <link
       rel="icon"
       type="image/png"
       sizes="16x16"
-      href="assets/favicon/favicon-16x16.png"
-    />
+      href="assets/favicon/favicon-16x16.png" />
     <link rel="manifest" href="assets/favicon/manifest.json" />
     <meta name="msapplication-TileColor" content="#ffffff" />
     <meta
       name="msapplication-TileImage"
-      content="assets/favicon/ms-icon-144x144.png"
-    />
+      content="assets/favicon/ms-icon-144x144.png" />
     <meta name="theme-color" content="#ffffff" />
     <script>
       (function () {
@@ -107,16 +95,13 @@
     </script>
   </head>
   <body
-    class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4"
-  >
+    class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4">
     <div
-      class="relative bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-5xl"
-    >
+      class="relative bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-5xl">
       <button
         id="theme-toggle"
         class="absolute top-3 left-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
-        data-tooltip="Toggle theme"
-      >
+        data-tooltip="Toggle theme">
         ◑
       </button>
 
@@ -124,20 +109,20 @@
         id="pref-btn"
         class="absolute top-3 right-14 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
         data-tooltip="Preferences"
-        aria-label="Preferences"
-      >
+        aria-label="Preferences">
         ⚙
       </button>
 
       <button
         id="share-btn"
         class="absolute top-3 right-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
-        data-tooltip="Share puzzle link"
-      >
+        data-tooltip="Share puzzle link">
         🔗
       </button>
 
-      <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">
+      <h1
+        id="sudoku-title-calligraphy-text"
+        class="text-3xl font-bold text-center text-gray-800 mb-2">
         <a
           href="https://fsrs.darksabun.club/"
           class="hover:underline font-calligraphy"
@@ -155,21 +140,18 @@
 
       <div
         id="puzzle-selectors"
-        class="mb-2 flex items-center justify-between gap-4 flex-wrap"
-      >
+        class="mb-2 flex items-center justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-2">
           <label for="date-select" class="text-lg font-medium">Date</label>
           <select
             id="date-select"
-            class="block p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          ></select>
+            class="block p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
         </div>
         <div class="flex items-center gap-2">
           <label for="level-select" class="text-lg font-medium">Level</label>
           <select
             id="level-select"
-            class="block p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          ></select>
+            class="block p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
         </div>
       </div>
 
@@ -177,23 +159,19 @@
         <div class="left-col">
           <div
             id="message-area"
-            class="flex items-center justify-center text-center mb-2 text-xs font-semibold min-h-18"
-          ></div>
+            class="flex items-center justify-center text-center mb-2 text-xs font-semibold min-h-18"></div>
 
           <div
             id="sudoku-grid"
-            class="sudoku-grid grid grid-cols-1 w-full border-2 border-gray-700 relative"
-          >
+            class="sudoku-grid grid grid-cols-1 w-full border-2 border-gray-700 relative">
             <svg
               id="drawing-layer"
-              class="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"
-            ></svg>
+              class="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"></svg>
           </div>
 
           <div
             id="puzzle-info"
-            class="flex justify-between text-sm text-gray-600 mt-2 px-1 font-semibold"
-          >
+            class="flex justify-between text-sm text-gray-600 mt-2 px-1 font-semibold">
             <span id="puzzle-level"></span>
             <span id="puzzle-timer"></span>
             <span id="puzzle-score"></span>
@@ -203,56 +181,47 @@
         <div class="right-col">
           <div
             class="flex items-center justify-center gap-2 flex-wrap"
-            id="mode-selector"
-          >
+            id="mode-selector">
             <button
               id="mode-toggle-btn"
-              class="control-btn active px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
-            >
+              class="control-btn active px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100">
               Number (Z)
             </button>
             <button
               data-mode="draw"
-              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
-            >
+              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100">
               Draw (X)
             </button>
             <button
               data-mode="color"
-              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
-            >
+              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100">
               Color (C)
             </button>
             <button
               id="format-toggle-btn"
-              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm bg-white hover:bg-gray-100"
-            >
+              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm bg-white hover:bg-gray-100">
               Display A (D)
             </button>
             <button
               id="vague-hint-btn"
-              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
-            >
+              class="control-btn px-4 py-2 text-sm font-semibold border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100">
               ? (V)
             </button>
             <div
               id="difficulty-lamp"
               class="w-4 h-8 rounded-sm border border-gray-400 ml-1"
-              data-tooltip="Difficulty Indicator"
-            ></div>
+              data-tooltip="Difficulty Indicator"></div>
           </div>
 
           <div class="numpad-grid" id="number-pad"></div>
 
           <div
             id="action-buttons-container"
-            class="grid grid-cols-2 sm:grid-cols-3 gap-3"
-          >
+            class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button
               id="undo-btn"
               data-tooltip="Undo the last action (Ctrl+Z)."
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal"
-            >
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal">
               <span>Undo</span
               ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
                 >(Ctrl+Z)</span
@@ -261,8 +230,7 @@
             <button
               id="redo-btn"
               data-tooltip="Redo the last undone action (Ctrl+Y)."
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal"
-            >
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal">
               <span>Redo</span
               ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
                 >(Ctrl+Y)</span
@@ -271,8 +239,7 @@
             <button
               id="auto-pencil-btn"
               data-tooltip="Fill all empty cells with possible candidates (A)."
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 leading-tight whitespace-normal"
-            >
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 leading-tight whitespace-normal">
               <span>Auto-Pencil</span
               ><span class="shortcut-indicator text-xs opacity-80 mt-0.5"
                 >(A)</span
@@ -280,8 +247,7 @@
             </button>
             <button
               id="expt-mode-btn"
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal text-center"
-            >
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal text-center">
               <span>Expt. OFF</span
               ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
                 >(E)</span
@@ -291,8 +257,7 @@
               id="solve-btn"
               style="display: none"
               data-tooltip="Open the GUI Solver Mode (S)."
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 leading-tight whitespace-normal"
-            >
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 leading-tight whitespace-normal">
               <span>Solve</span
               ><span class="shortcut-indicator text-xs opacity-80 mt-0.5"
                 >(S)</span
@@ -301,8 +266,7 @@
             <button
               id="clear-btn"
               data-tooltip="Clear all user-entered numbers and pencil marks (Q)."
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal"
-            >
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal">
               <span>Quick Reset</span
               ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
                 >(Q)</span
@@ -311,8 +275,7 @@
             <button
               id="clear-colors-btn"
               data-tooltip="Clear all cell and candidate colors (W)."
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal"
-            >
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal">
               <span>Wipe Colors</span
               ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
                 >(W)</span
@@ -323,8 +286,7 @@
           <div
             id="solver-bar-container"
             class="hidden flex-col p-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-inner"
-            style="gap: 0.5rem"
-          >
+            style="gap: 0.5rem">
             <div
               style="
                 display: flex;
@@ -332,22 +294,19 @@
                 gap: 0.35rem;
                 height: 3rem;
                 margin-bottom: 0.5rem;
-              "
-            >
+              ">
               <button
                 id="solver-prev-btn"
                 data-tooltip="Previous Step"
                 class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors"
-                style="border-radius: 4px"
-              >
+                style="border-radius: 4px">
                 ◀
               </button>
               <button
                 id="solver-next-btn"
                 data-tooltip="Next Step"
                 class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors"
-                style="border-radius: 4px"
-              >
+                style="border-radius: 4px">
                 ▶
               </button>
 
@@ -355,42 +314,40 @@
                 id="solver-view-all-btn"
                 data-tooltip="View all applicable techniques on the current board state"
                 class="flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm"
-                style="border-radius: 4px"
-              >
+                style="border-radius: 4px">
                 A
               </button>
               <button
                 id="solver-back-from-all-btn"
                 data-tooltip="Back to Solver Mode"
                 class="hidden flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm"
-                style="border-radius: 4px"
-              >
+                style="border-radius: 4px">
                 Back
               </button>
 
               <span
                 id="vat-mode-text"
-                class="hidden text-sm font-semibold text-blue-500 dark:text-blue-300 whitespace-nowrap ml-3"
-              >
+                class="hidden text-sm font-semibold text-blue-500 dark:text-blue-300 whitespace-nowrap ml-3">
                 Viewing All Teks</span
               >
 
               <span
                 id="solver-step-fraction"
                 class="text-sm font-mono font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0"
-                style="width: 3.5rem; text-align: right; white-space: pre"
-              ></span>
+                style="
+                  width: 3.5rem;
+                  text-align: right;
+                  white-space: pre;
+                "></span>
 
               <div
                 id="solver-timeline-wrapper"
                 class="relative flex-grow rounded-sm cursor-pointer touch-none shadow-inner"
-                style="height: 2rem; background-color: #111827"
-              >
+                style="height: 2rem; background-color: #111827">
                 <div
                   id="solver-timeline"
                   class="absolute inset-0 flex overflow-hidden rounded-sm border border-gray-700 dark:border-black"
-                  style="height: 100%"
-                ></div>
+                  style="height: 100%"></div>
                 <div
                   id="solver-focus-bar"
                   class="absolute z-10 rounded-sm pointer-events-none shadow-md"
@@ -403,8 +360,7 @@
                     left: 0%;
                     transform: translateX(-50%);
                     transition: all 0.075s linear;
-                  "
-                ></div>
+                  "></div>
               </div>
             </div>
             <div
@@ -416,8 +372,7 @@
                 flex-direction: column;
                 gap: 0px;
                 padding-right: 0.5rem;
-              "
-            ></div>
+              "></div>
           </div>
 
           <div id="solver-link-container" class="text-center mt-2"></div>
@@ -429,22 +384,23 @@
                 rows="1"
                 class="flex-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full text-xs border-gray-300 rounded-md p-2 resize-y whitespace-pre font-mono"
                 placeholder="Enter 81 characters &#10;or ASCII Grid..."
-                style="min-height: 42px; overflow-x: auto; overflow-y: hidden"
-              ></textarea>
+                style="
+                  min-height: 42px;
+                  overflow-x: auto;
+                  overflow-y: hidden;
+                "></textarea>
 
               <div class="flex flex-col sm:flex-row gap-2 shrink-0">
                 <button
                   id="load-btn"
                   data-tooltip="Load a custom 81-character puzzle string."
-                  class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
-                >
+                  class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 whitespace-nowrap">
                   Load
                 </button>
                 <button
                   id="copy-btn"
                   data-tooltip="Copy puzzle data to clipboard."
-                  class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors whitespace-nowrap"
-                >
+                  class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors whitespace-nowrap">
                   Copy
                 </button>
               </div>
@@ -456,8 +412,7 @@
 
     <div
       id="date-modal"
-      class="fixed inset-0 z-20 hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-20 hidden items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-xl w-80">
         <h3 class="text-lg font-medium text-center mb-2">
           Enter a Date (2026-03-01 - )
@@ -469,23 +424,19 @@
           inputmode="numeric"
           pattern="\d*"
           placeholder="YYYY-MM-DD"
-          class="w-full border p-2 rounded-md text-center mb-2"
-        />
+          class="w-full border p-2 rounded-md text-center mb-2" />
         <div
           id="date-error"
-          class="text-red-600 text-sm font-semibold h-5 mb-2 text-center"
-        ></div>
+          class="text-red-600 text-sm font-semibold h-5 mb-2 text-center"></div>
         <div class="flex justify-between">
           <button
             id="date-cancel-btn"
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
+            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">
             Cancel
           </button>
           <button
             id="date-submit-btn"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
             Submit
           </button>
         </div>
@@ -494,15 +445,13 @@
 
     <div
       id="candidate-modal"
-      class="fixed inset-0 z-10 hidden items-center justify-center"
-    >
+      class="fixed inset-0 z-10 hidden items-center justify-center">
       <div class="bg-white p-6 rounded-lg shadow-xl">
         <h3 class="text-lg font-medium text-center mb-2">Color a Candidate</h3>
         <div id="candidate-grid" class="grid grid-cols-3 gap-2"></div>
         <button
           id="close-modal-btn"
-          class="mt-2 w-full px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-        >
+          class="mt-2 w-full px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">
           Close
         </button>
       </div>
@@ -510,11 +459,9 @@
 
     <div
       id="resume-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Resume Saved Game?
         </h3>
@@ -529,14 +476,12 @@
         <div class="flex flex-col gap-3">
           <button
             id="resume-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Resume Puzzle
           </button>
           <button
             id="new-game-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             New Game
           </button>
         </div>
@@ -544,35 +489,29 @@
     </div>
     <div
       id="solver-confirm-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Enter Solver Mode
         </h3>
         <p
           id="solver-confirm-text"
-          class="text-gray-600 dark:text-gray-300 mb-6 text-sm"
-        ></p>
+          class="text-gray-600 dark:text-gray-300 mb-6 text-sm"></p>
         <div class="flex flex-col gap-3">
           <button
             id="solver-current-btn"
-            class="w-full px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
             Start from Current State
           </button>
           <button
             id="solver-beginning-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Start from Beginning
           </button>
           <button
             id="solver-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             Cancel
           </button>
         </div>
@@ -580,11 +519,9 @@
     </div>
     <div
       id="solver-first-time-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Enter Solver Mode?
         </h3>
@@ -597,14 +534,12 @@
         <div class="flex flex-col gap-3">
           <button
             id="solver-first-time-confirm-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Of course
           </button>
           <button
             id="solver-first-time-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             not really
           </button>
         </div>
@@ -612,11 +547,9 @@
     </div>
     <div
       id="hint-confirm-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Reveal Hint?
         </h3>
@@ -629,14 +562,12 @@
         <div class="flex flex-col gap-3">
           <button
             id="hint-confirm-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Of course
           </button>
           <button
             id="hint-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             not really
           </button>
         </div>
@@ -644,31 +575,26 @@
     </div>
     <div
       id="copy-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative">
         <h3 class="text-xl font-bold mb-6 text-gray-800 dark:text-gray-100">
           Copy Board Data
         </h3>
         <div class="flex flex-col gap-3">
           <button
             id="copy-initial-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Copy Initial Grid
           </button>
           <button
             id="copy-current-btn"
-            class="w-full px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
             Copy Current Board
           </button>
           <button
             id="copy-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             Cancel
           </button>
         </div>
@@ -676,11 +602,9 @@
     </div>
     <div
       id="completion-share-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Share Results
         </h3>
@@ -690,20 +614,17 @@
         <div class="flex flex-col gap-3">
           <button
             id="completion-discord-btn"
-            class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 shadow-sm transition-colors">
             Copy Discord Format
           </button>
           <button
             id="completion-plain-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Copy Plain Text
           </button>
           <button
             id="completion-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             Cancel
           </button>
         </div>
@@ -711,11 +632,9 @@
     </div>
     <div
       id="format-confirm-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Change Layout?
         </h3>
@@ -725,14 +644,12 @@
         <div class="flex flex-col gap-3">
           <button
             id="format-confirm-btn"
-            class="w-full flex flex-col items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors leading-tight"
-          >
+            class="w-full flex flex-col items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors leading-tight">
             <span>Confirm</span>
           </button>
           <button
             id="format-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             Cancel
           </button>
         </div>
@@ -740,11 +657,9 @@
     </div>
     <div
       id="reset-confirm-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Quick Reset?
         </h3>
@@ -754,14 +669,12 @@
         <div class="flex flex-col gap-3">
           <button
             id="reset-confirm-btn"
-            class="w-full flex flex-col items-center justify-center px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 shadow-sm transition-colors leading-tight"
-          >
+            class="w-full flex flex-col items-center justify-center px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 shadow-sm transition-colors leading-tight">
             <span>Clear Board</span>
           </button>
           <button
             id="reset-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             Cancel
           </button>
         </div>
@@ -769,38 +682,32 @@
     </div>
     <div
       id="share-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative"
-      >
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative">
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100">
           Share Puzzle Link
         </h3>
         <p
           id="share-modal-desc"
-          class="text-gray-600 dark:text-gray-300 mb-6 text-sm"
-        >
+          class="text-gray-600 dark:text-gray-300 mb-6 text-sm">
           What do you want to share?
         </p>
 
         <div id="share-step-1" class="flex flex-col gap-3">
           <button
             id="share-initial-btn"
-            class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 shadow-sm transition-colors">
             Initial State
           </button>
           <button
             id="share-current-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Current Progress
           </button>
           <button
             id="share-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             Cancel
           </button>
         </div>
@@ -808,20 +715,17 @@
         <div id="share-step-2" class="hidden flex-col gap-3">
           <button
             id="share-playing-btn"
-            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
             Copy Playing Link
           </button>
           <button
             id="share-solver-btn"
-            class="w-full px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
             Copy Solver Link
           </button>
           <button
             id="share-back-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-          >
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors">
             Back
           </button>
         </div>
@@ -829,24 +733,20 @@
     </div>
     <div
       id="preferences-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50"
-    >
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50">
       <div
-        class="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-xl w-[95vw] max-w-sm flex flex-col border border-gray-200 dark:border-gray-700 relative max-h-[85vh] overflow-hidden"
-      >
+        class="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-xl w-[95vw] max-w-sm flex flex-col border border-gray-200 dark:border-gray-700 relative max-h-[85vh] overflow-hidden">
         <h3 class="text-lg font-bold mb-2 text-gray-800 dark:text-gray-100">
           Preferences
         </h3>
 
         <div class="mb-2 pb-2 border-b border-gray-300 dark:border-gray-700">
           <label
-            class="flex items-start gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer"
-          >
+            class="flex items-start gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
             <input
               type="checkbox"
               id="toggle-uniqueness-btn"
-              class="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
-            />
+              class="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
             <div>
               <span class="block">Enable Uniqueness Techniques</span>
             </div>
@@ -859,29 +759,24 @@
 
         <div
           id="technique-list-container"
-          class="overflow-y-auto flex-1 min-h-0 pr-1 flex flex-col gap-1 custom-scrollbar"
-        ></div>
+          class="overflow-y-auto flex-1 min-h-0 pr-1 flex flex-col gap-1 custom-scrollbar"></div>
 
         <div
-          class="mt-3 flex justify-between gap-2 pt-3 border-t border-gray-300 dark:border-gray-700"
-        >
+          class="mt-3 flex justify-between gap-2 pt-3 border-t border-gray-300 dark:border-gray-700">
           <button
             id="pref-default-btn"
-            class="px-2 py-1 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700 shadow-sm transition-colors"
-          >
+            class="px-2 py-1 bg-red-600 text-white text-sm font-semibold rounded hover:bg-red-700 shadow-sm transition-colors">
             Reset
           </button>
           <div class="flex gap-2">
             <button
               id="pref-cancel-btn"
-              class="px-2 py-1 bg-gray-200 text-gray-800 text-sm font-semibold rounded hover:bg-gray-300 shadow-sm transition-colors"
-            >
+              class="px-2 py-1 bg-gray-200 text-gray-800 text-sm font-semibold rounded hover:bg-gray-300 shadow-sm transition-colors">
               Cancel
             </button>
             <button
               id="pref-save-btn"
-              class="px-3 py-1 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 shadow-sm transition-colors"
-            >
+              class="px-3 py-1 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 shadow-sm transition-colors">
               Save
             </button>
           </div>
