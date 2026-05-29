@@ -241,7 +241,7 @@ const defaultColumns = [
     render: tableData.tableMovie,
   },
   {
-    title: "Title<br />(LR2IR)",
+    title: "Title<br />(MinIR)",
     width: "30%",
     data: "title",
     render: tableData.tableTitle,
