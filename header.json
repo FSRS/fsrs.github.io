@@ -2,5 +2,114 @@
   "name": "FL差分難易度表",
   "symbol": "FL",
   "compat_prefix": "FL",
-  "data_url": "https://script.google.com/macros/s/AKfycbxgKNxao3_K_W-ATJ_vLa4vvwYCjGc-vKi7KED0hLCerVzpZFL0/exec?table=FLtable"
+  "data_url": "https://script.google.com/macros/s/AKfycbxgKNxao3_K_W-ATJ_vLa4vvwYCjGc-vKi7KED0hLCerVzpZFL0/exec?table=FLtable",
+    "course": [
+    [
+      {
+        "name": "FL11段",
+        "constraint": ["grade_mirror", "gauge_lr2", "ln"],
+        "trophy": [
+          { "name": "silvermedal", "missrate": 5.0, "scorerate": 77.77 },
+          { "name": "goldmedal", "missrate": 2.5, "scorerate": 88.88 }
+        ],
+        "md5": [
+          "d837ad9311f17ae205e7fa4d43121638",
+          "a36cbcecf7612acffb754bc64df6c752",
+          "64dde80040dcf29d90bf79a6ea3d4324",
+          "c50917f41ef776188f0269304af29692",
+          "773c00048c49a0847bca38eba748fba9"
+        ]
+      },
+      {
+        "name": "FL11段+",
+        "constraint": ["grade_mirror", "gauge_lr2", "ln"],
+        "trophy": [
+          { "name": "silvermedal", "missrate": 5.0, "scorerate": 77.77 },
+          { "name": "goldmedal", "missrate": 2.5, "scorerate": 88.88 }
+        ],
+        "md5": [
+          "7f6985d777fb1d28f1213c99cfe880b9",
+          "927b35a43e44cee34f0ad5713cb1db11",
+          "0f4cef726def4335cf423c32dba495a1",
+          "cae36418b9a0eb56f5eb3d560959a774",
+          "ac3278d0813aa75a39c59e7112a98614"
+        ]
+      },
+      {
+        "name": "FL12段",
+        "constraint": ["grade_mirror", "gauge_lr2", "ln"],
+        "trophy": [
+          { "name": "silvermedal", "missrate": 5.0, "scorerate": 77.77 },
+          { "name": "goldmedal", "missrate": 2.5, "scorerate": 88.88 }
+        ],
+        "md5": [
+          "42cd1e34e98f43c07f7896a7f8927351",
+          "a74669d2716aab0c54fdb9d84f9413c5",
+          "310f6ea8a7d491072c2d2b0de42cad7a",
+          "497d31bccfb8be7054f31e5997cbe4c6",
+          "2c2b5f3d1c8ec4e07da3477bd1e09f98"
+        ]
+      },
+      {
+        "name": "FL12段+",
+        "constraint": ["grade_mirror", "gauge_lr2", "ln"],
+        "trophy": [
+          { "name": "silvermedal", "missrate": 5.0, "scorerate": 77.77 },
+          { "name": "goldmedal", "missrate": 2.5, "scorerate": 88.88 }
+        ],
+        "md5": [
+          "c53bcedbe1333130e524e52ef3dfe0eb",
+          "41aba3d1bb65ab286f0f15499d66e0bd",
+          "cb4c890c6fe24634c6d56bf07c85b7a2",
+          "be21ccbe05fa46ab108989ad02622974",
+          "894673f0407f110fef7fe95ca4ff85e2"
+        ]
+      },
+      {
+        "name": "FL20段",
+        "constraint": ["grade_mirror", "gauge_lr2", "ln"],
+        "trophy": [
+          { "name": "silvermedal", "missrate": 5.0, "scorerate": 77.77 },
+          { "name": "goldmedal", "missrate": 2.5, "scorerate": 88.88 }
+        ],
+        "md5": [
+          "d86ca1cd268f24b1337c2a25948cadb3",
+          "7b2d990fa3a2c0fc71024f413e19349a",
+          "11474d9d0d950f177006894e5fddfdee",
+          "ddc20fcaefb2e08780a54f616bbea950",
+          "40158096b8842e0c44f99a77951f032f"
+        ]
+      },
+      {
+        "name": "FL20段 v2",
+        "constraint": ["grade_mirror", "gauge_lr2", "ln"],
+        "trophy": [
+          { "name": "silvermedal", "missrate": 5.0, "scorerate": 77.77 },
+          { "name": "goldmedal", "missrate": 2.5, "scorerate": 88.88 }
+        ],
+        "md5": [
+          "bf2f830688f0747ec23e90e236d521cf",
+          "857eea0a4bee820811b3685780848bbc",
+          "60642393715bc2ed73ed69077a4f9ee3",
+          "6f1d9a174acf90d9fed9d9af617899c3",
+          "3dfec6fcefc86b4c097d4b0c1419b0ad"
+        ]
+      },
+      {
+        "name": "FL30段",
+        "constraint": ["grade_mirror", "gauge_lr2", "ln"],
+        "trophy": [
+          { "name": "silvermedal", "missrate": 5.0, "scorerate": 77.77 },
+          { "name": "goldmedal", "missrate": 2.5, "scorerate": 88.88 }
+        ],
+        "md5": [
+          "a62c7fe7ebe8d57a6abddd56b8ef9590",
+          "fddbed24c5c285c83685d2b9c7f3763a",
+          "79aef01c99f53cf42a8f8466aecdd803",
+          "552402ac2f47b423077f488504abb061",
+          "0accf0a451eda7adf2b6ac8242b4830d"
+        ]
+      }
+    ]
+  ]
 }
