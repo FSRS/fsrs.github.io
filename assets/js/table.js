@@ -247,15 +247,15 @@ const defaultColumns = [
     render: tableData.tableMovie,
   },
   {
+    title: "MinIR",
+    width: "1%",
+    render: tableData.tableMinIR,
+  },
+  {
     title: "Title<br />(STELLA IR)",
     width: "30%",
     data: "title",
     render: tableData.tableTitle,
-  },
-  {
-    title: "MinIR",
-    width: "1%",
-    render: tableData.tableMinIR,
   },
   {
     title: "Artist<br />(BMS DL)",
