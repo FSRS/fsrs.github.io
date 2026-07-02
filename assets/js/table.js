@@ -7,7 +7,7 @@ const languagePrefix =
 $(function () {
   async function getJSON() {
     const response = await fetch(
-      document.querySelector("meta[name=bmstable]").getAttribute("content")
+      document.querySelector("meta[name=bmstable]").getAttribute("content"),
     );
     const header = await response.json();
     document.getElementById("changelogText").value = "Loading...";
@@ -87,8 +87,8 @@ function makeFilter(table) {
     languagePrefix === "ko"
       ? "레벨별 필터: "
       : languagePrefix === "ja"
-      ? "レベルでフィルタ: "
-      : "Filter by Level: ";
+        ? "レベルでフィルタ: "
+        : "Filter by Level: ";
 
   const selectContainer = document.createElement("div");
   selectContainer.classList.add("dt-length");
@@ -138,8 +138,14 @@ const tableData = {
   },
 
   tableTitle: function (data, type, row) {
-    let MinIrUrl = `https://www.gaftalk.com/minir/#/viewer/song/${row.sha256}/0`;
-    return `<a href='${MinIrUrl}' target='_blank'>${data}</a>`;
+    let stellaIrURL = "https://ir.stellabms.xyz/charts/";
+    stellaIrURL += row.md5;
+    return `<a href='${stellaIrURL}' target='_blank'>${data}</a>`;
+  },
+
+  tableMinIR: function (data, type, row) {
+    let MinIRUrl = `https://www.gaftalk.com/minir/#/viewer/song/${row.sha256}/0`;
+    return `<a href='${MinIRUrl}' target='_blank'>MinIR</a>`;
   },
 
   tableScore: function (data) {
@@ -241,10 +247,15 @@ const defaultColumns = [
     render: tableData.tableMovie,
   },
   {
-    title: "Title<br />(MinIR)",
+    title: "Title<br />(STELLA IR)",
     width: "30%",
     data: "title",
     render: tableData.tableTitle,
+  },
+  {
+    title: "MinIR",
+    width: "1%",
+    render: tableData.tableMinIR,
   },
   {
     title: "Artist<br />(BMS DL)",
@@ -272,4 +283,3 @@ const defaultColumns = [
     render: tableData.tableComment,
   },
 ];
-
