@@ -4,7 +4,7 @@ let data_link = "";
 const nowLang = navigator.language.slice(0, 2);
 const languagePrefix =
   nowLang === "ko" ? "ko" : nowLang === "ja" ? "ja" : "en-GB";
-$(function () {
+document.addEventListener("DOMContentLoaded", function () {
   async function getJSON() {
     const response = await fetch(
       document.querySelector("meta[name=bmstable]").getAttribute("content"),
@@ -27,7 +27,7 @@ function makeBMSTable() {
     lengthChange: false,
 
     language: {
-      url: `//cdn.datatables.net/plug-ins/2.3.3/i18n/${languagePrefix}.json`,
+      url: `//cdn.datatables.net/plug-ins/2.3.8/i18n/${languagePrefix}.json`,
     },
 
     ajax: {
@@ -145,7 +145,7 @@ const tableData = {
 
   tableMinIR: function (data, type, row) {
     let MinIRUrl = `https://www.gaftalk.com/minir/#/viewer/song/${row.sha256}/0`;
-    return `<a href='${MinIRUrl}' target='_blank'>MinIR</a>`;
+    return `<a href='${MinIRUrl}' target='_blank'><img style='margin-bottom: 0' src='/images/icon-minir.gif' /></a>`;
   },
 
   tableScore: function (data) {
@@ -247,15 +247,15 @@ const defaultColumns = [
     render: tableData.tableMovie,
   },
   {
+    title: "MinIR",
+    width: "1%",
+    render: tableData.tableMinIR,
+  },
+  {
     title: "Title<br />(STELLA IR)",
     width: "30%",
     data: "title",
     render: tableData.tableTitle,
-  },
-  {
-    title: "MinIR",
-    width: "1%",
-    render: tableData.tableMinIR,
   },
   {
     title: "Artist<br />(BMS DL)",

@@ -1,9 +1,10 @@
 ﻿/* Main Layout */
 /* Violet Theme Colors */
 :root {
-  --nc-font-sans: "Fira Code", "Nanum Gothic Coding", "M PLUS 1 Code", "Inter",
-    monospace;
-  --nc-font-mono: "Fira Code", "Nanum Gothic Coding", "M PLUS 1 Code", monospace;
+  --nc-font-sans:
+    "Fira Code", "Nanum Gothic Coding", "M PLUS 1 Code", "Inter", monospace;
+  --nc-font-mono:
+    "Fira Code", "Nanum Gothic Coding", "M PLUS 1 Code", monospace;
   --nc-bg-1: #e6e6fa;
   --nc-tx-1: #4b0082;
   --nc-accent-color: #8a2be2;
