@@ -6,7 +6,7 @@
     <title>for some reason - Irreducible Sudoku</title>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Satisfy&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Nanum+Gothic+Coding&family=Satisfy&display=swap"
       crossorigin="anonymous" />
     <link href="assets/css/pretendardvariable-jp.css" rel="stylesheet" />
     <link href="sudoku/sudoku.css" rel="stylesheet" />
@@ -183,7 +183,7 @@
 
         <div class="right-col">
           <div
-            class="flex items-stretch justify-center gap-2 w-full"
+            class="flex items-stretch justify-center gap-2 w-full mt-1"
             id="mode-selector">
             <button
               id="mode-toggle-btn"
@@ -267,10 +267,9 @@
             </button>
             <button
               id="solve-btn"
-              style="display: none"
               data-tooltip="Open the GUI Solver Mode (S)."
               data-i18n-tooltip="tooltip_solve"
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 leading-tight whitespace-normal">
+              class="hidden w-full flex flex-col items-center justify-center py-2 px-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 leading-tight whitespace-normal">
               <span data-i18n="btn_solve">Solve</span
               ><span class="shortcut-indicator text-xs opacity-80 mt-0.5"
                 >(S)</span
@@ -300,30 +299,20 @@
 
           <div
             id="solver-bar-container"
-            class="hidden flex-col p-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-inner"
-            style="gap: 0.5rem">
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 0.35rem;
-                height: 3rem;
-                margin-bottom: 0.5rem;
-              ">
+            class="hidden flex-col p-3 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-inner gap-2">
+            <div class="flex items-center gap-[0.35rem] h-12 mb-2">
               <button
                 id="solver-prev-btn"
                 data-tooltip="Previous Step"
                 data-i18n-tooltip="tooltip_prev_step"
-                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors"
-                style="border-radius: 4px">
+                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors rounded">
                 ◀
               </button>
               <button
                 id="solver-next-btn"
                 data-tooltip="Next Step"
                 data-i18n-tooltip="tooltip_next_step"
-                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors"
-                style="border-radius: 4px">
+                class="flex items-center justify-center w-8 h-8 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors rounded">
                 ▶
               </button>
 
@@ -331,16 +320,14 @@
                 id="solver-view-all-btn"
                 data-tooltip="View all applicable techniques on the current board state"
                 data-i18n-tooltip="tooltip_view_all"
-                class="flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm"
-                style="border-radius: 4px">
+                class="flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm rounded">
                 A
               </button>
               <button
                 id="solver-back-from-all-btn"
                 data-tooltip="Back to Solver Mode"
                 data-i18n-tooltip="tooltip_back_solver"
-                class="hidden flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm"
-                style="border-radius: 4px"
+                class="hidden flex items-center justify-center h-8 px-1 flex-shrink-0 border border-gray-300 dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold dark:text-white transition-colors text-sm rounded"
                 data-i18n="solver_back_btn">
                 Back
               </button>
@@ -354,46 +341,22 @@
 
               <span
                 id="solver-step-fraction"
-                class="text-sm font-mono font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0"
-                style="
-                  width: 3.5rem;
-                  text-align: right;
-                  white-space: pre;
-                "></span>
+                class="text-sm font-mono font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0 w-14 text-right whitespace-pre"></span>
 
               <div
                 id="solver-timeline-wrapper"
-                class="relative flex-grow rounded-sm cursor-pointer touch-none shadow-inner"
-                style="height: 2rem; background-color: #111827">
+                class="relative flex-grow rounded-sm cursor-pointer touch-none shadow-inner h-8 bg-gray-900">
                 <div
                   id="solver-timeline"
-                  class="absolute inset-0 flex overflow-hidden rounded-sm border border-gray-700 dark:border-black"
-                  style="height: 100%"></div>
+                  class="absolute inset-0 flex overflow-hidden rounded-sm border border-gray-700 dark:border-black h-full"></div>
                 <div
                   id="solver-focus-bar"
-                  class="absolute z-10 rounded-sm pointer-events-none shadow-md"
-                  style="
-                    top: -4px;
-                    bottom: -4px;
-                    width: 14px;
-                    background-color: transparent;
-                    border: 2px solid var(--nc-tx-1);
-                    left: 0%;
-                    transform: translateX(-50%);
-                    transition: all 0.075s linear;
-                  "></div>
+                  class="absolute z-10 rounded-sm pointer-events-none shadow-md -top-1 -bottom-1 w-3.5 bg-transparent border-2 border-[var(--nc-tx-1)] left-0 -translate-x-1/2 transition-all duration-75 ease-linear"></div>
               </div>
             </div>
             <div
               id="solver-summary-list"
-              style="
-                max-height: 4.5rem;
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
-                gap: 0px;
-                padding-right: 0.5rem;
-              "></div>
+              class="max-h-[4.5rem] overflow-y-auto flex flex-col gap-0 pr-2"></div>
           </div>
 
           <div id="solver-link-container" class="text-center mt-2"></div>
@@ -403,14 +366,9 @@
               <textarea
                 id="puzzle-string"
                 rows="1"
-                class="flex-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full text-xs border-gray-300 rounded-md p-2 resize-y whitespace-pre font-mono"
+                class="flex-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full text-xs border-gray-300 rounded-md p-2 resize-y whitespace-pre font-mono min-h-[42px] overflow-x-auto overflow-y-hidden"
                 placeholder="Enter 81 characters &#10;or ASCII Grid..."
-                data-i18n-placeholder="placeholder_puzzle"
-                style="
-                  min-height: 42px;
-                  overflow-x: auto;
-                  overflow-y: hidden;
-                "></textarea>
+                data-i18n-placeholder="placeholder_puzzle"></textarea>
 
               <div class="flex flex-row gap-2 shrink-0">
                 <button
