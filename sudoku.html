@@ -175,9 +175,9 @@
           <div
             id="puzzle-info"
             class="flex justify-between text-sm text-gray-600 mt-2 px-1 font-semibold">
-            <span id="puzzle-level"></span>
-            <span id="puzzle-timer"></span>
-            <span id="puzzle-score"></span>
+            <span id="puzzle-level" class="flex-1 text-left"></span>
+            <span id="puzzle-timer" class="text-center"></span>
+            <span id="puzzle-score" class="flex-1 text-right"></span>
           </div>
         </div>
 
@@ -468,7 +468,9 @@
             id="resume-level-text"
             class="font-bold text-gray-800 dark:text-gray-100"
             >Level X</span
-          ><span id="resume-desc-suffix" data-i18n="modal_resume_desc_suffix">.</span>
+          ><span id="resume-desc-suffix" data-i18n="modal_resume_desc_suffix"
+            >.</span
+          >
         </p>
         <div class="flex flex-col gap-3">
           <button
