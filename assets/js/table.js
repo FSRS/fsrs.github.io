@@ -27,7 +27,7 @@ function makeBMSTable() {
     lengthChange: false,
 
     language: {
-      url: `//cdn.datatables.net/plug-ins/2.3.8/i18n/${languagePrefix}.json`,
+      url: `//cdn.datatables.net/plug-ins/3.0.1/i18n/${languagePrefix}.json`,
     },
 
     ajax: {
