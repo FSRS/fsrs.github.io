@@ -1,7 +1,8 @@
-const CACHE_VERSION = "v1";
-const APP_CACHE = `fsrs-sudoku-app-${CACHE_VERSION}`;
-const DATA_CACHE = `fsrs-sudoku-data-${CACHE_VERSION}`;
-const META_CACHE = `fsrs-sudoku-meta-${CACHE_VERSION}`;
+const APP_CACHE_VERSION = "v2";
+const DATA_CACHE_VERSION = "v1";
+const APP_CACHE = `fsrs-sudoku-app-${APP_CACHE_VERSION}`;
+const DATA_CACHE = `fsrs-sudoku-data-${DATA_CACHE_VERSION}`;
+const META_CACHE = `fsrs-sudoku-meta-${DATA_CACHE_VERSION}`;
 const SUDOKU_CACHE_PREFIX = "fsrs-sudoku-";
 
 const PUZZLE_ORIGIN = "https://json.sudoku.darksabun.club";
@@ -222,10 +223,16 @@ async function getUnlimitedResponse(request) {
 async function cacheFirstRuntime(request) {
   const cache = await caches.open(APP_CACHE);
   const cached = await cache.match(request);
-  if (cached) return cached;
+  const isIncompatibleOpaqueResponse =
+    request.mode === "cors" && cached?.type === "opaque";
+  if (cached && !isIncompatibleOpaqueResponse) return cached;
+  if (isIncompatibleOpaqueResponse) await cache.delete(request);
 
   const response = await fetch(request);
-  if (response.ok || response.type === "opaque") {
+  if (
+    response.ok ||
+    (request.mode === "no-cors" && response.type === "opaque")
+  ) {
     await cache.put(request, response.clone());
   }
   return response;
