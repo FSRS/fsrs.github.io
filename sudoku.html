@@ -120,6 +120,29 @@
         </svg>
       </button>
       <button
+        id="offline-cache-status"
+        type="button"
+        hidden
+        class="absolute top-3 p-2 text-gray-700 dark:text-gray-300 leading-none"
+        data-tooltip="Offline resources are ready."
+        data-i18n-tooltip="tooltip_offline_ready"
+        aria-label="Offline resources are ready">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true">
+          <path d="M5 3.5h11l3 3v14H5Z" />
+          <path d="M8 3.5v6h8v-5M8 20.5v-7h8v7" />
+        </svg>
+        <span class="offline-cache-dot" aria-hidden="true"></span>
+      </button>
+      <button
         id="lang-toggle"
         class="absolute top-3 left-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
         data-tooltip="Switch language"

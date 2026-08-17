@@ -114,13 +114,14 @@ async function refreshRecentDailyIfNeeded() {
     (await readMeta("daily-refresh-date")) === today &&
     (await cacheContainsAll(urls, cache))
   ) {
-    return;
+    return true;
   }
 
   const refreshed = await refreshAndVerifyData(urls, cache);
   if (refreshed) {
     await writeMeta("daily-refresh-date", today);
   }
+  return refreshed;
 }
 
 async function refreshUnlimitedIfNeeded() {
@@ -131,13 +132,14 @@ async function refreshUnlimitedIfNeeded() {
     (await readMeta("unlimited-refresh-date")) === today &&
     (await cacheContainsAll(urls, cache))
   ) {
-    return;
+    return true;
   }
 
   const refreshed = await refreshAndVerifyData(urls, cache);
   if (refreshed) {
     await writeMeta("unlimited-refresh-date", today);
   }
+  return refreshed;
 }
 
 function refreshPuzzleDataIfNeeded() {
@@ -145,9 +147,19 @@ function refreshPuzzleDataIfNeeded() {
     puzzleRefreshPromise = Promise.allSettled([
       refreshRecentDailyIfNeeded(),
       refreshUnlimitedIfNeeded(),
-    ]).finally(() => {
-      puzzleRefreshPromise = null;
-    });
+    ])
+      .then(([daily, unlimited]) => ({
+        dailyReady: daily.status === "fulfilled" && daily.value === true,
+        unlimitedReady:
+          unlimited.status === "fulfilled" && unlimited.value === true,
+      }))
+      .then((status) => ({
+        ...status,
+        ready: status.dailyReady && status.unlimitedReady,
+      }))
+      .finally(() => {
+        puzzleRefreshPromise = null;
+      });
   }
   return puzzleRefreshPromise;
 }
@@ -243,7 +255,16 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "refresh-puzzle-data") {
-    event.waitUntil(refreshPuzzleDataIfNeeded());
+    event.waitUntil(
+      (async () => {
+        const status = await refreshPuzzleDataIfNeeded();
+        event.source?.postMessage({
+          type: "puzzle-data-cache-status",
+          date: getKstDateKey(),
+          ...status,
+        });
+      })(),
+    );
   }
 });
 
