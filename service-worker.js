@@ -88,28 +88,54 @@ async function fetchAndCacheData(url, cache) {
   }
 }
 
+async function cacheContainsAll(urls, cache) {
+  for (const url of urls) {
+    if (!(await cache.match(url))) return false;
+  }
+
+  return true;
+}
+
+async function refreshAndVerifyData(urls, cache) {
+  let allFetched = true;
+
+  for (const url of urls) {
+    if (!(await fetchAndCacheData(url, cache))) allFetched = false;
+  }
+
+  return allFetched && cacheContainsAll(urls, cache);
+}
+
 async function refreshRecentDailyIfNeeded() {
   const today = getKstDateKey();
-  if ((await readMeta("daily-refresh-date")) === today) return;
-
   const cache = await caches.open(DATA_CACHE);
-  const results = await Promise.all(
-    getRecentDailyUrls().map((url) => fetchAndCacheData(url, cache)),
-  );
-  if (results.every(Boolean)) {
+  const urls = getRecentDailyUrls();
+  if (
+    (await readMeta("daily-refresh-date")) === today &&
+    (await cacheContainsAll(urls, cache))
+  ) {
+    return;
+  }
+
+  const refreshed = await refreshAndVerifyData(urls, cache);
+  if (refreshed) {
     await writeMeta("daily-refresh-date", today);
   }
 }
 
 async function refreshUnlimitedIfNeeded() {
   const today = getKstDateKey();
-  if ((await readMeta("unlimited-refresh-date")) === today) return;
-
   const cache = await caches.open(DATA_CACHE);
-  const results = await Promise.all(
-    getUnlimitedUrls().map((url) => fetchAndCacheData(url, cache)),
-  );
-  if (results.every(Boolean)) {
+  const urls = getUnlimitedUrls();
+  if (
+    (await readMeta("unlimited-refresh-date")) === today &&
+    (await cacheContainsAll(urls, cache))
+  ) {
+    return;
+  }
+
+  const refreshed = await refreshAndVerifyData(urls, cache);
+  if (refreshed) {
     await writeMeta("unlimited-refresh-date", today);
   }
 }
@@ -192,7 +218,6 @@ self.addEventListener("install", (event) => {
     (async () => {
       const cache = await caches.open(APP_CACHE);
       await cache.addAll(APP_SHELL);
-      await refreshPuzzleDataIfNeeded();
       await self.skipWaiting();
     })(),
   );
@@ -212,7 +237,6 @@ self.addEventListener("activate", (event) => {
           .map((name) => caches.delete(name)),
       );
       await self.clients.claim();
-      await refreshPuzzleDataIfNeeded();
     })(),
   );
 });
@@ -254,7 +278,7 @@ self.addEventListener("fetch", (event) => {
     UNLIMITED_PATH_PATTERN.test(url.pathname)
   ) {
     event.respondWith(getUnlimitedResponse(request));
-    event.waitUntil(refreshUnlimitedIfNeeded());
+    event.waitUntil(refreshPuzzleDataIfNeeded());
     return;
   }
 
