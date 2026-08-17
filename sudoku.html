@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-title" content="fsrs Daily Sudoku" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>for some reason - Irreducible Sudoku</title>
     <link
       rel="stylesheet"
@@ -94,15 +97,31 @@
     <div
       class="relative bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-5xl">
       <button
-        id="theme-toggle"
-        class="absolute top-3 left-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
-        data-tooltip="Toggle theme"
-        data-i18n-tooltip="tooltip_theme">
-        ◑
+        id="install-app-btn"
+        type="button"
+        hidden
+        class="absolute top-3 left-10 p-2 text-gray-700 dark:text-gray-300 leading-none opacity-50 hover:opacity-100 transition-opacity"
+        data-tooltip="Install app"
+        data-i18n-tooltip="tooltip_install"
+        aria-label="Install app">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true">
+          <path d="M12 3v11" />
+          <path d="m8 10 4 4 4-4" />
+          <path d="M5 17v3h14v-3" />
+        </svg>
       </button>
       <button
         id="lang-toggle"
-        class="absolute top-3 left-10 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
+        class="absolute top-3 left-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
         data-tooltip="Switch language"
         data-i18n-tooltip="switch_language">
         한
@@ -834,6 +853,19 @@
           Preferences
         </h3>
 
+        <div class="mb-1">
+          <button
+            id="theme-toggle"
+            type="button"
+            class="w-full flex items-center gap-2 py-2 text-sm font-medium text-gray-800 dark:text-gray-200"
+            aria-labelledby="theme-toggle-label">
+            <span class="theme-toggle-icon" aria-hidden="true">◐</span>
+            <span id="theme-toggle-label" data-i18n="pref_theme"
+              >Toggle Theme</span
+            >
+          </button>
+        </div>
+
         <div class="mb-2 pb-2 border-b border-gray-300 dark:border-gray-700">
           <label
             class="flex items-start gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
@@ -880,6 +912,36 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+    <div
+      id="install-help-modal"
+      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="install-help-title">
+      <div
+        class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-xl w-[90vw] max-w-sm border border-gray-200 dark:border-gray-700">
+        <h3
+          id="install-help-title"
+          class="text-lg font-bold mb-3 text-gray-800 dark:text-gray-100"
+          data-i18n="modal_install_title">
+          Install App
+        </h3>
+        <p
+          id="install-help-message"
+          class="text-sm text-gray-700 dark:text-gray-300 mb-4"
+          data-i18n="install_ios_instructions">
+          Open the browser's Share menu, choose Add to Home Screen, turn on Open
+          as Web App, and then tap Add.
+        </p>
+        <button
+          id="install-help-close-btn"
+          type="button"
+          class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
+          data-i18n="btn_cancel">
+          Close
+        </button>
       </div>
     </div>
     <script src="sudoku/sudoku_i18n.js" defer></script>
