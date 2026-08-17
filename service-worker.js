@@ -203,6 +203,12 @@ async function networkFirstData(request) {
   }
 }
 
+async function cacheFirstData(request) {
+  const cache = await caches.open(DATA_CACHE);
+  const cached = await cache.match(request.url);
+  return cached || networkFirstData(request);
+}
+
 async function getUnlimitedResponse(request) {
   const refreshedToday =
     (await readMeta("unlimited-refresh-date")) === getKstDateKey();
@@ -290,7 +296,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.origin === PUZZLE_ORIGIN && DAILY_PATH_PATTERN.test(url.pathname)) {
-    event.respondWith(networkFirstData(request));
+    event.respondWith(cacheFirstData(request));
     return;
   }
 
