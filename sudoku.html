@@ -4,13 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="apple-mobile-web-app-title" content="fsrs Daily Sudoku" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>for some reason - Irreducible Sudoku</title>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Nanum+Gothic+Coding&family=Satisfy&display=swap"
-      crossorigin="anonymous" />
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Nanum+Gothic+Coding&family=Satisfy&display=swap" />
     <link href="assets/css/pretendardvariable-jp.css" rel="stylesheet" />
     <link href="sudoku/sudoku.css" rel="stylesheet" />
     <link href="sudoku/custom.css" rel="stylesheet" />
@@ -96,41 +95,72 @@
     class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4">
     <div
       class="relative bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-5xl">
-      <button
-        id="install-app-btn"
-        type="button"
-        hidden
-        class="absolute top-3 left-10 p-2 text-gray-700 dark:text-gray-300 leading-none opacity-50 hover:opacity-100 transition-opacity"
-        data-tooltip="Install app"
-        data-i18n-tooltip="tooltip_install"
-        aria-label="Install app">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true">
-          <path d="M12 3v11" />
-          <path d="m8 10 4 4 4-4" />
-          <path d="M5 17v3h14v-3" />
-        </svg>
-        <span
-          class="offline-cache-dot install-cache-dot"
+      <div class="absolute top-3 left-3 flex items-center gap-1">
+        <button
+          id="lang-toggle"
+          class="inline-flex w-9 h-9 shrink-0 items-center justify-center p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
+          data-tooltip="Switch language"
+          data-i18n-tooltip="switch_language">
+          한
+        </button>
+        <button
+          id="install-app-btn"
+          type="button"
           hidden
-          aria-hidden="true"></span>
-      </button>
+          class="relative inline-flex w-9 h-9 shrink-0 items-center justify-center p-2 text-gray-700 dark:text-gray-300 leading-none opacity-[0.65] hover:opacity-100 transition-opacity"
+          data-tooltip="Install app"
+          data-i18n-tooltip="tooltip_install"
+          aria-label="Install app">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
+            <path d="M12 3v11" />
+            <path d="m8 10 4 4 4-4" />
+            <path d="M5 17v3h14v-3" />
+          </svg>
+          <span
+            class="offline-cache-dot install-cache-dot"
+            hidden
+            aria-hidden="true"></span>
+        </button>
+        <button
+          id="offline-cache-status"
+          type="button"
+          hidden
+          class="relative inline-flex w-9 h-9 shrink-0 items-center justify-center p-2 text-gray-700 dark:text-gray-300 leading-none opacity-[0.65] hover:opacity-100 transition-opacity"
+          data-tooltip="Offline resources are ready."
+          data-i18n-tooltip="tooltip_offline_ready"
+          aria-label="Offline resources are ready">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
+            <path d="M5 3.5h11l3 3v14H5Z" />
+            <path d="M8 3.5v6h8v-5M8 20.5v-7h8v7" />
+          </svg>
+          <span class="offline-cache-dot" aria-hidden="true"></span>
+        </button>
+      </div>
+
       <button
-        id="offline-cache-status"
-        type="button"
-        hidden
-        class="absolute top-3 p-2 text-gray-700 dark:text-gray-300 leading-none"
-        data-tooltip="Offline resources are ready."
-        data-i18n-tooltip="tooltip_offline_ready"
-        aria-label="Offline resources are ready">
+        id="pref-btn"
+        class="absolute top-3 right-13 inline-flex items-center justify-center p-2 leading-none opacity-[0.65] hover:opacity-100 brightness-50 saturate-[0.6] dark:brightness-[1.2] dark:saturate-[0.8] transition-[opacity,filter]"
+        data-tooltip="Preferences"
+        data-i18n-tooltip="tooltip_pref"
+        aria-label="Preferences">
         <svg
           width="20"
           height="20"
@@ -141,34 +171,33 @@
           stroke-linecap="round"
           stroke-linejoin="round"
           aria-hidden="true">
-          <path d="M5 3.5h11l3 3v14H5Z" />
-          <path d="M8 3.5v6h8v-5M8 20.5v-7h8v7" />
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.74v.5a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
-        <span class="offline-cache-dot" aria-hidden="true"></span>
-      </button>
-      <button
-        id="lang-toggle"
-        class="absolute top-3 left-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
-        data-tooltip="Switch language"
-        data-i18n-tooltip="switch_language">
-        한
-      </button>
-
-      <button
-        id="pref-btn"
-        class="absolute top-3 right-14 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
-        data-tooltip="Preferences"
-        data-i18n-tooltip="tooltip_pref"
-        aria-label="Preferences">
-        ⚙
       </button>
 
       <button
         id="share-btn"
-        class="absolute top-3 right-3 p-2 text-xl leading-none opacity-50 hover:opacity-100 transition-opacity"
+        class="absolute top-3 right-3 inline-flex items-center justify-center p-2 leading-none opacity-[0.65] hover:opacity-100 brightness-50 saturate-[0.6] dark:brightness-[1.2] dark:saturate-[0.8] transition-[opacity,filter]"
         data-tooltip="Share puzzle link"
-        data-i18n-tooltip="tooltip_share">
-        🔗
+        data-i18n-tooltip="tooltip_share"
+        aria-label="Share puzzle link">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m8.59 10.51 6.83-3.98M8.59 13.49l6.83 3.98" />
+        </svg>
       </button>
 
       <h1
@@ -183,8 +212,7 @@
           <a href="./" class="hover:underline text-gray-800 dark:text-gray-100"
             >Daily Sudoku</a
           ></span
-        >
-        <span id="year-sticker">v3</span>
+        ><span id="year-sticker">v3</span>
       </h1>
 
       <div
@@ -886,7 +914,21 @@
             type="button"
             class="w-full flex items-center gap-2 py-2 text-sm font-medium text-gray-800 dark:text-gray-200"
             aria-labelledby="theme-toggle-label">
-            <span class="theme-toggle-icon" aria-hidden="true">◐</span>
+            <svg
+              class="theme-toggle-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true">
+              <circle
+                cx="12"
+                cy="12"
+                r="8.5"
+                stroke="currentColor"
+                stroke-width="1.75" />
+              <path d="M12 3.5a8.5 8.5 0 0 1 0 17Z" fill="currentColor" />
+            </svg>
             <span id="theme-toggle-label" data-i18n="pref_theme"
               >Toggle Theme</span
             >
@@ -899,7 +941,7 @@
             <input
               type="checkbox"
               id="toggle-uniqueness-btn"
-              class="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
+              class="w-4 h-4 mt-0.5 mx-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
             <div>
               <span class="block" data-i18n="pref_uniqueness"
                 >Enable Uniqueness Techniques</span
