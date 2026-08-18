@@ -1,7 +1,7 @@
 {
   "id": "../../sudoku.html",
   "name": "fsrs Daily Sudoku",
-  "short_name": "fsrs D.S",
+  "short_name": "fsrs D.S.",
   "description": "daily minimal minigame",
   "start_url": "../../sudoku.html",
   "scope": "../../",
