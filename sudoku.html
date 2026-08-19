@@ -908,11 +908,11 @@
           Preferences
         </h3>
 
-        <div class="mb-1">
+        <div>
           <button
             id="theme-toggle"
             type="button"
-            class="w-full flex items-center gap-2 py-2 text-sm font-medium text-gray-800 dark:text-gray-200"
+            class="w-full flex items-center gap-2 py-1 text-sm font-medium text-gray-800 dark:text-gray-200"
             aria-labelledby="theme-toggle-label">
             <svg
               class="theme-toggle-icon"
@@ -935,7 +935,44 @@
           </button>
         </div>
 
-        <div class="mb-2 pb-2 border-b border-gray-300 dark:border-gray-700">
+        <div
+          id="difficulty-engine-preference"
+          class="py-1 flex items-center justify-between gap-3 text-sm text-gray-800 dark:text-gray-200">
+          <label
+            for="difficulty-engine-select"
+            class="font-medium flex items-center gap-2">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              class="shrink-0">
+              <path
+                d="M4 15a8 8 0 1 1 16 0"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round" />
+              <path
+                d="M12 15 16 9"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round" />
+              <circle cx="12" cy="15" r="1.3" fill="currentColor" />
+            </svg>
+            <span data-i18n="pref_difficulty_engine">Difficulty rating</span>
+          </label>
+          <select
+            id="difficulty-engine-select"
+            class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm">
+            <option value="skfr">skfr</option>
+            <option value="se">SE</option>
+            <option value="old-se">SE 1.2.1</option>
+          </select>
+        </div>
+
+        <div
+          class="py-1 pb-2 mb-2 border-b border-gray-300 dark:border-gray-700">
           <label
             class="flex items-start gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
             <input
@@ -1019,6 +1056,7 @@
     <script src="sudoku/sudoku_solver.js" defer></script>
     <script src="sudoku/skfr.js" defer></script>
     <script src="sudoku/skfr_runner.js" defer></script>
+    <script src="sudoku/sefast_runner.js" defer></script>
     <script src="sudoku/sudoku_ui.js" defer></script>
     <script src="sudoku/sudoku_main.js" defer></script>
   </body>
