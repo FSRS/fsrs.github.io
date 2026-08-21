@@ -261,31 +261,25 @@
             id="mode-selector">
             <button
               id="mode-toggle-btn"
-              class="control-btn active sm:flex-1 flex flex-col items-center justify-center px-4 py-1 sm:py-0 sm:h-14 text-sm font-semibold text-center sm:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
+              class="control-btn active min-[880px]:flex-1 flex flex-col items-center justify-center px-4 py-1 min-[880px]:py-0 min-[880px]:h-14 text-sm font-semibold text-center min-[880px]:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
               data-i18n="btn_number">
               Number(Z)
             </button>
             <button
               data-mode="draw"
-              class="control-btn sm:flex-1 flex flex-col items-center justify-center px-4 py-1 sm:py-0 sm:h-14 text-sm font-semibold text-center sm:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
+              class="control-btn min-[880px]:flex-1 flex flex-col items-center justify-center px-4 py-1 min-[880px]:py-0 min-[880px]:h-14 text-sm font-semibold text-center min-[880px]:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
               data-i18n="btn_draw">
               Draw(X)
             </button>
             <button
               data-mode="color"
-              class="control-btn sm:flex-1 flex flex-col items-center justify-center px-4 py-1 sm:py-0 sm:h-14 text-sm font-semibold text-center sm:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
+              class="control-btn min-[880px]:flex-1 flex flex-col items-center justify-center px-4 py-1 min-[880px]:py-0 min-[880px]:h-14 text-sm font-semibold text-center min-[880px]:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
               data-i18n="btn_color">
               Color(C)
             </button>
             <button
-              id="format-toggle-btn"
-              class="control-btn sm:flex-1 flex flex-col items-center justify-center px-4 py-1 sm:py-0 sm:h-14 text-sm font-semibold text-center sm:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 dark:border-gray-500 dark:text-gray-200 rounded-md shadow-sm bg-white hover:bg-gray-100"
-              data-i18n="btn_display">
-              Display A(D)
-            </button>
-            <button
               id="vague-hint-btn"
-              class="control-btn sm:flex-[0.5] flex flex-col items-center justify-center px-4 py-1 sm:py-0 sm:h-14 text-sm font-semibold text-center sm:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
+              class="control-btn min-[880px]:flex-[0.5] flex flex-col items-center justify-center px-4 py-1 min-[880px]:py-0 min-[880px]:h-14 text-sm font-semibold text-center min-[880px]:[word-spacing:100vw] whitespace-normal leading-normal border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-100"
               data-i18n="btn_vague_hint">
               ?(V)
             </button>
@@ -332,14 +326,6 @@
               >
             </button>
             <button
-              id="expt-mode-btn"
-              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal text-center">
-              <span data-i18n="btn_expt_off">Expt. OFF</span
-              ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
-                >(E)</span
-              >
-            </button>
-            <button
               id="solve-btn"
               data-tooltip="Open the GUI Solver Mode (S)."
               data-i18n-tooltip="tooltip_solve"
@@ -360,13 +346,23 @@
               >
             </button>
             <button
+              id="clear-draw-btn"
+              data-tooltip="Clear all drawn lines (W)."
+              data-i18n-tooltip="tooltip_wipe_draw"
+              class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal">
+              <span data-i18n="btn_wipe_draw">Wipe Draw</span
+              ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
+                >(W)</span
+              >
+            </button>
+            <button
               id="clear-colors-btn"
-              data-tooltip="Clear all cell and candidate colors (W)."
+              data-tooltip="Clear all cell and candidate colors, circles, and slashes (E)."
               data-i18n-tooltip="tooltip_wipe_colors"
               class="w-full flex flex-col items-center justify-center py-2 px-1 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-100 leading-tight whitespace-normal">
               <span data-i18n="btn_wipe_colors">Wipe Colors</span
               ><span class="shortcut-indicator text-xs opacity-75 mt-0.5"
-                >(W)</span
+                >(E)</span
               >
             </button>
           </div>
@@ -748,36 +744,6 @@
       </div>
     </div>
     <div
-      id="format-confirm-modal"
-      class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/50">
-      <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-80 text-center border border-gray-200 dark:border-gray-700 relative">
-        <h3
-          class="text-xl font-bold mb-2 text-gray-800 dark:text-gray-100"
-          data-i18n="modal_format_title">
-          Change Layout?
-        </h3>
-        <p
-          class="text-gray-600 dark:text-gray-300 mb-6 text-sm"
-          data-i18n="modal_format_desc">
-          This will toggle the layout of the candidate and the number pad.
-        </p>
-        <div class="flex flex-col gap-3">
-          <button
-            id="format-confirm-btn"
-            class="w-full flex flex-col items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors leading-tight">
-            <span data-i18n="btn_confirm">Confirm</span>
-          </button>
-          <button
-            id="format-cancel-btn"
-            class="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 shadow-sm transition-colors"
-            data-i18n="btn_cancel">
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-    <div
       id="reset-confirm-modal"
       class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/50">
       <div
@@ -908,11 +874,11 @@
           Preferences
         </h3>
 
-        <div>
+        <div class="h-8">
           <button
             id="theme-toggle"
             type="button"
-            class="w-full flex items-center gap-2 py-1 text-sm font-medium text-gray-800 dark:text-gray-200"
+            class="w-full h-8 flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200"
             aria-labelledby="theme-toggle-label">
             <svg
               class="theme-toggle-icon"
@@ -937,7 +903,7 @@
 
         <div
           id="difficulty-engine-preference"
-          class="py-1 flex items-center justify-between gap-3 text-sm text-gray-800 dark:text-gray-200">
+          class="h-8 flex items-center justify-between gap-3 text-sm text-gray-800 dark:text-gray-200">
           <label
             for="difficulty-engine-select"
             class="font-medium flex items-center gap-2">
@@ -964,7 +930,7 @@
           </label>
           <select
             id="difficulty-engine-select"
-            class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm">
+            class="mb-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm">
             <option value="skfr">skfr</option>
             <option value="se">SE</option>
             <option value="old-se">SE 1.2.1</option>
@@ -972,13 +938,57 @@
         </div>
 
         <div
-          class="py-1 pb-2 mb-2 border-b border-gray-300 dark:border-gray-700">
+          class="h-8 flex items-center justify-between gap-3 text-sm text-gray-800 dark:text-gray-200">
+          <label for="display-mode-select" class="font-medium flex items-center gap-2">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              class="shrink-0">
+              <rect
+                x="3.5"
+                y="3.5"
+                width="17"
+                height="17"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="1.75" />
+              <path
+                d="M9.17 3.5v17M14.83 3.5v17M3.5 9.17h17M3.5 14.83h17"
+                stroke="currentColor"
+                stroke-width="1.5" />
+            </svg>
+            <span data-i18n="pref_display_mode">Display Mode</span>
+          </label>
+          <select
+            id="display-mode-select"
+            class="mt-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm">
+            <option value="A" data-i18n="pref_display_mode_a">Phone</option>
+            <option value="B" data-i18n="pref_display_mode_b">Numpad</option>
+          </select>
+        </div>
+
+        <div class="h-8">
           <label
-            class="flex items-start gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
+            class="h-8 flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
+            <input
+              type="checkbox"
+              id="experimental-mode-toggle"
+              class="w-4 h-4 mx-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
+            <span class="block" data-i18n="pref_experimental_mode">Experimental Mode</span>
+          </label>
+        </div>
+
+        <div
+          class="pb-2 mb-2 border-b border-gray-300 dark:border-gray-700">
+          <label
+            class="h-8 flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
             <input
               type="checkbox"
               id="toggle-uniqueness-btn"
-              class="w-4 h-4 mt-0.5 mx-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
+              class="w-4 h-4 mx-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
             <div>
               <span class="block" data-i18n="pref_uniqueness"
                 >Enable Uniqueness Techniques</span
