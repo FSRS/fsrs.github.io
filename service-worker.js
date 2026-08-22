@@ -1,4 +1,4 @@
-const APP_CACHE_VERSION = "v4";
+const APP_CACHE_VERSION = "v5";
 const DATA_CACHE_VERSION = "v1";
 const APP_CACHE = `fsrs-sudoku-app-${APP_CACHE_VERSION}`;
 const DATA_CACHE = `fsrs-sudoku-data-${DATA_CACHE_VERSION}`;
@@ -29,7 +29,7 @@ const APP_SHELL = [
   "./sudoku/sefast_native.js",
   "./sudoku/sudoku_ui.js",
   "./sudoku/sudoku_main.js",
-  //"./sudoku/sudoku_blossom_worker.js",
+  "./sudoku/sudoku_blossom_worker.js",
   "./sudoku/skfr.wasm",
   "./sudoku/sefast.wasm",
   "./sudoku/sefast_native.wasm",
