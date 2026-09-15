@@ -171,43 +171,86 @@ function refreshPuzzleDataIfNeeded() {
   return puzzleRefreshPromise;
 }
 
-async function networkFirstStatic(request) {
-  const cache = await caches.open(APP_CACHE);
+const isServerFailure = (status) => status >= 500;
+const isAppShellFailure = (status) => status >= 500 || status === 404;
+
+async function readCache(cache, key) {
   try {
-    const response = await fetch(request);
-    if (response.ok) await cache.put(request, response.clone());
-    return response;
+    return await cache.match(key);
   } catch {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    throw new Error("A required Sudoku asset is not available offline yet.");
+    // An unreadable cache is the same as an empty one for the caller.
+    return undefined;
   }
 }
 
-async function networkFirstNavigation(request) {
-  const cache = await caches.open(APP_CACHE);
+async function writeCache(cache, key, response) {
   try {
-    const response = await fetch(request);
-    if (response.ok) await cache.put(SUDOKU_URL, response.clone());
-    return response;
+    await cache.put(key, response.clone());
   } catch {
-    const cached = await cache.match(SUDOKU_URL);
-    if (cached) return cached;
-    throw new Error("Sudoku is not available offline yet.");
+    // A full or blocked cache must not cost the user a usable response.
   }
 }
 
-async function networkFirstData(request) {
-  const cache = await caches.open(DATA_CACHE);
+/**
+ * Network first, falling back to the stored copy of the same key for answers
+ * the app cannot use. Failed responses are never written to the cache.
+ */
+async function networkFirst(
+  request,
+  cacheName,
+  cacheKey,
+  isRecoverable,
+  offlineMessage,
+) {
+  const cache = await caches.open(cacheName);
+  let response = null;
   try {
-    const response = await fetch(new Request(request, { cache: "no-cache" }));
-    if (response.ok) await cache.put(request.url, response.clone());
-    return response;
+    response = await fetch(request);
   } catch {
-    const cached = await cache.match(request.url);
-    if (cached) return cached;
-    throw new Error("Puzzle data is not available offline yet.");
+    // Left null: an unreachable network is always worth a cache lookup.
   }
+
+  if (response?.ok) {
+    await writeCache(cache, cacheKey, response);
+    return response;
+  }
+  if (response && !isRecoverable(response.status)) return response;
+
+  const cached = await readCache(cache, cacheKey);
+  if (cached) return cached;
+  // With nothing stored, the server's own failure explains more than we could.
+  if (response) return response;
+  throw new Error(offlineMessage);
+}
+
+function networkFirstStatic(request) {
+  return networkFirst(
+    request,
+    APP_CACHE,
+    request,
+    isAppShellFailure,
+    "A required Sudoku asset is not available offline yet.",
+  );
+}
+
+function networkFirstNavigation(request) {
+  return networkFirst(
+    request,
+    APP_CACHE,
+    SUDOKU_URL,
+    isAppShellFailure,
+    "Sudoku is not available offline yet.",
+  );
+}
+
+function networkFirstData(request) {
+  return networkFirst(
+    new Request(request, { cache: "no-cache" }),
+    DATA_CACHE,
+    request.url,
+    isServerFailure,
+    "Puzzle data is not available offline yet.",
+  );
 }
 
 async function cacheFirstData(request) {
@@ -233,7 +276,7 @@ async function cacheFirstRuntime(request) {
     response.ok ||
     (request.mode === "no-cors" && response.type === "opaque")
   ) {
-    await cache.put(request, response.clone());
+    await writeCache(cache, request, response);
   }
   return response;
 }
