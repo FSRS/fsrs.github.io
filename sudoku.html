@@ -984,6 +984,48 @@
             </select>
           </div>
 
+          <div
+            class="h-8 flex items-center justify-between gap-3 text-sm text-gray-800 dark:text-gray-200">
+            <label
+              for="highlight-mode-select"
+              class="font-medium flex items-center gap-2">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                class="shrink-0">
+                <rect
+                  x="3.5"
+                  y="3.5"
+                  width="17"
+                  height="17"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="1.75" />
+                <rect
+                  x="6.5"
+                  y="6.5"
+                  width="5"
+                  height="5"
+                  rx="1"
+                  fill="currentColor" />
+              </svg>
+              <span data-i18n="pref_highlight_mode">Highlight</span>
+            </label>
+            <select
+              id="highlight-mode-select"
+              class="mt-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm">
+              <option value="cell" data-i18n="pref_highlight_mode_cell">
+                Whole Cell
+              </option>
+              <option value="candidate" data-i18n="pref_highlight_mode_candidate">
+                Candidate Only
+              </option>
+            </select>
+          </div>
+
           <div class="h-8">
             <label
               data-tooltip="Direct candidates: left-click to set/erase; right-click to erase in Number mode."
