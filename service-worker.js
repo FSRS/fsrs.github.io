@@ -1,4 +1,4 @@
-const APP_CACHE_VERSION = "v8";
+const APP_CACHE_VERSION = "v12";
 const DATA_CACHE_VERSION = "v2";
 const APP_CACHE = `fsrs-sudoku-app-${APP_CACHE_VERSION}`;
 const DATA_CACHE = `fsrs-sudoku-data-${DATA_CACHE_VERSION}`;
@@ -23,13 +23,13 @@ const APP_SHELL = [
   "./sudoku/sudoku_teks.js",
   "./sudoku/sudoku_solver.js",
   "./sudoku/rating_runner.js",
-  "./sudoku/rating_worker.js",
-  "./sudoku/rating_runtime.js",
-  "./sudoku/rating.js",
+  "./sudoku/rating_worker.js?v=one-cell-se-1",
+  "./sudoku/rating_runtime.js?v=one-cell-se-1",
+  "./sudoku/rating.js?v=one-cell-se-1",
   "./sudoku/sudoku_ui.js",
   "./sudoku/sudoku_main.js",
   "./sudoku/sudoku_blossom_worker.js",
-  "./sudoku/rating.wasm",
+  "./sudoku/rating.wasm?v=one-cell-se-1",
   "./assets/css/pretendardvariable-jp.css",
   "./assets/css/woff2/PretendardJPVariable.woff2",
   "./assets/favicon/manifest.json",
