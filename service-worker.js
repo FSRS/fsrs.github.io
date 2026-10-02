@@ -1,4 +1,4 @@
-const APP_CACHE_VERSION = "v12";
+const APP_CACHE_VERSION = "v13";
 const DATA_CACHE_VERSION = "v2";
 const APP_CACHE = `fsrs-sudoku-app-${APP_CACHE_VERSION}`;
 const DATA_CACHE = `fsrs-sudoku-data-${DATA_CACHE_VERSION}`;
@@ -7,7 +7,7 @@ const SUDOKU_CACHE_PREFIX = "fsrs-sudoku-";
 
 const PUZZLE_ORIGIN = "https://json.sudoku.darksabun.club";
 const DAILY_PATH_PATTERN = /^\/ds_\d{8}\.json$/;
-const UNLIMITED_PATH_PATTERN = /^\/unlimited\/Lv\d{2}\.txt$/;
+const FILE_PUZZLE_PATH_PATTERN = /^\/(?:unlimited|joc)\/Lv\d{2}\.txt$/;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,10 +54,10 @@ function getRecentDailyUrls(count = 7) {
   });
 }
 
-function getUnlimitedUrls() {
-  return Array.from({ length: 11 }, (_, level) => {
+function getFilePuzzleUrls(mode) {
+  return Array.from({ length: mode === "joc" ? 12 : 11 }, (_, level) => {
     const fileIndex = String(level).padStart(2, "0");
-    return `${PUZZLE_ORIGIN}/unlimited/Lv${fileIndex}.txt`;
+    return `${PUZZLE_ORIGIN}/${mode}/Lv${fileIndex}.txt`;
   });
 }
 
@@ -128,12 +128,12 @@ async function refreshRecentDailyIfNeeded() {
   return refreshed;
 }
 
-async function refreshUnlimitedIfNeeded() {
+async function refreshFilePuzzlesIfNeeded(mode) {
   const today = getKstDateKey();
   const cache = await caches.open(DATA_CACHE);
-  const urls = getUnlimitedUrls();
+  const urls = getFilePuzzleUrls(mode);
   if (
-    (await readMeta("unlimited-refresh-date")) === today &&
+    (await readMeta(`${mode}-refresh-date`)) === today &&
     (await cacheContainsAll(urls, cache))
   ) {
     return true;
@@ -141,7 +141,7 @@ async function refreshUnlimitedIfNeeded() {
 
   const refreshed = await refreshAndVerifyData(urls, cache);
   if (refreshed) {
-    await writeMeta("unlimited-refresh-date", today);
+    await writeMeta(`${mode}-refresh-date`, today);
   }
   return refreshed;
 }
@@ -150,16 +150,18 @@ function refreshPuzzleDataIfNeeded() {
   if (!puzzleRefreshPromise) {
     puzzleRefreshPromise = Promise.allSettled([
       refreshRecentDailyIfNeeded(),
-      refreshUnlimitedIfNeeded(),
+      refreshFilePuzzlesIfNeeded("unlimited"),
+      refreshFilePuzzlesIfNeeded("joc"),
     ])
-      .then(([daily, unlimited]) => ({
+      .then(([daily, unlimited, joc]) => ({
         dailyReady: daily.status === "fulfilled" && daily.value === true,
         unlimitedReady:
           unlimited.status === "fulfilled" && unlimited.value === true,
+        jocReady: joc.status === "fulfilled" && joc.value === true,
       }))
       .then((status) => ({
         ...status,
-        ready: status.dailyReady && status.unlimitedReady,
+        ready: status.dailyReady && status.unlimitedReady && status.jocReady,
       }))
       .finally(() => {
         puzzleRefreshPromise = null;
@@ -256,10 +258,6 @@ async function cacheFirstData(request) {
   return cached || networkFirstData(request);
 }
 
-function getUnlimitedResponse(request) {
-  return networkFirstData(request);
-}
-
 async function cacheFirstRuntime(request) {
   const cache = await caches.open(APP_CACHE);
   const cached = await cache.match(request);
@@ -349,9 +347,11 @@ self.addEventListener("fetch", (event) => {
 
   if (
     url.origin === PUZZLE_ORIGIN &&
-    UNLIMITED_PATH_PATTERN.test(url.pathname)
+    FILE_PUZZLE_PATH_PATTERN.test(url.pathname)
   ) {
-    event.respondWith(getUnlimitedResponse(request));
+    // Files can change at any time of day; always revalidate the selected
+    // level online and retain its last successful response for offline play.
+    event.respondWith(networkFirstData(request));
     event.waitUntil(refreshPuzzleDataIfNeeded());
     return;
   }
