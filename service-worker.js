@@ -1,4 +1,5 @@
-const APP_CACHE_VERSION = "v14";
+let APP_CACHE_VERSION = "v15";
+/* @edition-slot shell-001 */
 const DATA_CACHE_VERSION = "v2";
 const APP_CACHE = `fsrs-sudoku-app-${APP_CACHE_VERSION}`;
 const DATA_CACHE = `fsrs-sudoku-data-${DATA_CACHE_VERSION}`;
@@ -29,6 +30,16 @@ const APP_SHELL = [
   "./sudoku/sudoku_ui.js",
   "./sudoku/sudoku_main.js",
   "./sudoku/sudoku_blossom_worker.js",
+  "./sudoku/sudoku_tlg_worker.js",
+  "./sudoku/tlg/exact.js",
+  "./sudoku/tlg/dlx.js",
+  "./sudoku/tlg/pb.js",
+  "./sudoku/tlg/state.js",
+  /* @edition-slot shell-002 */
+  "./sudoku/tlg/rank.js",
+  "./sudoku/tlg/gate.js",
+  /* @edition-slot shell-003 */
+  "./sudoku/tlg/adapter.js",
   "./sudoku/ocr/sudoku_ocr_worker.js",
   "./sudoku/ocr/sudoku_ocr.js",
   "./sudoku/ocr/sudoku_ocr_model.js",
