@@ -915,6 +915,17 @@
             data-i18n="pref_tab_techniques">
             Techniques
           </button>
+          <button
+            id="pref-tab-lab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="pref-panel-lab"
+            data-pref-tab="lab"
+            class="pref-tab"
+            data-i18n="pref_tab_lab">
+            Lab
+          </button>
         </div>
 
         <div
@@ -1072,7 +1083,7 @@
 
             <div class="h-8">
               <label
-                data-tooltip="Direct candidates: left-click to set/erase; right-click to erase in Number mode."
+                data-tooltip="Number mode: click a candidate to set it, right-click to erase it."
                 data-i18n-tooltip="pref_experimental_mode_tooltip_desktop"
                 class="h-8 flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
                 <input
@@ -1080,7 +1091,22 @@
                   id="experimental-mode-toggle"
                   class="w-4 h-4 mx-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
                 <span class="block" data-i18n="pref_experimental_mode"
-                  >Experimental Mode</span
+                  >Direct Candidate Input</span
+                >
+              </label>
+            </div>
+
+            <div class="h-8">
+              <label
+                data-tooltip="Draw mode: right-click a candidate to draw a dashed line. Color mode: right-click to apply the previous color."
+                data-i18n-tooltip="pref_lab_drawing_tooltip_desktop"
+                class="h-8 flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="lab-drawing-toggle"
+                  class="w-4 h-4 mx-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
+                <span class="block" data-i18n="pref_lab_drawing"
+                  >Quick Draw &amp; Color</span
                 >
               </label>
             </div>
@@ -1141,6 +1167,19 @@
             <div
               id="technique-list-container"
               class="flex flex-col gap-1"></div>
+          </div>
+
+          <div
+            id="pref-panel-lab"
+            role="tabpanel"
+            aria-labelledby="pref-tab-lab">
+            <button
+              id="batch-rating-open-btn"
+              type="button"
+              class="w-full rounded border border-indigo-300 dark:border-indigo-700 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-1 text-sm font-medium text-indigo-800 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-900/80"
+              data-i18n="batch_open">
+              Batch Rating
+            </button>
           </div>
         </div>
 
